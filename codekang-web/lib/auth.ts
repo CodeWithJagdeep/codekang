@@ -3,33 +3,33 @@ import {
   GoogleAuthProvider,
   GithubAuthProvider,
   signOut as firebaseSignOut,
-} from "firebase/auth";
-import { firebaseAuth } from "./firebase";
+} from 'firebase/auth';
+import { firebaseAuth } from './firebase';
 
 export const API_URL =
-  process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3000/api/v1";
+  process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3000/api/v1';
 
 // ─── Token helpers ────────────────────────────────────────────────────────────
 
 export function getAccessToken(): string | null {
-  if (typeof window === "undefined") return null;
-  return localStorage.getItem("accessToken");
+  if (typeof window === 'undefined') return null;
+  return localStorage.getItem('accessToken');
 }
 
 export function getRefreshToken(): string | null {
-  if (typeof window === "undefined") return null;
-  return localStorage.getItem("refreshToken");
+  if (typeof window === 'undefined') return null;
+  return localStorage.getItem('refreshToken');
 }
 
 export function saveTokens(accessToken: string, refreshToken: string) {
-  localStorage.setItem("accessToken", accessToken);
-  localStorage.setItem("refreshToken", refreshToken);
+  localStorage.setItem('accessToken', accessToken);
+  localStorage.setItem('refreshToken', refreshToken);
 }
 
 export function clearTokens() {
-  localStorage.removeItem("accessToken");
-  localStorage.removeItem("refreshToken");
-  localStorage.removeItem("user");
+  localStorage.removeItem('accessToken');
+  localStorage.removeItem('refreshToken');
+  localStorage.removeItem('user');
 }
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -39,7 +39,7 @@ export interface User {
   email: string;
   name: string;
   avatar?: string;
-  provider: "google" | "github" | "local";
+  provider: 'google' | 'github' | 'local';
   plan: string;
   onboardingCompleted: boolean;
   githubUsername?: string;
@@ -58,19 +58,19 @@ export interface SocialLoginResult {
 // ─── Social sign-in ───────────────────────────────────────────────────────────
 
 async function exchangeSocialToken(
-  provider: "google" | "github",
+  provider: 'google' | 'github',
   token: string,
 ): Promise<SocialLoginResult> {
   const res = await fetch(`${API_URL}/auth/social`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ provider, token }),
   });
 
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
     throw new Error(
-      (err as { message?: string }).message ?? "Authentication failed",
+      (err as { message?: string }).message ?? 'Authentication failed',
     );
   }
 
@@ -79,26 +79,27 @@ async function exchangeSocialToken(
 
 export async function signInWithGoogle(): Promise<SocialLoginResult> {
   const provider = new GoogleAuthProvider();
-  provider.addScope("email");
-  provider.addScope("profile");
+  provider.addScope('email');
+  provider.addScope('profile');
 
   const result = await signInWithPopup(firebaseAuth, provider);
   const credential = GoogleAuthProvider.credentialFromResult(result);
-  if (!credential?.idToken) throw new Error("No Google ID token returned");
+  if (!credential?.idToken) throw new Error('No Google ID token returned');
 
-  return exchangeSocialToken("google", credential.idToken);
+  return exchangeSocialToken('google', credential.idToken);
 }
 
 export async function signInWithGitHub(): Promise<SocialLoginResult> {
   const provider = new GithubAuthProvider();
-  provider.addScope("read:user");
-  provider.addScope("user:email");
+  provider.addScope('read:user');
+  provider.addScope('user:email');
 
   const result = await signInWithPopup(firebaseAuth, provider);
   const credential = GithubAuthProvider.credentialFromResult(result);
-  if (!credential?.accessToken) throw new Error("No GitHub access token returned");
+  if (!credential?.accessToken)
+    throw new Error('No GitHub access token returned');
 
-  return exchangeSocialToken("github", credential.accessToken);
+  return exchangeSocialToken('github', credential.accessToken);
 }
 
 // ─── Onboarding ───────────────────────────────────────────────────────────────
@@ -106,33 +107,35 @@ export async function signInWithGitHub(): Promise<SocialLoginResult> {
 export async function selectPlan(plan: string): Promise<User> {
   const token = getAccessToken();
   const res = await fetch(`${API_URL}/auth/plan`, {
-    method: "PATCH",
+    method: 'PATCH',
     headers: {
-      "Content-Type": "application/json",
+      'Content-Type': 'application/json',
       Authorization: `Bearer ${token}`,
     },
     body: JSON.stringify({ plan }),
   });
-  if (!res.ok) throw new Error("Failed to update plan");
+  if (!res.ok) throw new Error('Failed to update plan');
   return res.json() as Promise<User>;
 }
 
 export async function linkVcs(
-  provider: "gitlab" | "bitbucket",
+  provider: 'gitlab' | 'bitbucket',
   token: string,
 ): Promise<User> {
   const accessToken = getAccessToken();
   const res = await fetch(`${API_URL}/auth/vcs/link`, {
-    method: "POST",
+    method: 'POST',
     headers: {
-      "Content-Type": "application/json",
+      'Content-Type': 'application/json',
       Authorization: `Bearer ${accessToken}`,
     },
     body: JSON.stringify({ provider, token }),
   });
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
-    throw new Error((err as { message?: string }).message ?? "Failed to link VCS");
+    throw new Error(
+      (err as { message?: string }).message ?? 'Failed to link VCS',
+    );
   }
   return res.json() as Promise<User>;
 }
@@ -141,7 +144,7 @@ export async function completeOnboarding(): Promise<void> {
   const token = getAccessToken();
   if (!token) return;
   await fetch(`${API_URL}/auth/onboarding/complete`, {
-    method: "POST",
+    method: 'POST',
     headers: { Authorization: `Bearer ${token}` },
   });
 }
@@ -154,8 +157,8 @@ export async function refreshAccessToken(): Promise<string | null> {
 
   try {
     const res = await fetch(`${API_URL}/auth/refresh`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ refreshToken }),
     });
 
@@ -177,8 +180,8 @@ export async function fetchWithAuth(
   url: string,
   opts?: RequestInit,
 ): Promise<Response> {
-  let token = getAccessToken();
-  if (!token) throw new Error("No access token");
+  const token = getAccessToken();
+  if (!token) throw new Error('No access token');
 
   let res = await fetch(url, {
     ...opts,
@@ -189,7 +192,7 @@ export async function fetchWithAuth(
     const newToken = await refreshAccessToken();
     if (!newToken) {
       await signOut();
-      throw new Error("Session expired");
+      throw new Error('Session expired');
     }
     res = await fetch(url, {
       ...opts,
@@ -204,11 +207,11 @@ export async function signOut() {
   const token = getAccessToken();
   if (token) {
     await fetch(`${API_URL}/auth/logout`, {
-      method: "POST",
+      method: 'POST',
       headers: { Authorization: `Bearer ${token}` },
     }).catch(() => {});
   }
   await firebaseSignOut(firebaseAuth).catch(() => {});
   clearTokens();
-  window.location.href = "/in/login";
+  window.location.href = '/in/login';
 }

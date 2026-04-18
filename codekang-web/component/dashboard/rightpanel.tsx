@@ -104,7 +104,7 @@ const REVIEW_DATA: Record<
     title: 'docs: Update API documentation for new endpoints',
     branch: 'docs/api-updates',
     author: 'John L.',
-    summary: 'KangBot is currently reviewing this PR…',
+    summary: 'KangBot is currently reviewing this PR&hellip;',
     risk: 'low',
     comments: [],
     filesChanged: [
@@ -208,8 +208,8 @@ export default function RightPanel({
             className="text-[12.5px] leading-relaxed"
             style={{ color: 'var(--ink-muted)' }}
           >
-            Select a Pull Request or Issue from the list to see KangBot's AI
-            analysis, inline comments, and risk assessment.
+            Select a Pull Request or Issue from the list to see KangBot&apos;s
+            AI analysis, inline comments, and risk assessment.
           </p>
         </div>
       </aside>
@@ -263,7 +263,8 @@ export default function RightPanel({
           <div className="flex items-start gap-2">
             <GitPullRequest
               size={14}
-              className="text-accent-green shrink-0 mt-0.5"
+              className="shrink-0 mt-0.5"
+              style={{ color: 'var(--ink)' }}
               strokeWidth={2}
             />
             <div>
@@ -394,10 +395,16 @@ export default function RightPanel({
                 >
                   {f.name}
                 </span>
-                <span className="text-[11px] text-accent-green font-medium shrink-0">
+                <span
+                  className="text-[11px] font-medium shrink-0"
+                  style={{ color: '#e8e8e8' }}
+                >
                   +{f.added}
                 </span>
-                <span className="text-[11px] text-accent-red font-medium shrink-0">
+                <span
+                  className="text-[11px] font-medium shrink-0"
+                  style={{ color: 'var(--accent-red)' }}
+                >
                   -{f.removed}
                 </span>
               </div>

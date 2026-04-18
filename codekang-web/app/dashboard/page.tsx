@@ -33,25 +33,32 @@ const INITIAL_REPOS: Repo[] = [
     status: 'busy',
     branch: 'main',
   },
+  {
+    id: 'mentorsland_core',
+    name: 'mentorsland_core',
+    org: 'CodeWithJagdeep',
+    prs: 2,
+    issues: 5,
+    status: 'idle',
+    branch: 'main',
+  },
 ];
 
 export default function DashboardPage() {
   const [repos, setRepos] = useState<Repo[]>(INITIAL_REPOS);
   const [selectedRepo, setSelectedRepo] = useState<string | null>(null);
   const [selectedPR, setSelectedPR] = useState<number | null>(null);
-  const [activeNav, setActiveNav] = useState('overview');
+  const [activeNav, setActiveNav] = useState('review'); // Default to 'review' to match image 625 active state
 
   function handleSelectRepo(id: string) {
     setSelectedRepo(id);
     setSelectedPR(null);
-    // Switch away from overview when a repo is clicked
-    if (activeNav === 'overview') setActiveNav('repos');
   }
 
   function handleNavChange(id: string) {
     setActiveNav(id);
-    // Go back to overview when explicitly clicking Overview
-    if (id === 'overview') setSelectedRepo(null);
+    // If we are in 'review' or 'sessions', we might want to show the repositories list in the center
+    // as requested by the user previously.
   }
 
   function handleAddRepo() {
@@ -72,26 +79,27 @@ export default function DashboardPage() {
   return (
     <main
       className="flex h-screen w-screen overflow-hidden"
-      style={{ background: 'var(--bg)' }}
+      style={{ background: '#121214' }}
     >
       <Sidebar
-        selectedRepo={selectedRepo}
-        onSelectRepo={handleSelectRepo}
         activeNav={activeNav}
         onNavChange={handleNavChange}
+        // Compatibility
+        selectedRepo={selectedRepo}
+        onSelectRepo={handleSelectRepo}
         repos={repos}
         onAddRepo={handleAddRepo}
       />
       <CenterPanel
-        activeNav={activeNav}
-        selectedRepo={selectedRepo}
-        onSelectRepo={handleSelectRepo}
-        onSelectPR={setSelectedPR}
-        selectedPR={selectedPR}
+        activeNav={activeNav === 'review' ? 'repos' : activeNav} // Map 'review' to 'repos' view for now
         repos={repos}
         onAddRepo={handleAddRepo}
+        onSelectRepo={handleSelectRepo}
+        selectedRepo={selectedRepo}
+        onSelectPR={setSelectedPR}
+        selectedPR={selectedPR}
       />
-      <RightPanel selectedPR={selectedPR} />
+      {selectedRepo && <RightPanel selectedPR={selectedPR} />}
     </main>
   );
 }
