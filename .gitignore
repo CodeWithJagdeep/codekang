@@ -1,0 +1,242 @@
+# ============================================================================
+# CODEKANG PLATFORM - GITIGNORE
+# ============================================================================
+# Production Secrets (NEVER commit these!)
+# ============================================================================
+
+# Environment files
+.env
+.env.development
+.env.production
+.env.staging
+.env.local
+.env*.local
+
+# Secret keys
+*.pem
+*.key
+*.cert
+*.crt
+*.p12
+*.pfx
+private-key.pem
+github-app-private-key.pem
+
+# Firebase service account keys
+*-firebase-adminsdk-*.json
+firebase-service-account*.json
+serviceAccount*.json
+
+# OAuth credentials
+.oauth-token
+oauth-config.json
+
+# AWS/Cloud credentials
+.aws/
+.aws-credentials
+aws-config.json
+
+# API keys
+.api-keys
+*.secret
+secrets.yaml
+secrets.env
+
+# SSH keys
+.ssh/
+id_rsa
+id_rsa.pub
+known_hosts
+
+# ============================================================================
+# Build Artifacts
+# ============================================================================
+
+dist/
+build/
+.next/
+out/
+coverage/
+
+# NestJS
+.webpack/
+*.tsbuildinfo
+
+# JavaScript bundles
+*.bundle.js
+*.min.js
+
+# ============================================================================
+# Dependencies
+# ============================================================================
+
+node_modules/
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+npm-debug.log
+yarn-error.log
+pnpm-debug.log
+
+# ============================================================================
+# IDE & Editor Files
+# ============================================================================
+
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# VS Code specific
+.vscode/settings.json
+.vscode/launch.json
+.vscode/extensions.json
+
+# WebStorm
+.idea/
+*.iml
+*.iws
+*.ipr
+
+# Sublime Text
+*.sublime-project
+*.sublime-workspace
+
+# Atom
+.atom/
+
+# vim
+.vim/
+.*.swp
+.*.swo
+Session.vim
+
+# ============================================================================
+# OS Files
+# ============================================================================
+
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+.AppleDouble
+.LSOverride
+
+# ============================================================================
+# Temporary Files
+# ============================================================================
+
+*.tmp
+*.temp
+tmp/
+temp/
+*.log
+logs/
+
+# Database dumps
+*.sql
+*.sql.gz
+!migrations/*.sql
+
+# Cache files
+.cache/
+.eslintcache
+.tscache
+
+# ============================================================================
+# Testing
+# ============================================================================
+
+.nyc_output/
+*.lcov
+
+# ============================================================================
+# Docker
+# ============================================================================
+
+docker-compose.override.yml
+.dockerignore
+
+# ============================================================================
+# CI/CD
+# ============================================================================
+
+.github/workflows/*.backup
+
+# ============================================================================
+# Kubernetes
+# ============================================================================
+
+kubernetes/overlays/*/secrets.env
+kubernetes/overlays/*/config.env
+kubeconfig
+.kubeconfig
+
+# ============================================================================
+# Terraform
+# ============================================================================
+
+terraform/.terraform/
+terraform/*.tfstate
+terraform/*.tfstate.*
+terraform/.tfvars
+terraform/crash.log
+
+# ============================================================================
+# Local Development
+# ============================================================================
+
+.env.local
+.env.*.local
+.local/
+.venv/
+venv/
+env/
+
+# Cloned repos
+repos/
+temp/
+
+# Screenshots
+screenshots/
+*.png
+*.jpg
+
+# ============================================================================
+# Project Specific
+# ============================================================================
+
+local_cache/
+apps/automous-ai/temp/
+apps/automous-ai/dist/
+codekang-web/.next/
+codekang-web/out/
+
+# Backup files
+*.backup
+*.bak
+*.swp
+
+# ============================================================================
+# Archive Files
+# ============================================================================
+
+*.zip
+*.tar.gz
+*.rar
+*.7z
+
+# ============================================================================
+# Sensitive Documentation
+# ============================================================================
+
+PRIVATE_*.md
+SECRET_*.md
+*.private
+credentials.txt

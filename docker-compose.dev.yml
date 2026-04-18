@@ -1,0 +1,113 @@
+# ============================================================================
+# CODEKANG PLATFORM - DEVELOPMENT OVERRIDES
+# ============================================================================
+# Usage: docker-compose -f docker-compose.yml -f docker-compose.dev.yml up
+# ============================================================================
+
+services:
+  auth:
+    build:
+      context: ./apps/auth
+      dockerfile: ../../docker/auth/Dockerfile.dev
+    environment:
+      NODE_ENV: development
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/codekang_platform
+      JWT_SECRET: ${JWT_SECRET:-your-super-secret-jwt-key-change-this}
+      JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-15m}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:-your-refresh-secret-change-this}
+      JWT_REFRESH_EXPIRES_IN: ${JWT_REFRESH_EXPIRES_IN:-7d}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET}
+      GOOGLE_CALLBACK_URL: http://localhost:3011/auth/google/callback
+      GITHUB_CLIENT_ID: ${GITHUB_CLIENT_ID}
+      GITHUB_CLIENT_SECRET: ${GITHUB_CLIENT_SECRET}
+      GITHUB_CALLBACK_URL: http://localhost:3011/auth/github/callback
+      AUTH_HTTP_PORT: 3011
+      AUTH_TCP_PORT: 3001
+      FRONTEND_URL: http://localhost:3010
+      REDIS_URL: redis://redis:6379
+    volumes:
+      - ./apps/auth/src:/app/src
+
+  ai-agent:
+    build:
+      context: ./apps/ai-agent
+      dockerfile: ../../docker/ai-agent/Dockerfile.dev
+    environment:
+      NODE_ENV: development
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/codekang_platform
+      AI_AGENT_TCP_PORT: 3002
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
+      ANTHROPIC_MODEL: ${ANTHROPIC_MODEL:-claude-sonnet-4-6}
+      AUTH_SERVICE_HOST: auth
+      AUTH_TCP_PORT: 3001
+      REDIS_URL: redis://redis:6379
+    volumes:
+      - ./apps/ai-agent/src:/app/src
+
+  repos:
+    build:
+      context: ./apps/repos
+      dockerfile: ../../docker/repos/Dockerfile.dev
+    environment:
+      NODE_ENV: development
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/codekang_platform
+      REPOS_TCP_PORT: 3003
+      GITHUB_CLIENT_ID: ${GITHUB_CLIENT_ID}
+      GITHUB_CLIENT_SECRET: ${GITHUB_CLIENT_SECRET}
+      AUTH_SERVICE_HOST: auth
+      AUTH_TCP_PORT: 3001
+      REDIS_URL: redis://redis:6379
+    volumes:
+      - ./apps/repos/src:/app/src
+
+  gateway:
+    build:
+      context: ./apps/gateway
+      dockerfile: ../../docker/gateway/Dockerfile.dev
+    environment:
+      NODE_ENV: development
+      GATEWAY_PORT: 3000
+      AUTH_SERVICE_HOST: auth
+      AUTH_TCP_PORT: 3001
+      AI_AGENT_SERVICE_HOST: ai-agent
+      AI_AGENT_TCP_PORT: 3002
+      REPOS_SERVICE_HOST: repos
+      REPOS_TCP_PORT: 3003
+      JWT_SECRET: ${JWT_SECRET:-your-super-secret-jwt-key-change-this}
+      JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-15m}
+      FRONTEND_URL: http://localhost:3010
+      REDIS_URL: redis://redis:6379
+    volumes:
+      - ./apps/gateway/src:/app/src
+
+  autonomous:
+    build:
+      context: ./apps/automous-ai
+      dockerfile: ../../docker/autonomous/Dockerfile.dev
+    environment:
+      NODE_ENV: development
+      PORT: 4000
+      GITHUB_APP_ID: ${GITHUB_APP_ID:-}
+      GITHUB_WEBHOOK_SECRET: ${GITHUB_WEBHOOK_SECRET:-}
+      GITHUB_APP_PRIVATE_KEY_PATH: ./github-app-private-key.pem
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
+      ANTHROPIC_MODEL: ${ANTHROPIC_MODEL:-claude-sonnet-4-6}
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/codekang_platform
+      REDIS_URL: redis://redis:6379
+      GATEWAY_URL: http://gateway:3000
+      WEBHOOK_URL: http://localhost:4000/webhook
+    volumes:
+      - ./apps/automous-ai/src:/app/src
+      - ./github-app-private-key.pem:/app/github-app-private-key.pem:ro
+
+  # Tools available in dev too
+  pgadmin:
+    profiles:
+      - tools
+  redis-commander:
+    profiles:
+      - tools
+  bull-board:
+    profiles:
+      - tools

@@ -1,0 +1,424 @@
+# ============================================================================
+# CODEKANG PLATFORM - UNIFIED DOCKER COMPOSE
+# ============================================================================
+# Usage:
+#   Production:  docker-compose up -d
+#   Development: docker-compose -f docker-compose.yml -f docker-compose.dev.yml up
+#   With tools:  docker-compose --profile tools up
+#   Everything:  docker-compose --profile '*' up
+# ============================================================================
+
+services:
+  # ⚙️ INFRASTRUCTURE
+  # ──────────────────────────────────────────────────────────────────────
+
+  postgres:
+    image: pgvector/pgvector:pg16
+    container_name: codekang-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: ${POSTGRES_DB:-codekang_platform}
+      POSTGRES_INITDB_ARGS: '-E UTF8 --locale=en_US.UTF-8'
+      PGDATA: /var/lib/postgresql/data/pgdata
+    ports:
+      - '${POSTGRES_PORT:-5432}:5432'
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    command: >
+      postgres
+      -c max_connections=200
+      -c shared_buffers=256MB
+      -c effective_cache_size=768MB
+      -c work_mem=4MB
+      -c maintenance_work_mem=64MB
+      -c checkpoint_completion_target=0.9
+      -c wal_buffers=16MB
+      -c default_statistics_target=100
+      -c random_page_cost=1.1
+      -c effective_io_concurrency=200
+      -c min_wal_size=1GB
+      -c max_wal_size=4GB
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U postgres']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - codekang
+
+  postgres-backup:
+    build:
+      context: ./docker/postgres-backup
+    container_name: codekang-postgres-backup
+    restart: unless-stopped
+    environment:
+      PGHOST: postgres
+      PGUSER: ${POSTGRES_USER:-postgres}
+      PGPASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      PGDATABASE: ${POSTGRES_DB:-codekang_platform}
+      RETENTION_DAYS: ${BACKUP_RETENTION_DAYS:-7}
+    volumes:
+      - postgres_backups:/backups
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - codekang
+
+  redis:
+    image: redis:7-alpine
+    container_name: codekang-redis
+    restart: unless-stopped
+    command: >
+      redis-server
+      --appendonly yes
+      --appendfsync everysec
+      --maxmemory 512mb
+      --maxmemory-policy allkeys-lru
+      --save 900 1
+      --save 300 10
+      --save 60 10000
+    ports:
+      - '${REDIS_PORT:-6379}:6379'
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    networks:
+      - codekang
+    depends_on:
+      - postgres
+
+  # 🎯 MICROSERVICES
+  # ──────────────────────────────────────────────────────────────────────
+
+  auth:
+    build:
+      context: ./apps/auth
+      dockerfile: ../../docker/auth/Dockerfile
+    container_name: codekang-auth
+    restart: unless-stopped
+    environment:
+      NODE_ENV: ${NODE_ENV:-production}
+      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-codekang_platform}
+      JWT_SECRET: ${JWT_SECRET:-change-this-to-a-long-random-secret-min-32-chars}
+      JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-15m}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:-change-this-to-a-different-long-random-secret}
+      JWT_REFRESH_EXPIRES_IN: ${JWT_REFRESH_EXPIRES_IN:-7d}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET}
+      GOOGLE_CALLBACK_URL: ${GOOGLE_CALLBACK_URL:-http://localhost:3011/auth/google/callback}
+      GITHUB_CLIENT_ID: ${GITHUB_CLIENT_ID}
+      GITHUB_CLIENT_SECRET: ${GITHUB_CLIENT_SECRET}
+      GITHUB_CALLBACK_URL: ${GITHUB_CALLBACK_URL:-http://localhost:3011/auth/github/callback}
+      FIREBASE_SERVICE_ACCOUNT_PATH: /app/secrets/firebase-service-account.json
+      FIREBASE_PROJECT_ID: ${FIREBASE_PROJECT_ID:-codekang-6f1b6}
+      FIREBASE_CLIENT_EMAIL: ${FIREBASE_CLIENT_EMAIL}
+      FIREBASE_PRIVATE_KEY: ${FIREBASE_PRIVATE_KEY}
+      AUTH_HTTP_PORT: ${AUTH_HTTP_PORT:-3011}
+      AUTH_TCP_PORT: ${AUTH_TCP_PORT:-3001}
+      FRONTEND_URL: ${FRONTEND_URL:-http://localhost:3010}
+      REDIS_URL: redis://redis:6379
+    volumes:
+      - ./${FIREBASE_SERVICE_ACCOUNT_FILE:-codekang-6f1b6-firebase-adminsdk-fbsvc-f7e5055138.json}:/app/secrets/firebase-service-account.json:ro
+    ports:
+      - '${AUTH_TCP_PORT:-3001}:3001'
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - codekang
+    healthcheck:
+      test:
+        ['CMD', 'node', '-e', "require('net').createConnection({port:3001}).on('connect',function(){process.exit(0)}).on('error',function(){process.exit(1)})"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  ai-agent:
+    build:
+      context: ./apps/ai-agent
+      dockerfile: ../../docker/ai-agent/Dockerfile
+    container_name: codekang-ai-agent
+    restart: unless-stopped
+    environment:
+      NODE_ENV: ${NODE_ENV:-production}
+      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-codekang_platform}
+      AI_AGENT_TCP_PORT: ${AI_AGENT_TCP_PORT:-3002}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
+      ANTHROPIC_MODEL: ${ANTHROPIC_MODEL:-claude-sonnet-4-6}
+      AUTH_SERVICE_HOST: ${AUTH_SERVICE_HOST:-auth}
+      AUTH_TCP_PORT: ${AUTH_TCP_PORT:-3001}
+      REDIS_URL: redis://redis:6379
+    ports:
+      - '${AI_AGENT_TCP_PORT:-3002}:3002'
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      auth:
+        condition: service_healthy
+    networks:
+      - codekang
+    healthcheck:
+      test:
+        ['CMD', 'node', '-e', "require('net').createConnection({port:3002}).on('connect',function(){process.exit(0)}).on('error',function(){process.exit(1)})"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  repos:
+    build:
+      context: ./apps/repos
+      dockerfile: ../../docker/repos/Dockerfile
+    container_name: codekang-repos
+    restart: unless-stopped
+    environment:
+      NODE_ENV: ${NODE_ENV:-production}
+      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-codekang_platform}
+      REPOS_TCP_PORT: ${REPOS_TCP_PORT:-3003}
+      GITHUB_CLIENT_ID: ${GITHUB_CLIENT_ID}
+      GITHUB_CLIENT_SECRET: ${GITHUB_CLIENT_SECRET}
+      AUTH_SERVICE_HOST: ${AUTH_SERVICE_HOST:-auth}
+      AUTH_TCP_PORT: ${AUTH_TCP_PORT:-3001}
+      REDIS_URL: redis://redis:6379
+    ports:
+      - '${REPOS_TCP_PORT:-3003}:3003'
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      auth:
+        condition: service_healthy
+    networks:
+      - codekang
+    healthcheck:
+      test:
+        ['CMD', 'node', '-e', "require('net').createConnection({port:3003}).on('connect',function(){process.exit(0)}).on('error',function(){process.exit(1)})"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  gateway:
+    build:
+      context: ./apps/gateway
+      dockerfile: ../../docker/gateway/Dockerfile
+    container_name: codekang-gateway
+    restart: unless-stopped
+    environment:
+      NODE_ENV: ${NODE_ENV:-production}
+      GATEWAY_PORT: ${GATEWAY_PORT:-3000}
+      AUTH_SERVICE_HOST: ${AUTH_SERVICE_HOST:-auth}
+      AUTH_TCP_PORT: ${AUTH_TCP_PORT:-3001}
+      AI_AGENT_SERVICE_HOST: ${AI_AGENT_SERVICE_HOST:-ai-agent}
+      AI_AGENT_TCP_PORT: ${AI_AGENT_TCP_PORT:-3002}
+      REPOS_SERVICE_HOST: ${REPOS_SERVICE_HOST:-repos}
+      REPOS_TCP_PORT: ${REPOS_TCP_PORT:-3003}
+      JWT_SECRET: ${JWT_SECRET:-change-this-to-a-long-random-secret-min-32-chars}
+      JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-15m}
+      FRONTEND_URL: ${FRONTEND_URL:-http://localhost:3010}
+      REDIS_URL: redis://redis:6379
+    ports:
+      - '${GATEWAY_PORT:-3000}:3000'
+    depends_on:
+      auth:
+        condition: service_healthy
+      ai-agent:
+        condition: service_healthy
+      repos:
+        condition: service_healthy
+    networks:
+      - codekang
+    healthcheck:
+      test: ['CMD', 'curl', '-f', 'http://localhost:3000/health']
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # 🤖 AUTONOMOUS AI AGENT
+  # ──────────────────────────────────────────────────────────────────────
+
+  autonomous:
+    build:
+      context: ./apps/automous-ai
+      dockerfile: ../../docker/autonomous/Dockerfile
+    container_name: codekang-autonomous
+    restart: unless-stopped
+    environment:
+      NODE_ENV: ${NODE_ENV:-production}
+      PORT: ${AUTONOMOUS_PORT:-4000}
+      GITHUB_APP_ID: ${GITHUB_APP_ID}
+      GITHUB_WEBHOOK_SECRET: ${GITHUB_WEBHOOK_SECRET}
+      GITHUB_APP_PRIVATE_KEY_PATH: ./github-app-private-key.pem
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
+      ANTHROPIC_MODEL: ${ANTHROPIC_MODEL:-claude-sonnet-4-6}
+      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-codekang_platform}
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      GATEWAY_URL: ${GATEWAY_URL:-http://gateway:3000}
+      WEBHOOK_URL: ${WEBHOOK_URL:-http://autonomous:4000/webhook}
+    ports:
+      - '${AUTONOMOUS_PORT:-4000}:4000'
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - codekang
+    volumes:
+      - ./github-app-private-key.pem:/app/github-app-private-key.pem:ro
+    healthcheck:
+      test: ['CMD', 'curl', '-f', 'http://localhost:4000/health']
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # 🛠️ DEVELOPMENT TOOLS (--profile tools)
+  # ──────────────────────────────────────────────────────────────────────
+
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: codekang-pgadmin
+    restart: unless-stopped
+    environment:
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_EMAIL:-admin@codekang.dev}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_PASSWORD:-admin}
+      PGADMIN_CONFIG_SERVER_MODE: 'False'
+      PGADMIN_CONFIG_MASTER_PASSWORD_REQUIRED: 'False'
+    ports:
+      - '${PGADMIN_PORT:-5050}:80'
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - codekang
+    profiles:
+      - tools
+
+  redis-commander:
+    image: rediscommander/redis-commander:latest
+    container_name: codekang-redis-commander
+    restart: unless-stopped
+    environment:
+      REDIS_HOSTS: local:redis:6379
+      HTTP_USER: ${REDIS_ADMIN_USER:-admin}
+      HTTP_PASSWORD: ${REDIS_ADMIN_PASSWORD:-admin}
+    ports:
+      - '${REDIS_COMMANDER_PORT:-8081}:8081'
+    depends_on:
+      redis:
+        condition: service_healthy
+    networks:
+      - codekang
+    profiles:
+      - tools
+
+  bull-board:
+    image: deadly0/bull-board:latest
+    container_name: codekang-bull-board
+    restart: unless-stopped
+    environment:
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: ''
+      REDIS_DB: 0
+      REDIS_USE_TLS: 'false'
+      BULL_PREFIX: 'bull'
+    ports:
+      - '${BULL_BOARD_PORT:-3001}:3000'
+    depends_on:
+      redis:
+        condition: service_healthy
+    networks:
+      - codekang
+    profiles:
+      - tools
+
+  # 📊 MONITORING (--profile monitoring)
+  # ──────────────────────────────────────────────────────────────────────
+
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: codekang-prometheus
+    restart: unless-stopped
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/usr/share/prometheus/console_libraries'
+      - '--web.console.templates=/usr/share/prometheus/consoles'
+    ports:
+      - '${PROMETHEUS_PORT:-9090}:9090'
+    volumes:
+      - prometheus_data:/prometheus
+    networks:
+      - codekang
+    profiles:
+      - monitoring
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: codekang-grafana
+    restart: unless-stopped
+    environment:
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:-admin}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-admin}
+      GF_INSTALL_PLUGINS: redis-datasource
+    ports:
+      - '${GRAFANA_PORT:-3002}:3000'
+    volumes:
+      - grafana_data:/var/lib/grafana
+    depends_on:
+      prometheus:
+        condition: service_started
+    networks:
+      - codekang
+    profiles:
+      - monitoring
+
+# ============================================================================
+# VOLUMES
+# ============================================================================
+volumes:
+  postgres_data:
+    driver: local
+    name: codekang-postgres-data
+  postgres_backups:
+    driver: local
+    name: codekang-postgres-backups
+  redis_data:
+    driver: local
+    name: codekang-redis-data
+  pgadmin_data:
+    driver: local
+    name: codekang-pgadmin-data
+  prometheus_data:
+    driver: local
+    name: codekang-prometheus-data
+  grafana_data:
+    driver: local
+    name: codekang-grafana-data
+
+# ============================================================================
+# NETWORKS
+# ============================================================================
+networks:
+  codekang:
+    driver: bridge
+    name: codekang-network
