@@ -43,7 +43,11 @@ export default function RepositoryDetailsPage({
           <ArrowLeft size={14} /> Back to Repositories
         </Link>
         <div className="flex items-center justify-between mb-4">
-          <h1 className="text-2xl font-bold text-[#e8e8e8]">{params.repoId}</h1>
+          <h1 className="text-2xl font-bold flex items-center gap-2 tracking-tight">
+            <span className="text-[#a1a1aa] font-medium">CodeWithJagdeep</span>
+            <span className="text-[#6d6d6d] font-light">/</span>
+            <span className="text-[#e8e8e8]">{params.repoId}</span>
+          </h1>
           <button className="px-4 py-1.5 rounded-md text-[13px] font-bold transition-colors bg-white/10 hover:bg-white/20 text-[#e8e8e8] border border-[#2a2a2e]">
             Review Configuration
           </button>
