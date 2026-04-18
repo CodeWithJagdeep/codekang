@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import Link from 'next/link';
 import {
   ArrowLeft,
@@ -11,44 +12,65 @@ import {
   Shield,
   Eye,
   Code2,
+  Check,
+  X,
+  Copy,
+  MessageCircle,
+  ThumbsUp,
+  RotateCcw,
 } from 'lucide-react';
 
-const REVIEW_COMMENTS = [
+interface ReviewComment {
+  id: string;
+  file: string;
+  line: number;
+  severity: 'critical' | 'warning' | 'suggestion' | 'info';
+  title: string;
+  body: string;
+  suggestion?: string;
+}
+
+const INITIAL_COMMENTS: ReviewComment[] = [
   {
+    id: 'c1',
     file: 'bot-strategy.test.ts',
     line: 47,
-    severity: 'critical' as const,
+    severity: 'critical',
     title: 'Memory leak in test loop',
     body: 'Unbounded loop detected creating new `Promise` instances without cleanup. Each iteration allocates ~2.4KB that is never freed. Over 1000 iterations this will consume ~2.4MB of heap memory. Recommend adding `afterEach` teardown with `jest.clearAllTimers()` and explicit promise resolution.',
     suggestion: `afterEach(() => {\n  jest.clearAllTimers();\n  jest.restoreAllMocks();\n});`,
   },
   {
+    id: 'c2',
     file: 'strategy-mapper.ts',
     line: 112,
-    severity: 'warning' as const,
+    severity: 'warning',
     title: 'Missing input validation',
     body: 'The `parseMarkdown()` function accepts raw input without sanitization. This could allow injection of malicious markdown directives that bypass the instruction parser. Consider adding a validation layer.',
     suggestion: `function parseMarkdown(input: string): ParsedResult {\n  const sanitized = sanitizeInput(input);\n  if (!isValidMarkdown(sanitized)) {\n    throw new ValidationError('Invalid markdown input');\n  }\n  return parse(sanitized);\n}`,
   },
   {
+    id: 'c3',
     file: 'strategy-mapper.ts',
     line: 89,
-    severity: 'suggestion' as const,
+    severity: 'suggestion',
     title: 'Consider using Map instead of Object',
     body: 'The strategy lookup table uses a plain object which has O(n) worst-case lookup time. A `Map` would provide guaranteed O(1) lookups and better memory characteristics for large strategy sets.',
     suggestion: `const strategyMap = new Map<string, Strategy>();\nstrategies.forEach(s => strategyMap.set(s.id, s));`,
   },
   {
+    id: 'c4',
     file: 'config/bot-config.ts',
     line: 23,
-    severity: 'info' as const,
+    severity: 'info',
     title: 'Good use of environment variable fallbacks',
     body: 'The configuration correctly uses `process.env.BOT_STRATEGY_TIMEOUT ?? 30000` with a sensible default. This follows the principle of safe defaults and will prevent runtime crashes in development environments.',
   },
   {
+    id: 'c5',
     file: 'index.ts',
     line: 5,
-    severity: 'info' as const,
+    severity: 'info',
     title: 'Clean module exports',
     body: 'The barrel export pattern is well-structured. All public APIs are explicitly exported which helps with tree-shaking and prevents accidental exposure of internal modules.',
   },
@@ -93,6 +115,42 @@ export default function FullReviewPage({
 }: {
   params: { repoId: string; prId: string };
 }) {
+  const [resolvedIds, setResolvedIds] = useState<Set<string>>(new Set());
+  const [appliedIds, setAppliedIds] = useState<Set<string>>(new Set());
+  const [replyingTo, setReplyingTo] = useState<string | null>(null);
+  const [replyText, setReplyText] = useState('');
+  const [replies, setReplies] = useState<Record<string, string[]>>({});
+  const [copiedId, setCopiedId] = useState<string | null>(null);
+
+  const toggleResolve = (id: string) => {
+    setResolvedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const applySuggestion = (id: string) => {
+    setAppliedIds((prev) => new Set(prev).add(id));
+  };
+
+  const copyCode = (code: string, id: string) => {
+    navigator.clipboard.writeText(code);
+    setCopiedId(id);
+    setTimeout(() => setCopiedId(null), 2000);
+  };
+
+  const submitReply = (id: string) => {
+    if (!replyText.trim()) return;
+    setReplies((prev) => ({
+      ...prev,
+      [id]: [...(prev[id] || []), replyText.trim()],
+    }));
+    setReplyText('');
+    setReplyingTo(null);
+  };
+
   const severityConfig = {
     critical: {
       bg: 'bg-red-500/10',
@@ -124,18 +182,223 @@ export default function FullReviewPage({
     },
   };
 
-  const criticalCount = REVIEW_COMMENTS.filter(
+  const unresolvedComments = INITIAL_COMMENTS.filter(
+    (c) => !resolvedIds.has(c.id),
+  );
+  const resolvedComments = INITIAL_COMMENTS.filter((c) =>
+    resolvedIds.has(c.id),
+  );
+  const criticalCount = unresolvedComments.filter(
     (c) => c.severity === 'critical',
   ).length;
-  const warningCount = REVIEW_COMMENTS.filter(
+  const warningCount = unresolvedComments.filter(
     (c) => c.severity === 'warning',
   ).length;
-  const suggestionCount = REVIEW_COMMENTS.filter(
+  const suggestionCount = unresolvedComments.filter(
     (c) => c.severity === 'suggestion',
   ).length;
-  const approvedCount = REVIEW_COMMENTS.filter(
+  const approvedCount = INITIAL_COMMENTS.filter(
     (c) => c.severity === 'info',
   ).length;
+
+  const renderComment = (comment: ReviewComment) => {
+    const config = severityConfig[comment.severity];
+    const Icon = config.icon;
+    const isResolved = resolvedIds.has(comment.id);
+    const isApplied = appliedIds.has(comment.id);
+    const commentReplies = replies[comment.id] || [];
+
+    return (
+      <div
+        key={comment.id}
+        className={`rounded-xl border overflow-hidden transition-all duration-200 ${isResolved ? 'border-white/5 opacity-60' : config.border} bg-[#1c1c1c]`}
+      >
+        {/* Comment Header */}
+        <div
+          className={`px-4 py-3 flex items-center justify-between ${isResolved ? 'bg-white/5' : config.bg}`}
+        >
+          <div className="flex items-center gap-2.5">
+            <div
+              className={`w-5 h-5 rounded flex items-center justify-center ${isResolved ? 'bg-white/10' : config.bg}`}
+            >
+              {isResolved ? (
+                <Check size={12} className="text-green-400" />
+              ) : (
+                <Icon size={12} className={config.text} />
+              )}
+            </div>
+            <span
+              className={`text-[12px] font-bold ${isResolved ? 'text-green-400' : config.text}`}
+            >
+              {isResolved ? 'Resolved' : config.label}
+            </span>
+            <span
+              className={`text-[12px] font-bold ${isResolved ? 'text-[#6d6d6d] line-through' : 'text-[#e8e8e8]'}`}
+            >
+              {comment.title}
+            </span>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="font-mono text-[11px] text-[#6d6d6d] bg-white/5 px-2 py-0.5 rounded">
+              {comment.file}:{comment.line}
+            </span>
+            <button
+              onClick={() => toggleResolve(comment.id)}
+              className={`flex items-center gap-1 px-2 py-1 rounded-md text-[11px] font-bold transition-colors ${
+                isResolved
+                  ? 'bg-white/5 text-[#a1a1aa] hover:bg-white/10'
+                  : 'bg-green-500/10 text-green-400 hover:bg-green-500/20 border border-green-500/20'
+              }`}
+            >
+              {isResolved ? (
+                <>
+                  <RotateCcw size={10} /> Unresolve
+                </>
+              ) : (
+                <>
+                  <Check size={10} /> Resolve
+                </>
+              )}
+            </button>
+          </div>
+        </div>
+
+        {/* Comment Body */}
+        <div className="px-4 py-3">
+          <p className="text-[13px] text-[#a1a1aa] leading-relaxed">
+            {comment.body}
+          </p>
+
+          {/* Suggested Fix with Apply button */}
+          {comment.suggestion && (
+            <div className="mt-3">
+              <div className="flex items-center justify-between mb-1.5">
+                <div className="text-[11px] font-bold text-[#6d6d6d] uppercase tracking-wider">
+                  Suggested Fix
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <button
+                    onClick={() => copyCode(comment.suggestion!, comment.id)}
+                    className="flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold text-[#a1a1aa] hover:text-[#e8e8e8] bg-white/5 hover:bg-white/10 transition-colors"
+                  >
+                    {copiedId === comment.id ? (
+                      <>
+                        <Check size={10} className="text-green-400" /> Copied!
+                      </>
+                    ) : (
+                      <>
+                        <Copy size={10} /> Copy
+                      </>
+                    )}
+                  </button>
+                  {!isApplied ? (
+                    <button
+                      onClick={() => applySuggestion(comment.id)}
+                      className="flex items-center gap-1 px-2.5 py-0.5 rounded text-[10px] font-bold text-white bg-[#f97316] hover:bg-[#ea580c] transition-colors"
+                    >
+                      <Check size={10} /> Apply Suggestion
+                    </button>
+                  ) : (
+                    <span className="flex items-center gap-1 px-2.5 py-0.5 rounded text-[10px] font-bold text-green-400 bg-green-500/10 border border-green-500/20">
+                      <CheckCircle2 size={10} /> Applied
+                    </span>
+                  )}
+                </div>
+              </div>
+              <pre
+                className={`text-[12px] bg-[#121214] border border-white/5 rounded-lg p-3 overflow-x-auto font-mono leading-relaxed ${isApplied ? 'text-green-400/50 line-through' : 'text-green-400'}`}
+              >
+                {comment.suggestion}
+              </pre>
+            </div>
+          )}
+
+          {/* User Replies */}
+          {commentReplies.length > 0 && (
+            <div className="mt-3 flex flex-col gap-2">
+              {commentReplies.map((reply, ri) => (
+                <div
+                  key={ri}
+                  className="flex gap-2.5 p-3 rounded-lg bg-white/[0.02] border border-white/5"
+                >
+                  <div className="w-6 h-6 rounded-full bg-blue-500/20 flex items-center justify-center shrink-0 text-[10px] font-bold text-blue-400">
+                    J
+                  </div>
+                  <div>
+                    <div className="text-[11px] text-[#6d6d6d] mb-0.5">
+                      <span className="text-[#a1a1aa] font-medium">
+                        jsingh20
+                      </span>{' '}
+                      · just now
+                    </div>
+                    <p className="text-[13px] text-[#e8e8e8] leading-relaxed">
+                      {reply}
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Action Bar */}
+          <div className="mt-3 flex items-center gap-2 pt-2 border-t border-white/5">
+            <button
+              onClick={() =>
+                setReplyingTo(replyingTo === comment.id ? null : comment.id)
+              }
+              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-[11px] font-bold text-[#a1a1aa] hover:text-[#e8e8e8] bg-white/5 hover:bg-white/10 transition-colors"
+            >
+              <MessageCircle size={11} /> Reply
+            </button>
+            {comment.severity !== 'info' && (
+              <button className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-[11px] font-bold text-[#a1a1aa] hover:text-[#e8e8e8] bg-white/5 hover:bg-white/10 transition-colors">
+                <ThumbsUp size={11} /> Helpful
+              </button>
+            )}
+            <button className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-[11px] font-bold text-[#a1a1aa] hover:text-red-400 bg-white/5 hover:bg-red-500/10 transition-colors">
+              <X size={11} /> Dismiss
+            </button>
+          </div>
+
+          {/* Reply Box */}
+          {replyingTo === comment.id && (
+            <div className="mt-3 rounded-lg border border-white/10 bg-[#121214] overflow-hidden">
+              <textarea
+                value={replyText}
+                onChange={(e) => setReplyText(e.target.value)}
+                placeholder="Write a reply to KangBot..."
+                className="w-full bg-transparent px-4 py-3 text-[13px] text-[#e8e8e8] placeholder-[#6d6d6d] resize-none focus:outline-none min-h-[80px]"
+                autoFocus
+              />
+              <div className="flex items-center justify-between px-4 py-2 border-t border-white/5 bg-[#161618]">
+                <span className="text-[11px] text-[#6d6d6d]">
+                  Markdown supported
+                </span>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => {
+                      setReplyingTo(null);
+                      setReplyText('');
+                    }}
+                    className="px-3 py-1.5 text-[11px] font-bold text-[#a1a1aa] hover:text-[#e8e8e8] rounded-md transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={() => submitReply(comment.id)}
+                    disabled={!replyText.trim()}
+                    className="px-3 py-1.5 text-[11px] font-bold text-white bg-[#f97316] hover:bg-[#ea580c] rounded-md transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                  >
+                    Submit Reply
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  };
 
   return (
     <div className="flex-1 flex flex-col h-screen overflow-hidden bg-[#121214]">
@@ -220,6 +483,19 @@ export default function FullReviewPage({
               </span>
             )}
           </div>
+          <span className="w-px h-4 bg-[#333]" />
+          <span className="text-[11px] text-[#6d6d6d]">
+            {resolvedIds.size}/{INITIAL_COMMENTS.length} resolved
+          </span>
+          {/* Progress */}
+          <div className="w-20 h-1.5 rounded-full bg-white/5 overflow-hidden">
+            <div
+              className="h-full bg-green-400 rounded-full transition-all duration-300"
+              style={{
+                width: `${(resolvedIds.size / INITIAL_COMMENTS.length) * 100}%`,
+              }}
+            />
+          </div>
         </div>
       </div>
 
@@ -273,63 +549,27 @@ export default function FullReviewPage({
               </div>
             </div>
 
-            {/* Review Comments */}
+            {/* Active Review Comments */}
             <h2 className="text-[14px] font-bold text-[#e8e8e8] mb-4 flex items-center gap-2">
               <MessageSquare size={14} />
-              Review Comments ({REVIEW_COMMENTS.length})
+              Review Comments ({unresolvedComments.length} open)
             </h2>
-            <div className="flex flex-col gap-3">
-              {REVIEW_COMMENTS.map((comment, i) => {
-                const config = severityConfig[comment.severity];
-                const Icon = config.icon;
-                return (
-                  <div
-                    key={i}
-                    className={`rounded-xl border overflow-hidden ${config.border} bg-[#1c1c1c]`}
-                  >
-                    {/* Comment Header */}
-                    <div
-                      className={`px-4 py-3 flex items-center justify-between ${config.bg}`}
-                    >
-                      <div className="flex items-center gap-2.5">
-                        <div
-                          className={`w-5 h-5 rounded flex items-center justify-center ${config.bg}`}
-                        >
-                          <Icon size={12} className={config.text} />
-                        </div>
-                        <span
-                          className={`text-[12px] font-bold ${config.text}`}
-                        >
-                          {config.label}
-                        </span>
-                        <span className="text-[12px] font-bold text-[#e8e8e8]">
-                          {comment.title}
-                        </span>
-                      </div>
-                      <span className="font-mono text-[11px] text-[#6d6d6d] bg-white/5 px-2 py-0.5 rounded">
-                        {comment.file}:{comment.line}
-                      </span>
-                    </div>
-                    {/* Comment Body */}
-                    <div className="px-4 py-3">
-                      <p className="text-[13px] text-[#a1a1aa] leading-relaxed">
-                        {comment.body}
-                      </p>
-                      {comment.suggestion && (
-                        <div className="mt-3">
-                          <div className="text-[11px] font-bold text-[#6d6d6d] uppercase tracking-wider mb-1.5">
-                            Suggested Fix
-                          </div>
-                          <pre className="text-[12px] text-green-400 bg-[#121214] border border-white/5 rounded-lg p-3 overflow-x-auto font-mono leading-relaxed">
-                            {comment.suggestion}
-                          </pre>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
+            <div className="flex flex-col gap-3 mb-8">
+              {unresolvedComments.map(renderComment)}
             </div>
+
+            {/* Resolved Comments */}
+            {resolvedComments.length > 0 && (
+              <>
+                <h2 className="text-[14px] font-bold text-[#6d6d6d] mb-4 flex items-center gap-2">
+                  <CheckCircle2 size={14} />
+                  Resolved ({resolvedComments.length})
+                </h2>
+                <div className="flex flex-col gap-3">
+                  {resolvedComments.map(renderComment)}
+                </div>
+              </>
+            )}
           </div>
 
           {/* Files Changed Sidebar */}
@@ -389,6 +629,26 @@ export default function FullReviewPage({
                   style={{ width: '19%' }}
                 />
               </div>
+            </div>
+
+            {/* Quick Actions */}
+            <div className="mt-5 pt-4 border-t border-white/5 flex flex-col gap-2">
+              <button
+                onClick={() =>
+                  INITIAL_COMMENTS.forEach((c) =>
+                    setResolvedIds((prev) => new Set(prev).add(c.id)),
+                  )
+                }
+                className="w-full flex items-center justify-center gap-1.5 px-3 py-2 rounded-md text-[11px] font-bold text-green-400 bg-green-500/10 hover:bg-green-500/20 border border-green-500/20 transition-colors"
+              >
+                <Check size={12} /> Resolve All
+              </button>
+              <button
+                onClick={() => setResolvedIds(new Set())}
+                className="w-full flex items-center justify-center gap-1.5 px-3 py-2 rounded-md text-[11px] font-bold text-[#a1a1aa] bg-white/5 hover:bg-white/10 transition-colors"
+              >
+                <RotateCcw size={12} /> Unresolve All
+              </button>
             </div>
           </div>
         </div>
