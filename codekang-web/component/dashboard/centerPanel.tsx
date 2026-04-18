@@ -21,6 +21,7 @@ import type { Repo } from './sidebar';
 
 type Tab = 'prs' | 'issues' | 'activity' | 'settings';
 
+/* ── Tab definitions matching sidebar nav style ──────────────────────────── */
 const TABS: { id: Tab; label: string; icon: React.ElementType }[] = [
   { id: 'prs', label: 'Pull Requests', icon: GitPullRequest },
   { id: 'issues', label: 'Issues', icon: AlertCircle },
@@ -126,19 +127,51 @@ const ACTIVITY = [
   },
 ];
 
+/* ── Status badge — monochrome palette to match sidebar ─────────────────── */
+const STATUS_MAP: Record<
+  string,
+  { icon: React.ElementType; color: string; bg: string; border: string }
+> = {
+  clean: {
+    icon: CheckCircle2,
+    color: '#e8e8e8',
+    bg: 'rgba(255,255,255,0.06)',
+    border: 'rgba(255,255,255,0.1)',
+  },
+  attention: {
+    icon: XCircle,
+    color: '#e11d48',
+    bg: 'rgba(225,29,72,0.1)',
+    border: 'rgba(225,29,72,0.25)',
+  },
+  reviewing: {
+    icon: Loader2,
+    color: '#aaaaaa',
+    bg: 'rgba(255,255,255,0.05)',
+    border: 'rgba(255,255,255,0.08)',
+  },
+  fixing: {
+    icon: Loader2,
+    color: '#aaaaaa',
+    bg: 'rgba(255,255,255,0.05)',
+    border: 'rgba(255,255,255,0.08)',
+  },
+  pending: {
+    icon: Clock,
+    color: '#777777',
+    bg: 'rgba(255,255,255,0.03)',
+    border: 'rgba(255,255,255,0.06)',
+  },
+  fixed: {
+    icon: CheckCircle2,
+    color: '#e8e8e8',
+    bg: 'rgba(225,29,72,0.08)',
+    border: 'rgba(225,29,72,0.2)',
+  },
+};
+
 function StatusBadge({ status, msg }: { status: string; msg: string }) {
-  const map: Record<
-    string,
-    { icon: React.ElementType; color: string; bg: string }
-  > = {
-    clean: { icon: CheckCircle2, color: '#22c55e', bg: 'rgba(34,197,94,0.1)' },
-    attention: { icon: XCircle, color: '#ef4444', bg: 'rgba(239,68,68,0.1)' },
-    reviewing: { icon: Loader2, color: '#60a5fa', bg: 'rgba(96,165,250,0.1)' },
-    fixing: { icon: Loader2, color: '#f59e0b', bg: 'rgba(245,158,11,0.1)' },
-    pending: { icon: Clock, color: '#555', bg: 'rgba(85,85,85,0.2)' },
-    fixed: { icon: CheckCircle2, color: '#e11d48', bg: 'rgba(225,29,72,0.1)' },
-  };
-  const cfg = map[status] ?? map['pending'];
+  const cfg = STATUS_MAP[status] ?? STATUS_MAP['pending'];
   const Icon = cfg.icon;
   return (
     <span
@@ -146,7 +179,7 @@ function StatusBadge({ status, msg }: { status: string; msg: string }) {
       style={{
         color: cfg.color,
         background: cfg.bg,
-        border: `1px solid ${cfg.color}30`,
+        border: `1px solid ${cfg.border}`,
       }}
     >
       <Icon
@@ -161,7 +194,7 @@ function StatusBadge({ status, msg }: { status: string; msg: string }) {
   );
 }
 
-/* ─── Overview Page ────────────────────────────────────────────────────────── */
+/* ── Overview page ───────────────────────────────────────────────────────── */
 function Overview({
   repos,
   onSelectRepo,
@@ -173,22 +206,21 @@ function Overview({
 }) {
   return (
     <div className="flex-1 overflow-y-auto">
-      {/* Hero */}
       <div className="px-10 pt-12 pb-6">
-        <div className="flex items-center gap-3 mb-1">
-          <Zap size={18} style={{ color: 'var(--brand)' }} strokeWidth={2.5} />
-          <h1 className="text-[22px] font-bold" style={{ color: 'var(--ink)' }}>
+        <div className="flex items-center gap-2.5 mb-1">
+          <Zap size={16} style={{ color: '#e11d48' }} strokeWidth={2.5} />
+          <h1 className="text-[20px] font-bold" style={{ color: '#e8e8e8' }}>
             Dashboard Overview
           </h1>
         </div>
-        <p className="text-[13px]" style={{ color: 'var(--ink-muted)' }}>
+        <p className="text-[13px]" style={{ color: '#777' }}>
           Select a repository to view issues, pull requests, and KangBot
           activity.
         </p>
       </div>
 
-      {/* Stats row */}
-      <div className="px-10 grid grid-cols-3 gap-4 mb-8">
+      {/* Stats */}
+      <div className="px-10 grid grid-cols-3 gap-3 mb-8">
         {[
           { label: 'Connected Repos', value: repos.length },
           {
@@ -203,21 +235,12 @@ function Overview({
           <div
             key={s.label}
             className="rounded-xl p-4"
-            style={{
-              background: 'var(--bg-subtle)',
-              border: '1px solid var(--border)',
-            }}
+            style={{ background: '#141414', border: '1px solid #2a2a2a' }}
           >
-            <div
-              className="text-[26px] font-bold"
-              style={{ color: 'var(--ink)' }}
-            >
+            <div className="text-[26px] font-bold" style={{ color: '#e8e8e8' }}>
               {s.value}
             </div>
-            <div
-              className="text-[12px] mt-0.5"
-              style={{ color: 'var(--ink-muted)' }}
-            >
+            <div className="text-[12px] mt-0.5" style={{ color: '#777' }}>
               {s.label}
             </div>
           </div>
@@ -227,52 +250,41 @@ function Overview({
       {/* Repo list */}
       <div className="px-10">
         <div className="flex items-center justify-between mb-4">
-          <h2
-            className="text-[14px] font-semibold"
-            style={{ color: 'var(--ink)' }}
-          >
+          <h2 className="text-[13px] font-semibold" style={{ color: '#aaa' }}>
             Connected Repositories
           </h2>
           <button
             onClick={onAddRepo}
-            className="flex items-center gap-1.5 text-[12px] font-semibold px-3 py-1.5 rounded-lg transition-colors"
-            style={{ background: 'var(--brand)', color: '#fff' }}
+            className="flex items-center gap-1.5 text-[12px] font-semibold px-3 py-1.5 rounded-lg transition-opacity hover:opacity-80"
+            style={{ background: '#e11d48', color: '#fff' }}
           >
-            <Plus size={13} strokeWidth={2.5} />
-            Add Repository
+            <Plus size={12} strokeWidth={2.5} /> Add Repository
           </button>
         </div>
-
         <div className="space-y-2">
           {repos.map((repo) => (
             <button
               key={repo.id}
               onClick={() => onSelectRepo(repo.id)}
-              className="w-full text-left rounded-xl px-5 py-4 transition-all group"
-              style={{
-                background: 'var(--bg-subtle)',
-                border: '1px solid var(--border)',
-              }}
+              className="w-full text-left rounded-xl px-5 py-4 transition-colors group hover:bg-white/[0.03]"
+              style={{ background: '#111', border: '1px solid #2a2a2a' }}
             >
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <div
                     className="w-8 h-8 rounded-lg flex items-center justify-center text-[11px] font-bold text-white"
-                    style={{ background: 'var(--brand)' }}
+                    style={{ background: '#e11d48' }}
                   >
                     {repo.name[0].toUpperCase()}
                   </div>
                   <div>
                     <div
-                      className="text-[13.5px] font-semibold"
-                      style={{ color: 'var(--ink)' }}
+                      className="text-[13px] font-semibold"
+                      style={{ color: '#e8e8e8' }}
                     >
                       {repo.name}
                     </div>
-                    <div
-                      className="text-[11.5px]"
-                      style={{ color: 'var(--ink-soft)' }}
-                    >
+                    <div className="text-[11.5px]" style={{ color: '#666' }}>
                       {repo.org} · {repo.branch}
                     </div>
                   </div>
@@ -280,20 +292,20 @@ function Overview({
                 <div className="flex items-center gap-4">
                   <div
                     className="flex items-center gap-1.5 text-[12px]"
-                    style={{ color: 'var(--ink-muted)' }}
+                    style={{ color: '#777' }}
                   >
                     <GitPullRequest size={12} strokeWidth={2} /> {repo.prs} PRs
                   </div>
                   <div
                     className="flex items-center gap-1.5 text-[12px]"
-                    style={{ color: 'var(--ink-muted)' }}
+                    style={{ color: '#777' }}
                   >
                     <AlertCircle size={12} strokeWidth={2} /> {repo.issues}{' '}
                     Issues
                   </div>
                   <ChevronRight
-                    size={14}
-                    style={{ color: 'var(--ink-soft)' }}
+                    size={13}
+                    style={{ color: '#555' }}
                     className="group-hover:translate-x-0.5 transition-transform"
                   />
                 </div>
@@ -306,7 +318,7 @@ function Overview({
   );
 }
 
-/* ─── Repo Detail ────────────────────────────────────────────────────────── */
+/* ── Repo detail ─────────────────────────────────────────────────────────── */
 function RepoDetail({
   repoId,
   onSelectPR,
@@ -322,40 +334,35 @@ function RepoDetail({
     <>
       {/* Repo header */}
       <div
-        className="h-[56px] border-b flex items-center px-5 gap-2 shrink-0"
-        style={{ borderColor: 'var(--border)', background: 'var(--bg-subtle)' }}
+        className="h-[52px] flex items-center px-5 gap-2 shrink-0"
+        style={{ borderBottom: '1px solid #2a2a2a', background: '#111' }}
       >
-        <GitPullRequest
-          size={14}
-          strokeWidth={1.8}
-          style={{ color: 'var(--ink-soft)' }}
-        />
-        <span style={{ color: 'var(--ink-muted)' }} className="text-[12.5px]">
+        <GitPullRequest size={13} strokeWidth={1.8} style={{ color: '#666' }} />
+        <span className="text-[12.5px]" style={{ color: '#777' }}>
           CodeWithJagdeep
         </span>
-        <ChevronRight
-          size={12}
-          strokeWidth={2}
-          style={{ color: 'var(--ink-soft)' }}
-        />
-        <span className="text-[13px] font-bold" style={{ color: 'var(--ink)' }}>
+        <ChevronRight size={11} strokeWidth={2} style={{ color: '#555' }} />
+        <span
+          className="text-[13px] font-semibold"
+          style={{ color: '#e8e8e8' }}
+        >
           {repoId}
         </span>
         <a
           href={`https://github.com/CodeWithJagdeep/${repoId}`}
           target="_blank"
           rel="noopener noreferrer"
-          className="ml-auto flex items-center gap-1 text-[11px]"
-          style={{ color: 'var(--ink-soft)' }}
+          className="ml-auto flex items-center gap-1 text-[11px] hover:opacity-70 transition-opacity"
+          style={{ color: '#666' }}
         >
           <ExternalLink size={11} strokeWidth={1.8} /> GitHub
         </a>
       </div>
 
-      {/* Tab bar */}
+      {/* Tab bar — same style as sidebar nav items */}
       <div
-        className="border-b flex items-center px-4 gap-1 h-[44px] shrink-0"
-        style={{ borderColor: 'var(--border)', background: 'var(--bg-muted)' }}
+        className="flex items-center px-3 gap-0.5 shrink-0 h-[44px]"
+        style={{ borderBottom: '1px solid #2a2a2a', background: '#0d0d0d' }}
       >
         {TABS.map((t) => {
           const Icon = t.icon;
@@ -364,23 +371,21 @@ function RepoDetail({
             <button
               key={t.id}
               onClick={() => setTab(t.id)}
-              className="flex items-center gap-1.5 px-3 py-1 rounded-md text-[12px] font-medium transition-colors"
+              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-[12.5px] transition-colors"
               style={{
-                background: active ? 'var(--bg)' : 'transparent',
-                color: active ? 'var(--ink)' : 'var(--ink-soft)',
-                border: active
-                  ? '1px solid var(--border)'
-                  : '1px solid transparent',
+                background: active ? 'rgba(255,255,255,0.07)' : 'transparent',
+                color: active ? '#e8e8e8' : '#777',
+                fontWeight: active ? 500 : 400,
               }}
             >
-              <Icon size={12} strokeWidth={1.8} />
+              <Icon size={13} strokeWidth={1.7} />
               {t.label}
               {t.id === 'prs' && (
                 <span
-                  className="ml-0.5 text-[9px] font-bold px-1 rounded"
+                  className="ml-0.5 text-[9px] font-bold px-1.5 py-0.5 rounded-full"
                   style={{
                     background: 'rgba(225,29,72,0.2)',
-                    color: 'var(--brand)',
+                    color: '#e11d48',
                   }}
                 >
                   {PRS.length}
@@ -388,10 +393,10 @@ function RepoDetail({
               )}
               {t.id === 'issues' && (
                 <span
-                  className="ml-0.5 text-[9px] font-bold px-1 rounded"
+                  className="ml-0.5 text-[9px] font-bold px-1.5 py-0.5 rounded-full"
                   style={{
-                    background: 'rgba(239,68,68,0.2)',
-                    color: '#ef4444',
+                    background: 'rgba(255,255,255,0.06)',
+                    color: '#999',
                   }}
                 >
                   {ISSUES.length}
@@ -400,76 +405,73 @@ function RepoDetail({
             </button>
           );
         })}
+
+        {/* Search */}
         <div
-          className="ml-auto flex items-center gap-1.5 rounded-md px-2 py-1 border"
+          className="ml-auto flex items-center gap-1.5 rounded-md px-2 py-1"
           style={{
-            background: 'var(--bg)',
-            borderColor: 'var(--border)',
+            background: '#111',
+            border: '1px solid #2a2a2a',
             width: 160,
           }}
         >
-          <Search
-            size={11}
-            style={{ color: 'var(--ink-soft)' }}
-            strokeWidth={1.8}
-          />
+          <Search size={11} style={{ color: '#555' }} strokeWidth={1.8} />
           <input
             className="flex-1 bg-transparent text-[11px] outline-none"
             placeholder="Search..."
-            style={{ color: 'var(--ink)' }}
+            style={{ color: '#e8e8e8' }}
           />
-          <Filter size={10} style={{ color: 'var(--ink-soft)' }} />
+          <Filter size={10} style={{ color: '#555' }} />
         </div>
       </div>
 
       {/* Content */}
       <div className="flex-1 overflow-y-auto">
+        {/* ── PRs ── */}
         {tab === 'prs' && (
-          <div
-            className="divide-y"
-            style={{ borderColor: 'var(--border-subtle)' }}
-          >
+          <div>
             {PRS.map((pr) => (
               <div
                 key={pr.id}
                 onClick={() => onSelectPR(pr.id)}
                 className="px-5 py-4 cursor-pointer transition-colors"
                 style={{
-                  background:
-                    selectedPR === pr.id ? 'var(--bg-muted)' : 'transparent',
+                  borderBottom: '1px solid #1a1a1a',
+                  background: selectedPR === pr.id ? '#141414' : 'transparent',
                 }}
               >
                 <div className="flex items-start gap-3">
+                  {/* PR icon — white/muted, not green */}
                   <GitPullRequest
                     size={14}
                     strokeWidth={2}
                     className="mt-0.5 shrink-0"
-                    style={{ color: '#22c55e' }}
+                    style={{ color: '#888' }}
                   />
                   <div className="flex-1 min-w-0">
                     <div className="flex items-start gap-2">
                       <span
                         className="text-[13px] font-medium"
-                        style={{ color: 'var(--ink)' }}
+                        style={{ color: '#e8e8e8' }}
                       >
                         {pr.title}
                       </span>
                       <span
                         className="text-[11px] font-mono shrink-0"
-                        style={{ color: 'var(--ink-soft)' }}
+                        style={{ color: '#555' }}
                       >
                         #{pr.id}
                       </span>
                     </div>
                     <div
                       className="flex flex-wrap items-center gap-2 mt-1 text-[11px]"
-                      style={{ color: 'var(--ink-soft)' }}
+                      style={{ color: '#666' }}
                     >
                       <span
-                        className="font-mono px-1.5 py-0.5 rounded border text-[10.5px]"
+                        className="font-mono px-1.5 py-0.5 rounded text-[10.5px]"
                         style={{
-                          background: 'var(--bg-muted)',
-                          borderColor: 'var(--border)',
+                          background: '#1a1a1a',
+                          border: '1px solid #2a2a2a',
                         }}
                       >
                         {pr.branch}
@@ -482,7 +484,7 @@ function RepoDetail({
                       <span>·</span>
                       <span>{pr.files} files</span>
                     </div>
-                    <div className="mt-2">
+                    <div className="mt-2.5">
                       <StatusBadge status={pr.kangStatus} msg={pr.kangMsg} />
                     </div>
                   </div>
@@ -492,34 +494,33 @@ function RepoDetail({
           </div>
         )}
 
+        {/* ── Issues ── */}
         {tab === 'issues' && (
-          <div
-            className="divide-y"
-            style={{ borderColor: 'var(--border-subtle)' }}
-          >
+          <div>
             {ISSUES.map((issue) => (
               <div
                 key={issue.id}
-                className="px-5 py-4 cursor-pointer transition-colors hover:bg-bg-muted"
+                className="px-5 py-4 cursor-pointer transition-colors hover:bg-white/[0.02]"
+                style={{ borderBottom: '1px solid #1a1a1a' }}
               >
                 <div className="flex items-start gap-3">
                   <AlertCircle
                     size={14}
                     strokeWidth={2}
                     className="mt-0.5 shrink-0"
-                    style={{ color: '#ef4444' }}
+                    style={{ color: '#888' }}
                   />
                   <div className="flex-1">
                     <div className="flex items-center gap-2">
                       <span
                         className="text-[13px] font-medium"
-                        style={{ color: 'var(--ink)' }}
+                        style={{ color: '#e8e8e8' }}
                       >
                         {issue.title}
                       </span>
                       <span
                         className="text-[11px] font-mono"
-                        style={{ color: 'var(--ink-soft)' }}
+                        style={{ color: '#555' }}
                       >
                         #{issue.id}
                       </span>
@@ -528,11 +529,11 @@ function RepoDetail({
                       {issue.labels.map((l) => (
                         <span
                           key={l}
-                          className="text-[10px] font-medium px-1.5 py-0.5 rounded border"
+                          className="text-[10px] font-medium px-1.5 py-0.5 rounded"
                           style={{
-                            color: '#ef4444',
-                            background: 'rgba(239,68,68,0.1)',
-                            borderColor: 'rgba(239,68,68,0.2)',
+                            color: '#999',
+                            background: '#1a1a1a',
+                            border: '1px solid #2a2a2a',
                           }}
                         >
                           {l}
@@ -540,12 +541,12 @@ function RepoDetail({
                       ))}
                       <span
                         className="text-[11px] ml-1"
-                        style={{ color: 'var(--ink-soft)' }}
+                        style={{ color: '#666' }}
                       >
                         {issue.time}
                       </span>
                     </div>
-                    <div className="mt-2">
+                    <div className="mt-2.5">
                       <StatusBadge
                         status={issue.kangStatus}
                         msg={issue.kangMsg}
@@ -558,32 +559,27 @@ function RepoDetail({
           </div>
         )}
 
+        {/* ── Activity ── */}
         {tab === 'activity' && (
-          <div className="px-5 py-5 space-y-1">
+          <div className="px-5 py-5">
             <div
               className="text-[10.5px] font-semibold uppercase tracking-wider mb-4"
-              style={{ color: 'var(--ink-soft)' }}
+              style={{ color: '#555' }}
             >
               KangBot Live Activity
             </div>
             {ACTIVITY.map((item, i) => (
               <div
                 key={i}
-                className="flex items-start gap-3 py-2.5 pl-4 ml-2 border-l-2"
-                style={{ borderColor: 'var(--border)' }}
+                className="flex items-start gap-3 py-3 border-l-2 pl-4 ml-2"
+                style={{ borderColor: '#2a2a2a' }}
               >
                 <span className="text-base shrink-0">{item.icon}</span>
                 <div>
-                  <p
-                    className="text-[12.5px]"
-                    style={{ color: 'var(--ink-muted)' }}
-                  >
+                  <p className="text-[12.5px]" style={{ color: '#aaa' }}>
                     {item.text}
                   </p>
-                  <span
-                    className="text-[10.5px]"
-                    style={{ color: 'var(--ink-soft)' }}
-                  >
+                  <span className="text-[10.5px]" style={{ color: '#555' }}>
                     {item.time}
                   </span>
                 </div>
@@ -592,11 +588,12 @@ function RepoDetail({
           </div>
         )}
 
+        {/* ── Settings ── */}
         {tab === 'settings' && (
-          <div className="px-6 py-6 max-w-md space-y-4">
+          <div className="px-6 py-6 max-w-md space-y-3">
             <h3
-              className="text-[13px] font-semibold"
-              style={{ color: 'var(--ink)' }}
+              className="text-[13px] font-semibold mb-4"
+              style={{ color: '#aaa' }}
             >
               KangBot Auto-Fix Settings
             </h3>
@@ -607,22 +604,17 @@ function RepoDetail({
             ].map((s) => (
               <div
                 key={s.label}
-                className="flex items-center justify-between p-3 rounded-lg border"
-                style={{
-                  background: 'var(--bg-subtle)',
-                  borderColor: 'var(--border)',
-                }}
+                className="flex items-center justify-between p-3 rounded-lg"
+                style={{ background: '#111', border: '1px solid #2a2a2a' }}
               >
-                <span className="text-[12.5px]" style={{ color: 'var(--ink)' }}>
+                <span className="text-[12.5px]" style={{ color: '#ccc' }}>
                   {s.label}
                 </span>
                 <div
                   className="w-9 h-5 rounded-full cursor-pointer"
                   style={{
-                    background: s.enabled
-                      ? 'var(--brand)'
-                      : 'var(--bg-elevated)',
-                    border: '1px solid var(--border)',
+                    background: s.enabled ? '#e11d48' : '#222',
+                    border: '1px solid #333',
                   }}
                 />
               </div>
@@ -634,7 +626,7 @@ function RepoDetail({
   );
 }
 
-/* ─── CenterPanel Export ─────────────────────────────────────────────────── */
+/* ── CenterPanel export ──────────────────────────────────────────────────── */
 export default function CenterPanel({
   activeNav,
   selectedRepo,
@@ -654,10 +646,9 @@ export default function CenterPanel({
 }) {
   return (
     <section
-      className="flex-1 min-w-0 flex flex-col h-screen border-r"
-      style={{ background: 'var(--bg)', borderColor: 'var(--border)' }}
+      className="flex-1 min-w-0 flex flex-col h-screen"
+      style={{ background: '#0d0d0d', borderRight: '1px solid #2a2a2a' }}
     >
-      {/* Overview page when no repo selected OR explicitly on overview */}
       {activeNav === 'overview' || !selectedRepo ? (
         <Overview
           repos={repos}
