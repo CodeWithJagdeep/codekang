@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import Sidebar, { type Repo } from '@/component/dashboard/sidebar';
+import { type Repo } from '@/component/dashboard/sidebar';
 import CenterPanel from '@/component/dashboard/centerPanel';
 import RightPanel from '@/component/dashboard/rightpanel';
 
@@ -48,17 +48,10 @@ export default function DashboardPage() {
   const [repos, setRepos] = useState<Repo[]>(INITIAL_REPOS);
   const [selectedRepo, setSelectedRepo] = useState<string | null>(null);
   const [selectedPR, setSelectedPR] = useState<number | null>(null);
-  const [activeNav, setActiveNav] = useState('review'); // Default to 'review' to match image 625 active state
 
   function handleSelectRepo(id: string) {
     setSelectedRepo(id);
     setSelectedPR(null);
-  }
-
-  function handleNavChange(id: string) {
-    setActiveNav(id);
-    // If we are in 'review' or 'sessions', we might want to show the repositories list in the center
-    // as requested by the user previously.
   }
 
   function handleAddRepo() {
@@ -77,21 +70,9 @@ export default function DashboardPage() {
   }
 
   return (
-    <main
-      className="flex h-screen w-screen overflow-hidden"
-      style={{ background: '#121214' }}
-    >
-      <Sidebar
-        activeNav={activeNav}
-        onNavChange={handleNavChange}
-        // Compatibility
-        selectedRepo={selectedRepo}
-        onSelectRepo={handleSelectRepo}
-        repos={repos}
-        onAddRepo={handleAddRepo}
-      />
+    <div className="flex h-full w-full">
       <CenterPanel
-        activeNav={activeNav === 'review' ? 'repos' : activeNav} // Map 'review' to 'repos' view for now
+        activeNav="repos"
         repos={repos}
         onAddRepo={handleAddRepo}
         onSelectRepo={handleSelectRepo}
@@ -100,6 +81,6 @@ export default function DashboardPage() {
         selectedPR={selectedPR}
       />
       {selectedRepo && <RightPanel selectedPR={selectedPR} />}
-    </main>
+    </div>
   );
 }

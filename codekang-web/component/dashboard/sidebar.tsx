@@ -1,5 +1,8 @@
 'use client';
 
+import { useState } from 'react';
+import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import {
   MessageSquareText,
   HelpCircle,
@@ -8,6 +11,8 @@ import {
   PanelLeft,
   Settings,
   ChevronDown,
+  RefreshCcw,
+  Plus,
 } from 'lucide-react';
 
 export type Repo = {
@@ -36,29 +41,24 @@ const INVOLVED_PRS = [
   },
 ];
 
-export default function Sidebar({
-  activeNav,
-  onNavChange,
-}: {
-  activeNav: string;
-  onNavChange: (id: string) => void;
-  // Compatibility props
-  selectedRepo?: string | null;
-  onSelectRepo?: (id: string) => void;
-  repos?: Repo[];
-  onAddRepo?: () => void;
-}) {
+export default function Sidebar() {
+  const pathname = usePathname();
+  const [isOrgDropdownOpen, setIsOrgDropdownOpen] = useState(false);
+
   return (
     <aside
-      className="w-[240px] shrink-0 flex flex-col h-screen"
+      className="w-[240px] shrink-0 flex flex-col h-screen relative z-40"
       style={{ background: '#1c1c1c', borderRight: '1px solid #2a2a2a' }}
     >
-      {/* ── User Header ── */}
+      {/* ── User Header (Organization Dropdown) ── */}
       <div
-        className="flex items-center justify-between px-3 h-[52px]"
+        className="flex items-center justify-between px-3 h-[52px] relative cursor-pointer hover:bg-white/[0.02]"
         style={{ borderBottom: '1px solid #2a2a2a' }}
       >
-        <button className="flex items-center gap-2 rounded-md px-1.5 py-1 hover:bg-white/5 transition-colors group">
+        <button
+          onClick={() => setIsOrgDropdownOpen(!isOrgDropdownOpen)}
+          className="flex items-center gap-2 rounded-md px-1.5 py-1 hover:bg-white/5 transition-colors group flex-1 text-left"
+        >
           <div
             className="w-6 h-6 rounded-md flex items-center justify-center text-[11px] font-bold shrink-0"
             style={{ background: '#2a2a2e', color: '#9d9ea3' }}
@@ -66,7 +66,7 @@ export default function Sidebar({
             J
           </div>
           <span
-            className="text-[14px] font-medium"
+            className="text-[14px] font-medium flex-1 truncate"
             style={{ color: '#e8e8e8' }}
           >
             Jagdeep singh
@@ -77,7 +77,74 @@ export default function Sidebar({
             strokeWidth={1.5}
           />
         </button>
-        <button className="p-1 px-1.5 rounded-md hover:bg-white/5 transition-colors border border-transparent hover:border-[#2a2a2a]">
+
+        {isOrgDropdownOpen && (
+          <>
+            {/* Click-away overlay */}
+            <div
+              className="fixed inset-0 z-40 cursor-default"
+              onClick={() => setIsOrgDropdownOpen(false)}
+            />
+            {/* Dropdown Menu */}
+            <div
+              className="absolute top-[48px] left-2 w-[220px] rounded-lg border shadow-xl overflow-hidden z-50 animate-in fade-in slide-in-from-top-1 duration-200"
+              style={{ background: '#1c1c1c', borderColor: '#2a2a2a' }}
+            >
+              <div className="p-3 border-b" style={{ borderColor: '#2a2a2a' }}>
+                <div
+                  className="text-[11px] font-medium uppercase tracking-wider mb-1"
+                  style={{ color: '#6d6d6d' }}
+                >
+                  Current Organization
+                </div>
+                <div
+                  className="text-[13px] font-medium flex items-center gap-2"
+                  style={{ color: '#e8e8e8' }}
+                >
+                  <div
+                    className="w-5 h-5 rounded flex items-center justify-center text-[10px] font-bold"
+                    style={{ background: '#2a2a2e', color: '#9d9ea3' }}
+                  >
+                    J
+                  </div>
+                  Jagdeep singh
+                </div>
+              </div>
+              <div className="p-1.5">
+                <button
+                  className="w-full flex items-center gap-2 text-left px-2.5 py-2 text-[13px] rounded-md transition-colors"
+                  style={{ color: '#e8e8e8' }}
+                  onMouseEnter={(e) =>
+                    (e.currentTarget.style.background =
+                      'rgba(255,255,255,0.06)')
+                  }
+                  onMouseLeave={(e) =>
+                    (e.currentTarget.style.background = 'transparent')
+                  }
+                >
+                  <RefreshCcw size={14} style={{ color: '#888' }} />
+                  Refresh list
+                </button>
+                <button
+                  className="w-full flex items-center gap-2 text-left px-2.5 py-2 text-[13px] rounded-md transition-colors"
+                  style={{ color: '#e8e8e8' }}
+                  onMouseEnter={(e) =>
+                    (e.currentTarget.style.background =
+                      'rgba(255,255,255,0.06)')
+                  }
+                  onMouseLeave={(e) =>
+                    (e.currentTarget.style.background = 'transparent')
+                  }
+                >
+                  <Plus size={16} style={{ color: '#e11d48' }} />
+                  Add organization
+                </button>
+              </div>
+            </div>
+          </>
+        )}
+
+        <button className="p-1 px-1.5 ml-1 rounded-md hover:bg-white/5 transition-colors border border-transparent hover:border-[#2a2a2a] shrink-0">
           <PanelLeft size={16} style={{ color: '#6d6d6d' }} strokeWidth={1.5} />
         </button>
       </div>
@@ -86,11 +153,13 @@ export default function Sidebar({
       <nav className="px-2 pt-2 pb-1 space-y-0.5">
         {NAV_ITEMS.map((item) => {
           const Icon = item.icon;
-          const isActive = activeNav === item.id;
+          const href =
+            item.id === 'review' ? '/dashboard' : `/dashboard/${item.id}`;
+          const isActive = pathname === href || pathname.startsWith(`${href}/`);
           return (
-            <button
+            <Link
               key={item.id}
-              onClick={() => onNavChange(item.id)}
+              href={href}
               className="w-full flex items-center gap-3 px-3 py-2 rounded-md text-[14px] transition-colors"
               style={{
                 background: isActive ? 'rgba(255,255,255,0.06)' : 'transparent',
@@ -105,7 +174,7 @@ export default function Sidebar({
               <span className={isActive ? 'font-medium' : 'font-normal'}>
                 {item.label}
               </span>
-            </button>
+            </Link>
           );
         })}
       </nav>
@@ -144,7 +213,7 @@ export default function Sidebar({
                     size={16}
                     strokeWidth={2}
                     className="shrink-0 mt-0.5"
-                    style={{ color: '#00cc66' }} // Using the specific green from the image if allowed, or grey if not. Image 625 shows green.
+                    style={{ color: '#00cc66' }}
                   />
                   <div className="min-w-0">
                     <div
@@ -169,14 +238,14 @@ export default function Sidebar({
 
       {/* ── Settings Footer ── */}
       <div style={{ borderTop: '1px solid #2a2a2a' }} className="p-2">
-        <button
-          onClick={() => onNavChange('settings')}
+        <Link
+          href="/dashboard/settings"
           className="w-full flex items-center gap-3 px-3 py-2 rounded-md text-[14px] transition-colors hover:bg-white/5"
           style={{ color: '#999' }}
         >
           <Settings size={18} strokeWidth={1.5} />
           <span>Settings</span>
-        </button>
+        </Link>
       </div>
     </aside>
   );

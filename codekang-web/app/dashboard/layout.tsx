@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { getAccessToken } from '@/lib/auth';
+import Sidebar from '@/component/dashboard/sidebar';
 
 export default function DashboardLayout({
   children,
@@ -19,8 +20,6 @@ export default function DashboardLayout({
       router.replace('/in/login');
       return;
     }
-    // Use a slight delay to avoid cascading render lint error if necessary
-    // or just ensure logic is sound.
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setIsVerified(true);
     // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -29,10 +28,9 @@ export default function DashboardLayout({
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-black flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center bg-[#121214]">
         <div className="flex flex-col items-center gap-4">
-          <div className="w-8 h-8 border-2 border-zinc-700 border-t-violet-400 rounded-full animate-spin" />
-          <p className="text-sm text-zinc-500">Loading dashboard…</p>
+          <div className="w-8 h-8 border-2 border-[#2a2a2a] border-t-[#e11d48] rounded-full animate-spin" />
         </div>
       </div>
     );
@@ -42,5 +40,15 @@ export default function DashboardLayout({
     return null;
   }
 
-  return <>{children}</>;
+  return (
+    <div
+      className="flex h-screen w-screen overflow-hidden"
+      style={{ background: '#121214' }}
+    >
+      <Sidebar />
+      <div className="flex-1 min-w-0 flex flex-col relative z-0">
+        {children}
+      </div>
+    </div>
+  );
 }
