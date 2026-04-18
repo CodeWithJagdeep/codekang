@@ -95,7 +95,7 @@ export default function Sidebar() {
                   className="text-[11px] font-medium uppercase tracking-wider mb-1"
                   style={{ color: '#6d6d6d' }}
                 >
-                  Current Organization
+                  Current Project
                 </div>
                 <div
                   className="text-[13px] font-medium flex items-center gap-2"
@@ -105,9 +105,9 @@ export default function Sidebar() {
                     className="w-5 h-5 rounded flex items-center justify-center text-[10px] font-bold"
                     style={{ background: '#2a2a2e', color: '#9d9ea3' }}
                   >
-                    J
+                    C
                   </div>
-                  Jagdeep singh
+                  codekang-platform
                 </div>
               </div>
               <div className="p-1.5">
@@ -137,7 +137,7 @@ export default function Sidebar() {
                   }
                 >
                   <Plus size={16} style={{ color: '#e11d48' }} />
-                  Add organization
+                  Add project
                 </button>
               </div>
             </div>
