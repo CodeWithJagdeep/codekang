@@ -33,7 +33,7 @@ export default function DashboardHeader() {
             Free Tier
           </div>
 
-          <button className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[13px] font-medium transition-colors bg-[#e11d48] hover:bg-[#be123c] text-white">
+          <button className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[13px] font-medium transition-colors bg-[#f97316] hover:bg-[#ea580c] text-white">
             <Zap size={14} className="fill-current" strokeWidth={1.5} />
             Upgrade to Pro
           </button>
@@ -44,7 +44,7 @@ export default function DashboardHeader() {
           <button className="relative p-1.5 rounded-full hover:bg-white/5 transition-colors text-[#a1a1aa] hover:text-[#e8e8e8]">
             <Bell size={18} strokeWidth={1.5} />
             {/* Unread dot */}
-            <span className="absolute top-1 right-1.5 w-2 h-2 rounded-full border border-[#121214] bg-[#e11d48]" />
+            <span className="absolute top-1 right-1.5 w-2 h-2 rounded-full border border-[#121214] bg-[#f97316]" />
           </button>
         </div>
       </div>

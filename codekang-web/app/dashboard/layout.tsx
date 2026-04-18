@@ -31,7 +31,7 @@ export default function DashboardLayout({
     return (
       <div className="min-h-screen flex items-center justify-center bg-[#121214]">
         <div className="flex flex-col items-center gap-4">
-          <div className="w-8 h-8 border-2 border-[#2a2a2a] border-t-[#e11d48] rounded-full animate-spin" />
+          <div className="w-8 h-8 border-2 border-[#2a2a2a] border-t-[#f97316] rounded-full animate-spin" />
         </div>
       </div>
     );

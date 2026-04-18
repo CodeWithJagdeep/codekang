@@ -138,7 +138,7 @@ export default function Sidebar() {
                     (e.currentTarget.style.background = 'transparent')
                   }
                 >
-                  <Plus size={16} style={{ color: '#e11d48' }} />
+                  <Plus size={16} style={{ color: '#f97316' }} />
                   Add project
                 </button>
               </div>

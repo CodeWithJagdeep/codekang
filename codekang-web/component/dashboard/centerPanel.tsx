@@ -75,7 +75,7 @@ export default function CenterPanel({
             <button
               onClick={onAddRepo}
               className="flex items-center gap-2 px-4 py-2 rounded-lg text-[13px] font-bold transition-opacity hover:opacity-90"
-              style={{ background: '#e11d48', color: '#fff' }}
+              style={{ background: '#f97316', color: '#fff' }}
             >
               <Plus size={18} strokeWidth={2.5} />
               Add Repositories
