@@ -52,7 +52,7 @@ export default function Sidebar() {
     >
       {/* ── User Header (Organization Dropdown) ── */}
       <div
-        className="flex items-center justify-between px-3 h-[52px] relative cursor-pointer hover:bg-white/[0.02]"
+        className="flex items-center justify-between px-3 h-[52px] relative cursor-pointer hover:bg-white/2"
         style={{ borderBottom: '1px solid #2a2a2a' }}
       >
         <button
@@ -239,7 +239,7 @@ export default function Sidebar() {
       {/* ── Settings Footer ── */}
       <div style={{ borderTop: '1px solid #2a2a2a' }} className="p-2">
         <Link
-          href="/dashboard/settings"
+          href="/settings"
           className="w-full flex items-center gap-3 px-3 py-2 rounded-md text-[14px] transition-colors hover:bg-white/5"
           style={{ color: '#999' }}
         >
