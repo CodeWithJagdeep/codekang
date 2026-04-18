@@ -11,6 +11,7 @@ import {
   Search,
   CheckCircle2,
   Clock3,
+  ChevronDown,
 } from 'lucide-react';
 
 export default function RepositoryDetailsPage({
@@ -21,6 +22,10 @@ export default function RepositoryDetailsPage({
   const [activeTab, setActiveTab] = useState<
     'prs' | 'issues' | 'activity' | 'settings'
   >('prs');
+  const [expandedPR, setExpandedPR] = useState<string | null>(null);
+
+  const togglePR = (id: string) =>
+    setExpandedPR((prev) => (prev === id ? null : id));
 
   const tabs = [
     { id: 'prs', label: 'Pull Requests', icon: GitPullRequest, count: 3 },
@@ -116,7 +121,6 @@ export default function RepositoryDetailsPage({
 
             {/* ── PR Card 1: Open + KangBot Reviewing ── */}
             <div className="flex flex-col border border-white/5 rounded-xl bg-[#1c1c1c] overflow-hidden hover:border-[#393939] transition-all duration-200">
-              {/* PR Header */}
               <div className="p-5">
                 <div className="flex items-start justify-between">
                   <div className="flex gap-3.5">
@@ -153,10 +157,8 @@ export default function RepositoryDetailsPage({
                     Open
                   </span>
                 </div>
-
-                {/* Stats Row */}
                 <div className="flex items-center gap-4 mt-4 text-[12px]">
-                  <div className="flex items-center gap-1.5 text-[#a1a1aa]">
+                  <div className="flex items-center gap-1.5">
                     <span className="text-green-400 font-mono text-[11px]">
                       +187
                     </span>
@@ -173,9 +175,12 @@ export default function RepositoryDetailsPage({
                 </div>
               </div>
 
-              {/* KangBot Review Section */}
+              {/* KangBot Review Section – Collapsible */}
               <div className="border-t border-white/5 bg-[#161618]">
-                <div className="px-5 py-3 flex items-center justify-between border-b border-white/5">
+                <button
+                  onClick={() => togglePR('142')}
+                  className="w-full px-5 py-3 flex items-center justify-between hover:bg-white/[0.02] transition-colors"
+                >
                   <div className="flex items-center gap-2.5">
                     <div className="w-6 h-6 rounded-full bg-[#f97316] flex items-center justify-center">
                       <span className="text-[10px] font-black text-white">
@@ -190,99 +195,96 @@ export default function RepositoryDetailsPage({
                       Reviewing
                     </span>
                   </div>
-                  <span className="text-[11px] text-[#6d6d6d]">
-                    Last reviewed 2 min ago
-                  </span>
-                </div>
+                  <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-2">
+                      <span className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-red-500/10 text-[10px] font-bold text-red-400">
+                        1 Critical
+                      </span>
+                      <span className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-[#f97316]/10 text-[10px] font-bold text-[#f97316]">
+                        2 Suggestions
+                      </span>
+                    </div>
+                    <span className="text-[11px] text-[#6d6d6d]">
+                      2 min ago
+                    </span>
+                    <ChevronDown
+                      size={14}
+                      className={`text-[#6d6d6d] transition-transform duration-200 ${expandedPR === '142' ? 'rotate-180' : ''}`}
+                    />
+                  </div>
+                </button>
 
-                {/* Bot Summary */}
-                <div className="px-5 py-4">
-                  <p className="text-[13px] text-[#a1a1aa] leading-relaxed mb-4">
-                    This PR refactors the{' '}
-                    <code className="text-[#e8e8e8] bg-white/5 px-1 py-0.5 rounded text-[12px]">
-                      BotStrategy
-                    </code>{' '}
-                    mapping configuration to support secondary markdown
-                    instruction parsing. The changes are well-structured but
-                    introduce a potential performance concern.
-                  </p>
+                {expandedPR === '142' && (
+                  <div className="px-5 py-4 border-t border-white/5">
+                    <p className="text-[13px] text-[#a1a1aa] leading-relaxed mb-4">
+                      This PR refactors the{' '}
+                      <code className="text-[#e8e8e8] bg-white/5 px-1 py-0.5 rounded text-[12px]">
+                        BotStrategy
+                      </code>{' '}
+                      mapping configuration to support secondary markdown
+                      instruction parsing. The changes are well-structured but
+                      introduce a potential performance concern.
+                    </p>
 
-                  {/* Critical Issues */}
-                  <div className="flex flex-col gap-2.5 mb-4">
-                    <div className="flex items-start gap-2.5 p-3 rounded-lg bg-red-500/5 border border-red-500/15">
-                      <div className="w-5 h-5 rounded flex items-center justify-center bg-red-500/20 shrink-0 mt-0.5">
-                        <AlertCircle size={12} className="text-red-400" />
-                      </div>
-                      <div>
-                        <div className="text-[12px] font-bold text-red-400 mb-0.5">
-                          Critical: Memory leak in test loop
+                    <div className="flex flex-col gap-2.5 mb-4">
+                      <div className="flex items-start gap-2.5 p-3 rounded-lg bg-red-500/5 border border-red-500/15">
+                        <div className="w-5 h-5 rounded flex items-center justify-center bg-red-500/20 shrink-0 mt-0.5">
+                          <AlertCircle size={12} className="text-red-400" />
                         </div>
-                        <p className="text-[11px] text-[#a1a1aa] leading-relaxed">
-                          <code className="text-[#e8e8e8] bg-white/5 px-1 rounded text-[10px]">
-                            bot-strategy.test.ts:47
-                          </code>{' '}
-                          — Unbounded loop detected creating new{' '}
-                          <code className="text-[#e8e8e8] bg-white/5 px-1 rounded text-[10px]">
-                            Promise
-                          </code>{' '}
-                          instances without cleanup. Recommend adding{' '}
-                          <code className="text-[#e8e8e8] bg-white/5 px-1 rounded text-[10px]">
-                            afterEach
-                          </code>{' '}
-                          teardown.
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className="flex items-start gap-2.5 p-3 rounded-lg bg-[#f97316]/5 border border-[#f97316]/15">
-                      <div className="w-5 h-5 rounded flex items-center justify-center bg-[#f97316]/20 shrink-0 mt-0.5">
-                        <AlertCircle size={12} className="text-[#f97316]" />
-                      </div>
-                      <div>
-                        <div className="text-[12px] font-bold text-[#f97316] mb-0.5">
-                          Suggestion: Add input validation
+                        <div>
+                          <div className="text-[12px] font-bold text-red-400 mb-0.5">
+                            Critical: Memory leak in test loop
+                          </div>
+                          <p className="text-[11px] text-[#a1a1aa] leading-relaxed">
+                            <code className="text-[#e8e8e8] bg-white/5 px-1 rounded text-[10px]">
+                              bot-strategy.test.ts:47
+                            </code>{' '}
+                            — Unbounded loop creating new{' '}
+                            <code className="text-[#e8e8e8] bg-white/5 px-1 rounded text-[10px]">
+                              Promise
+                            </code>{' '}
+                            instances without cleanup.
+                          </p>
                         </div>
-                        <p className="text-[11px] text-[#a1a1aa] leading-relaxed">
-                          <code className="text-[#e8e8e8] bg-white/5 px-1 rounded text-[10px]">
-                            strategy-mapper.ts:112
-                          </code>{' '}
-                          — The{' '}
-                          <code className="text-[#e8e8e8] bg-white/5 px-1 rounded text-[10px]">
-                            parseMarkdown()
-                          </code>{' '}
-                          function accepts raw input without sanitization.
-                          Consider adding validation to prevent injection.
-                        </p>
+                      </div>
+                      <div className="flex items-start gap-2.5 p-3 rounded-lg bg-[#f97316]/5 border border-[#f97316]/15">
+                        <div className="w-5 h-5 rounded flex items-center justify-center bg-[#f97316]/20 shrink-0 mt-0.5">
+                          <AlertCircle size={12} className="text-[#f97316]" />
+                        </div>
+                        <div>
+                          <div className="text-[12px] font-bold text-[#f97316] mb-0.5">
+                            Suggestion: Add input validation
+                          </div>
+                          <p className="text-[11px] text-[#a1a1aa] leading-relaxed">
+                            <code className="text-[#e8e8e8] bg-white/5 px-1 rounded text-[10px]">
+                              strategy-mapper.ts:112
+                            </code>{' '}
+                            —{' '}
+                            <code className="text-[#e8e8e8] bg-white/5 px-1 rounded text-[10px]">
+                              parseMarkdown()
+                            </code>{' '}
+                            accepts raw input without sanitization.
+                          </p>
+                        </div>
                       </div>
                     </div>
-                  </div>
 
-                  {/* Issue Summary Badges */}
-                  <div className="flex items-center gap-3 mb-4">
-                    <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-red-500/10 border border-red-500/20 text-[11px] font-bold text-red-400">
-                      <AlertCircle size={12} /> 1 Critical
-                    </div>
-                    <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-[#f97316]/10 border border-[#f97316]/20 text-[11px] font-bold text-[#f97316]">
-                      <AlertCircle size={12} /> 2 Suggestions
-                    </div>
-                    <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-green-500/10 border border-green-500/20 text-[11px] font-bold text-green-400">
-                      <CheckCircle2 size={12} /> 4 Approved
+                    <div className="flex gap-2">
+                      <Link
+                        href={`/dashboard/repositories/${params.repoId}/review/142`}
+                        className="text-[12px] font-semibold text-white bg-[#f97316] hover:bg-[#ea580c] px-4 py-2 rounded-md transition-colors"
+                      >
+                        View Full Review
+                      </Link>
+                      <button className="text-[12px] font-semibold text-[#a1a1aa] hover:text-[#e8e8e8] bg-white/5 hover:bg-white/10 px-4 py-2 rounded-md border border-white/5 transition-colors">
+                        Re-Analyze
+                      </button>
+                      <button className="text-[12px] font-semibold text-[#a1a1aa] hover:text-[#e8e8e8] bg-transparent hover:bg-white/5 px-4 py-2 rounded-md transition-colors">
+                        Dismiss
+                      </button>
                     </div>
                   </div>
-
-                  {/* Actions */}
-                  <div className="flex gap-2">
-                    <button className="text-[12px] font-semibold text-white bg-[#f97316] hover:bg-[#ea580c] px-4 py-2 rounded-md transition-colors">
-                      View Full Review
-                    </button>
-                    <button className="text-[12px] font-semibold text-[#a1a1aa] hover:text-[#e8e8e8] bg-white/5 hover:bg-white/10 px-4 py-2 rounded-md border border-white/5 transition-colors">
-                      Re-Analyze
-                    </button>
-                    <button className="text-[12px] font-semibold text-[#a1a1aa] hover:text-[#e8e8e8] bg-transparent hover:bg-white/5 px-4 py-2 rounded-md transition-colors">
-                      Dismiss
-                    </button>
-                  </div>
-                </div>
+                )}
               </div>
             </div>
 
@@ -325,7 +327,7 @@ export default function RepositoryDetailsPage({
                   </span>
                 </div>
                 <div className="flex items-center gap-4 mt-4 text-[12px]">
-                  <div className="flex items-center gap-1.5 text-[#a1a1aa]">
+                  <div className="flex items-center gap-1.5">
                     <span className="text-green-400 font-mono text-[11px]">
                       +24
                     </span>
@@ -340,9 +342,12 @@ export default function RepositoryDetailsPage({
                 </div>
               </div>
 
-              {/* KangBot Approved State */}
-              <div className="border-t border-white/5 bg-[#161618] px-5 py-3.5">
-                <div className="flex items-center justify-between">
+              {/* KangBot Approved – Collapsible */}
+              <div className="border-t border-white/5 bg-[#161618]">
+                <button
+                  onClick={() => togglePR('141')}
+                  className="w-full px-5 py-3.5 flex items-center justify-between hover:bg-white/[0.02] transition-colors"
+                >
                   <div className="flex items-center gap-2.5">
                     <div className="w-6 h-6 rounded-full bg-[#f97316] flex items-center justify-center">
                       <span className="text-[10px] font-black text-white">
@@ -357,14 +362,32 @@ export default function RepositoryDetailsPage({
                     </span>
                   </div>
                   <div className="flex items-center gap-3">
-                    <div className="flex items-center gap-1.5 px-2 py-0.5 rounded bg-green-500/10 text-[10px] font-bold text-green-400">
-                      <CheckCircle2 size={10} /> 0 Issues
-                    </div>
-                    <span className="text-[11px] text-[#6d6d6d]">
-                      Reviewed 4 days ago
+                    <span className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-green-500/10 text-[10px] font-bold text-green-400">
+                      0 Issues
                     </span>
+                    <span className="text-[11px] text-[#6d6d6d]">
+                      4 days ago
+                    </span>
+                    <ChevronDown
+                      size={14}
+                      className={`text-[#6d6d6d] transition-transform duration-200 ${expandedPR === '141' ? 'rotate-180' : ''}`}
+                    />
                   </div>
-                </div>
+                </button>
+                {expandedPR === '141' && (
+                  <div className="px-5 pb-3.5 border-t border-white/5 pt-3">
+                    <p className="text-[13px] text-[#a1a1aa] mb-2">
+                      AI review completed with 0 errors and 0 critical security
+                      issues. Design structural review approved.
+                    </p>
+                    <Link
+                      href={`/dashboard/repositories/${params.repoId}/review/141`}
+                      className="text-[12px] font-semibold text-[#f97316] hover:underline"
+                    >
+                      View Full Review →
+                    </Link>
+                  </div>
+                )}
               </div>
             </div>
 
@@ -403,8 +426,13 @@ export default function RepositoryDetailsPage({
                   </span>
                 </div>
               </div>
-              <div className="border-t border-white/5 bg-[#161618] px-5 py-3.5">
-                <div className="flex items-center justify-between">
+
+              {/* KangBot Waiting – Collapsible */}
+              <div className="border-t border-white/5 bg-[#161618]">
+                <button
+                  onClick={() => togglePR('140')}
+                  className="w-full px-5 py-3.5 flex items-center justify-between hover:bg-white/[0.02] transition-colors"
+                >
                   <div className="flex items-center gap-2.5">
                     <div className="w-6 h-6 rounded-full bg-[#333] flex items-center justify-center">
                       <span className="text-[10px] font-black text-[#6d6d6d]">
@@ -418,7 +446,17 @@ export default function RepositoryDetailsPage({
                       <Clock3 size={10} /> Waiting for Ready
                     </span>
                   </div>
-                </div>
+                  <ChevronDown
+                    size={14}
+                    className={`text-[#6d6d6d] transition-transform duration-200 ${expandedPR === '140' ? 'rotate-180' : ''}`}
+                  />
+                </button>
+                {expandedPR === '140' && (
+                  <div className="px-5 pb-3.5 border-t border-white/5 pt-3 text-[13px] text-[#6d6d6d]">
+                    KangBot will automatically begin reviewing once this PR is
+                    marked as ready for review.
+                  </div>
+                )}
               </div>
             </div>
           </div>
