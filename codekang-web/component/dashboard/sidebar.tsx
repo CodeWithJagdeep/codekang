@@ -2,15 +2,13 @@
 
 import Image from 'next/image';
 import {
+  MessageSquareText,
+  HelpCircle,
+  BookOpen,
   GitPullRequest,
-  AlertCircle,
-  LayoutDashboard,
-  GitFork,
-  BarChart2,
+  PanelLeft,
   Settings,
-  Plus,
-  ChevronRight,
-  Zap,
+  ChevronDown,
 } from 'lucide-react';
 
 export type Repo = {
@@ -24,30 +22,24 @@ export type Repo = {
 };
 
 const NAV = [
-  { icon: LayoutDashboard, label: 'Overview', id: 'overview' },
-  { icon: GitFork, label: 'Repositories', id: 'repos' },
-  { icon: BarChart2, label: 'Analytics', id: 'analytics' },
-  { icon: Settings, label: 'Settings', id: 'settings' },
+  { icon: MessageSquareText, label: 'Sessions', id: 'sessions' },
+  { icon: HelpCircle, label: 'Ask', id: 'ask' },
+  { icon: BookOpen, label: 'Wiki', id: 'wiki' },
+  { icon: GitPullRequest, label: 'Review', id: 'review' },
 ];
 
-function StatusDot({ status }: { status: string }) {
-  const col =
-    { active: '#22c55e', busy: '#f59e0b', idle: '#555' }[status] ?? '#555';
-  return (
-    <span className="relative flex h-2 w-2 shrink-0">
-      {status === 'busy' && (
-        <span
-          className="kangpulse absolute inline-flex h-full w-full rounded-full opacity-60"
-          style={{ background: col }}
-        />
-      )}
-      <span
-        className="relative inline-flex rounded-full h-2 w-2"
-        style={{ background: col }}
-      />
-    </span>
-  );
-}
+const INVOLVED_PRS = [
+  {
+    title: 'fix: complete OAuth flow in auth service',
+    branch: 'devin-ai-integration',
+    time: '5 days ago',
+  },
+  {
+    title: 'feat: add vector search to autonomous agent',
+    branch: 'feat/vector-search',
+    time: '2 days ago',
+  },
+];
 
 export default function Sidebar({
   selectedRepo,
@@ -64,181 +56,125 @@ export default function Sidebar({
   repos: Repo[];
   onAddRepo: () => void;
 }) {
+  // suppress unused prop warnings while keeping the API stable
+  void selectedRepo;
+  void onSelectRepo;
+  void repos;
+  void onAddRepo;
+
   return (
     <aside
-      className="w-[220px] shrink-0 flex flex-col h-screen border-r"
-      style={{ background: 'var(--bg-subtle)', borderColor: 'var(--border)' }}
+      className="w-[240px] shrink-0 flex flex-col h-screen"
+      style={{ background: '#1c1c1c', borderRight: '1px solid #2a2a2a' }}
     >
-      {/* Logo */}
+      {/* ── User header ── */}
       <div
-        className="flex items-center gap-2.5 px-4 h-[56px] border-b"
-        style={{ borderColor: 'var(--border)' }}
+        className="flex items-center justify-between px-3 h-[52px]"
+        style={{ borderBottom: '1px solid #2a2a2a' }}
       >
-        <Image
-          src="/brandlogo/logo-transparent.png"
-          alt="CodeKang"
-          width={28}
-          height={28}
-          className="object-contain"
-          style={{
-            filter:
-              'brightness(0) saturate(100%) invert(18%) sepia(96%) saturate(6932%) hue-rotate(339deg) brightness(90%) contrast(90%)',
-          }}
-        />
-        <span className="text-[14px] font-bold" style={{ color: 'var(--ink)' }}>
-          CodeKang
-        </span>
+        {/* Avatar + Name */}
+        <button className="flex items-center gap-2 rounded-md px-1.5 py-1 hover:bg-white/5 transition-colors">
+          {/* Avatar circle with CodeKang logo */}
+          <div
+            className="w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-bold shrink-0"
+            style={{ background: '#e11d48', color: '#fff' }}
+          >
+            J
+          </div>
+          <span
+            className="text-[13px] font-medium"
+            style={{ color: '#e8e8e8' }}
+          >
+            Jagdeep singh
+          </span>
+          <ChevronDown size={12} style={{ color: '#666' }} strokeWidth={2} />
+        </button>
+
+        {/* Panel toggle */}
+        <button className="p-1 rounded-md hover:bg-white/5 transition-colors">
+          <PanelLeft size={15} style={{ color: '#666' }} strokeWidth={1.8} />
+        </button>
       </div>
 
-      {/* Nav */}
-      <nav className="px-2 pt-3 pb-2">
+      {/* ── Main Nav ── */}
+      <nav className="px-2 pt-2 pb-1">
         {NAV.map((item) => {
           const Icon = item.icon;
-          const active = activeNav === item.id;
+          const isActive = activeNav === item.id;
           return (
             <button
               key={item.id}
               onClick={() => onNavChange(item.id)}
-              className="w-full flex items-center gap-2.5 px-2.5 py-1.5 rounded-md text-[13px] mb-0.5 transition-colors"
+              className="w-full flex items-center gap-2.5 px-2 py-[7px] rounded-md text-[13px] transition-colors"
               style={{
-                background: active ? 'var(--brand-dim)' : 'transparent',
-                color: active ? 'var(--brand)' : 'var(--ink-muted)',
-                fontWeight: active ? 600 : 400,
+                background: isActive ? 'rgba(255,255,255,0.07)' : 'transparent',
+                color: isActive ? '#e8e8e8' : '#999999',
+                fontWeight: isActive ? 500 : 400,
               }}
             >
-              <Icon size={14} strokeWidth={1.8} />
+              <Icon size={15} strokeWidth={1.7} />
               {item.label}
             </button>
           );
         })}
       </nav>
 
-      {/* Repos section */}
-      {activeNav !== 'overview' && (
-        <>
-          <div className="px-4 pt-3 pb-1 flex items-center justify-between">
-            <span
-              className="text-[10.5px] font-semibold uppercase tracking-wider"
-              style={{ color: 'var(--ink-soft)' }}
-            >
-              Repositories
-            </span>
-            <button
-              onClick={onAddRepo}
-              style={{ color: 'var(--ink-soft)' }}
-              className="hover:text-white transition-colors"
-            >
-              <Plus size={12} strokeWidth={2} />
-            </button>
-          </div>
-
-          <div className="flex-1 overflow-y-auto px-2 py-1 space-y-0.5">
-            {repos.map((repo) => {
-              const active = selectedRepo === repo.id;
-              return (
-                <button
-                  key={repo.id}
-                  onClick={() => onSelectRepo(repo.id)}
-                  className="w-full text-left px-2.5 py-2 rounded-lg transition-all"
-                  style={{
-                    background: active ? 'var(--bg-muted)' : 'transparent',
-                    border: active
-                      ? '1px solid var(--border)'
-                      : '1px solid transparent',
-                  }}
-                >
-                  <div className="flex items-center gap-2">
-                    <StatusDot status={repo.status} />
-                    <span
-                      className="text-[12.5px] font-medium truncate flex-1"
-                      style={{
-                        color: active ? 'var(--ink)' : 'var(--ink-muted)',
-                      }}
-                    >
-                      {repo.name}
-                    </span>
-                    {active && (
-                      <ChevronRight
-                        size={11}
-                        style={{ color: 'var(--ink-soft)' }}
-                      />
-                    )}
-                  </div>
-                  <div
-                    className="flex items-center gap-3 mt-1 pl-4 text-[11px]"
-                    style={{ color: 'var(--ink-soft)' }}
-                  >
-                    <span className="flex items-center gap-1">
-                      <GitPullRequest size={9} strokeWidth={2} /> {repo.prs}
-                    </span>
-                    <span className="flex items-center gap-1">
-                      <AlertCircle size={9} strokeWidth={2} /> {repo.issues}
-                    </span>
-                  </div>
-                </button>
-              );
-            })}
-          </div>
-        </>
-      )}
-
-      {/* KangBot footer */}
-      <div
-        className="mx-2 mb-2 rounded-lg p-2.5"
-        style={{
-          background: 'var(--brand-dim)',
-          border: '1px solid var(--brand-mid)',
-        }}
-      >
-        <div className="flex items-center gap-2">
-          <span className="relative flex h-2 w-2">
-            <span
-              className="kangpulse absolute inline-flex h-full w-full rounded-full"
-              style={{ background: 'var(--brand)' }}
-            />
-            <span
-              className="relative inline-flex rounded-full h-2 w-2"
-              style={{ background: 'var(--brand)' }}
-            />
-          </span>
-          <span
-            className="text-[11.5px] font-semibold"
-            style={{ color: 'var(--brand)' }}
-          >
-            KangBot Active
-          </span>
-        </div>
-        <p
-          className="text-[10.5px] mt-0.5 pl-4"
-          style={{ color: 'var(--ink-soft)' }}
-        >
-          Monitoring {repos.length} repos
-        </p>
+      {/* ── Created PRs ── */}
+      <div className="px-4 mt-4 mb-1.5">
+        <span className="text-[12px] font-medium" style={{ color: '#888' }}>
+          Created PRs
+        </span>
+      </div>
+      <div className="px-4">
+        <span className="text-[12px]" style={{ color: '#555' }}>
+          No pull requests
+        </span>
       </div>
 
-      {/* User */}
-      <div
-        className="border-t px-3 py-2.5 flex items-center gap-2.5"
-        style={{ borderColor: 'var(--border)' }}
-      >
-        <div
-          className="w-7 h-7 rounded-full flex items-center justify-center text-[11px] font-bold text-white"
-          style={{ background: 'var(--brand)' }}
-        >
-          J
-        </div>
-        <div className="flex-1 min-w-0">
-          <div
-            className="text-[12px] font-medium"
-            style={{ color: 'var(--ink)' }}
+      {/* ── Involved PRs ── */}
+      <div className="px-4 mt-5 mb-2">
+        <span className="text-[12px] font-medium" style={{ color: '#888' }}>
+          Involved PRs
+        </span>
+      </div>
+      <div className="flex-1 overflow-y-auto px-2 space-y-0.5">
+        {INVOLVED_PRS.map((pr, i) => (
+          <button
+            key={i}
+            className="w-full text-left px-2 py-2 rounded-md transition-colors hover:bg-white/5"
           >
-            Jagdeep
-          </div>
-          <div className="text-[10.5px]" style={{ color: 'var(--ink-soft)' }}>
-            Pro Plan
-          </div>
-        </div>
-        <Zap size={12} style={{ color: 'var(--brand)' }} strokeWidth={2.5} />
+            <div className="flex items-start gap-2">
+              <GitPullRequest
+                size={14}
+                strokeWidth={2}
+                className="shrink-0 mt-0.5"
+                style={{ color: '#22c55e' }}
+              />
+              <div className="min-w-0">
+                <div
+                  className="text-[12.5px] font-medium truncate"
+                  style={{ color: '#22c55e' }}
+                >
+                  {pr.title}
+                </div>
+                <div className="text-[11px] mt-0.5" style={{ color: '#666' }}>
+                  {pr.time} · {pr.branch}
+                </div>
+              </div>
+            </div>
+          </button>
+        ))}
+      </div>
+
+      {/* ── Settings Footer ── */}
+      <div style={{ borderTop: '1px solid #2a2a2a' }} className="p-2">
+        <button
+          className="w-full flex items-center gap-2.5 px-2 py-[7px] rounded-md text-[13px] transition-colors hover:bg-white/5"
+          style={{ color: '#999' }}
+        >
+          <Settings size={15} strokeWidth={1.7} />
+          Settings
+        </button>
       </div>
     </aside>
   );
