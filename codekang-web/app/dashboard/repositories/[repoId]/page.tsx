@@ -91,6 +91,7 @@ export default function RepositoryDetailsPage({
       <div className="flex-1 overflow-y-auto custom-scrollbar p-8 bg-[#121214]">
         {activeTab === 'prs' && (
           <div className="flex flex-col gap-4">
+            {/* Search & Filters */}
             <div className="flex items-center justify-between mb-2">
               <div className="relative w-72">
                 <Search
@@ -107,101 +108,317 @@ export default function RepositoryDetailsPage({
                 <button className="px-3 py-1.5 text-[12px] font-medium text-[#e8e8e8] bg-[#1c1c1c] border border-[#2a2a2a] rounded-md transition-colors hover:bg-white/5">
                   Status: All
                 </button>
-                <button className="px-3 py-1.5 text-[12px] font-medium text-[#fff] bg-[#f97316] hover:bg-[#ea580c] rounded-md transition-colors">
+                <button className="px-3 py-1.5 text-[12px] font-medium text-white bg-[#f97316] hover:bg-[#ea580c] rounded-md transition-colors">
                   Sync PRs
                 </button>
               </div>
             </div>
 
-            {/* Simulated PR Card 1 */}
-            <div className="flex flex-col border border-white/5 rounded-lg bg-[#1c1c1c] overflow-hidden group hover:border-[#333] transition-colors">
-              <div className="flex items-start justify-between p-4 border-b border-white/5">
-                <div className="flex gap-3">
-                  <GitPullRequest size={18} className="text-[#00cc66] mt-0.5" />
-                  <div>
-                    <h3 className="text-[15px] font-semibold text-[#e8e8e8] hover:text-[#f97316] cursor-pointer inline-flex">
-                      Update autonomous code review mappings
-                    </h3>
-                    <div className="text-[13px] text-[#a1a1aa] mt-1 flex items-center gap-2">
-                      <span className="text-[#00cc66]">#142</span> opened 2 days
-                      ago by{' '}
-                      <span className="font-medium text-[#e8e8e8]">
-                        jsingh20
-                      </span>
-                      <span className="w-1 h-1 rounded-full bg-[#444]" />
-                      <span className="font-mono text-[#a1a1aa] bg-white/5 px-1.5 py-0.5 rounded text-[11px]">
-                        feature/bot-mappings
-                      </span>
+            {/* ── PR Card 1: Open + KangBot Reviewing ── */}
+            <div className="flex flex-col border border-white/5 rounded-xl bg-[#1c1c1c] overflow-hidden hover:border-[#393939] transition-all duration-200">
+              {/* PR Header */}
+              <div className="p-5">
+                <div className="flex items-start justify-between">
+                  <div className="flex gap-3.5">
+                    <div className="w-9 h-9 rounded-lg bg-green-500/10 border border-green-500/20 flex items-center justify-center shrink-0">
+                      <GitPullRequest size={18} className="text-green-400" />
+                    </div>
+                    <div>
+                      <h3 className="text-[15px] font-bold text-[#e8e8e8] hover:text-[#f97316] cursor-pointer transition-colors leading-snug">
+                        Update autonomous code review mappings
+                      </h3>
+                      <div className="text-[12px] text-[#6d6d6d] mt-1.5 flex items-center gap-1.5 flex-wrap">
+                        <span className="text-green-400 font-semibold">
+                          #142
+                        </span>
+                        <span>·</span>
+                        <span>
+                          opened 2 days ago by{' '}
+                          <span className="text-[#a1a1aa] font-medium">
+                            jsingh20
+                          </span>
+                        </span>
+                        <span>·</span>
+                        <span className="font-mono text-[#a1a1aa] bg-white/5 px-1.5 py-0.5 rounded text-[10px]">
+                          feature/bot-mappings
+                        </span>
+                        <span>→</span>
+                        <span className="font-mono text-[#a1a1aa] bg-white/5 px-1.5 py-0.5 rounded text-[10px]">
+                          main
+                        </span>
+                      </div>
                     </div>
                   </div>
-                </div>
-                <div className="flex items-center gap-2 shrink-0">
-                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 text-[12px] font-medium rounded-full bg-blue-500/10 text-blue-400 border border-blue-500/20">
-                    <Clock3 size={12} /> Pending Review
+                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 text-[11px] font-bold rounded-full bg-green-500/10 text-green-400 border border-green-500/20 shrink-0">
+                    Open
                   </span>
                 </div>
+
+                {/* Stats Row */}
+                <div className="flex items-center gap-4 mt-4 text-[12px]">
+                  <div className="flex items-center gap-1.5 text-[#a1a1aa]">
+                    <span className="text-green-400 font-mono text-[11px]">
+                      +187
+                    </span>
+                    <span className="text-red-400 font-mono text-[11px]">
+                      -42
+                    </span>
+                  </div>
+                  <span className="w-px h-3 bg-[#333]" />
+                  <span className="text-[#6d6d6d]">6 files changed</span>
+                  <span className="w-px h-3 bg-[#333]" />
+                  <span className="text-[#6d6d6d]">4 commits</span>
+                  <span className="w-px h-3 bg-[#333]" />
+                  <span className="text-[#6d6d6d]">2 reviewers</span>
+                </div>
               </div>
-              <div className="p-4 bg-[#121214]/50 border-t border-white/5">
-                <h4 className="text-[12px] font-bold text-[#6d6d6d] uppercase tracking-wider mb-2 flex items-center gap-1.5">
-                  <span className="text-[#f97316] text-[16px] leading-none">
-                    ✨
-                  </span>{' '}
-                  AI Summary
-                </h4>
-                <p className="text-[13.5px] text-[#a1a1aa] leading-relaxed">
-                  This pull request introduces critical updates to the
-                  `BotStrategy` mapping configuration, extending its ability to
-                  interpret secondary markdown instructions efficiently. <br />
-                  <br />
-                  <span className="text-[#e8e8e8]">Risk Analysis:</span> Minimal
-                  changes detected in the core module bindings. Potential
-                  performance regression in `.test.ts` loop block, recommending
-                  specific linting constraints to address memory leakage.
-                </p>
-                <div className="mt-3 flex gap-2">
-                  <button className="text-[12px] font-semibold text-[#f97316] bg-white/5 hover:bg-white/10 px-3 py-1.5 border border-white/5 rounded transition-colors">
-                    View Full Review
-                  </button>
-                  <button className="text-[12px] font-semibold text-[#a1a1aa] bg-transparent hover:bg-white/5 px-3 py-1.5 border border-transparent hover:border-white/5 rounded transition-colors">
-                    Re-Analyze Code
-                  </button>
+
+              {/* KangBot Review Section */}
+              <div className="border-t border-white/5 bg-[#161618]">
+                <div className="px-5 py-3 flex items-center justify-between border-b border-white/5">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-6 h-6 rounded-full bg-[#f97316] flex items-center justify-center">
+                      <span className="text-[10px] font-black text-white">
+                        K
+                      </span>
+                    </div>
+                    <span className="text-[13px] font-bold text-[#e8e8e8]">
+                      KangBot
+                    </span>
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-bold rounded-full bg-[#f97316]/15 text-[#f97316] border border-[#f97316]/20 animate-pulse">
+                      <span className="w-1.5 h-1.5 rounded-full bg-[#f97316]" />{' '}
+                      Reviewing
+                    </span>
+                  </div>
+                  <span className="text-[11px] text-[#6d6d6d]">
+                    Last reviewed 2 min ago
+                  </span>
+                </div>
+
+                {/* Bot Summary */}
+                <div className="px-5 py-4">
+                  <p className="text-[13px] text-[#a1a1aa] leading-relaxed mb-4">
+                    This PR refactors the{' '}
+                    <code className="text-[#e8e8e8] bg-white/5 px-1 py-0.5 rounded text-[12px]">
+                      BotStrategy
+                    </code>{' '}
+                    mapping configuration to support secondary markdown
+                    instruction parsing. The changes are well-structured but
+                    introduce a potential performance concern.
+                  </p>
+
+                  {/* Critical Issues */}
+                  <div className="flex flex-col gap-2.5 mb-4">
+                    <div className="flex items-start gap-2.5 p-3 rounded-lg bg-red-500/5 border border-red-500/15">
+                      <div className="w-5 h-5 rounded flex items-center justify-center bg-red-500/20 shrink-0 mt-0.5">
+                        <AlertCircle size={12} className="text-red-400" />
+                      </div>
+                      <div>
+                        <div className="text-[12px] font-bold text-red-400 mb-0.5">
+                          Critical: Memory leak in test loop
+                        </div>
+                        <p className="text-[11px] text-[#a1a1aa] leading-relaxed">
+                          <code className="text-[#e8e8e8] bg-white/5 px-1 rounded text-[10px]">
+                            bot-strategy.test.ts:47
+                          </code>{' '}
+                          — Unbounded loop detected creating new{' '}
+                          <code className="text-[#e8e8e8] bg-white/5 px-1 rounded text-[10px]">
+                            Promise
+                          </code>{' '}
+                          instances without cleanup. Recommend adding{' '}
+                          <code className="text-[#e8e8e8] bg-white/5 px-1 rounded text-[10px]">
+                            afterEach
+                          </code>{' '}
+                          teardown.
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-start gap-2.5 p-3 rounded-lg bg-[#f97316]/5 border border-[#f97316]/15">
+                      <div className="w-5 h-5 rounded flex items-center justify-center bg-[#f97316]/20 shrink-0 mt-0.5">
+                        <AlertCircle size={12} className="text-[#f97316]" />
+                      </div>
+                      <div>
+                        <div className="text-[12px] font-bold text-[#f97316] mb-0.5">
+                          Suggestion: Add input validation
+                        </div>
+                        <p className="text-[11px] text-[#a1a1aa] leading-relaxed">
+                          <code className="text-[#e8e8e8] bg-white/5 px-1 rounded text-[10px]">
+                            strategy-mapper.ts:112
+                          </code>{' '}
+                          — The{' '}
+                          <code className="text-[#e8e8e8] bg-white/5 px-1 rounded text-[10px]">
+                            parseMarkdown()
+                          </code>{' '}
+                          function accepts raw input without sanitization.
+                          Consider adding validation to prevent injection.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Issue Summary Badges */}
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-red-500/10 border border-red-500/20 text-[11px] font-bold text-red-400">
+                      <AlertCircle size={12} /> 1 Critical
+                    </div>
+                    <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-[#f97316]/10 border border-[#f97316]/20 text-[11px] font-bold text-[#f97316]">
+                      <AlertCircle size={12} /> 2 Suggestions
+                    </div>
+                    <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-green-500/10 border border-green-500/20 text-[11px] font-bold text-green-400">
+                      <CheckCircle2 size={12} /> 4 Approved
+                    </div>
+                  </div>
+
+                  {/* Actions */}
+                  <div className="flex gap-2">
+                    <button className="text-[12px] font-semibold text-white bg-[#f97316] hover:bg-[#ea580c] px-4 py-2 rounded-md transition-colors">
+                      View Full Review
+                    </button>
+                    <button className="text-[12px] font-semibold text-[#a1a1aa] hover:text-[#e8e8e8] bg-white/5 hover:bg-white/10 px-4 py-2 rounded-md border border-white/5 transition-colors">
+                      Re-Analyze
+                    </button>
+                    <button className="text-[12px] font-semibold text-[#a1a1aa] hover:text-[#e8e8e8] bg-transparent hover:bg-white/5 px-4 py-2 rounded-md transition-colors">
+                      Dismiss
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
 
-            {/* Simulated PR Card 2 */}
-            <div className="flex flex-col border border-white/5 rounded-lg bg-[#1c1c1c] overflow-hidden group hover:border-[#333] transition-colors">
-              <div className="flex items-start justify-between p-4 border-b border-white/5">
-                <div className="flex gap-3">
-                  <GitPullRequest size={18} className="text-[#a1a1aa] mt-0.5" />
-                  <div>
-                    <h3 className="text-[15px] font-semibold text-[#e8e8e8] hover:text-[#f97316] cursor-pointer inline-flex line-through opacity-80">
-                      Fix sidebar UI alignment constraints
-                    </h3>
-                    <div className="text-[13px] text-[#a1a1aa] mt-1 flex items-center gap-2">
-                      <span className="text-[#a1a1aa]">#141</span> merged 4 days
-                      ago by{' '}
-                      <span className="font-medium text-[#e8e8e8]">
-                        jsingh20
-                      </span>
-                      <span className="w-1 h-1 rounded-full bg-[#444]" />
-                      <span className="font-mono text-[#a1a1aa] bg-white/5 px-1.5 py-0.5 rounded text-[11px]">
-                        hotfix/sidebar-ui
-                      </span>
+            {/* ── PR Card 2: Merged + KangBot Approved ── */}
+            <div className="flex flex-col border border-white/5 rounded-xl bg-[#1c1c1c] overflow-hidden hover:border-[#393939] transition-all duration-200">
+              <div className="p-5">
+                <div className="flex items-start justify-between">
+                  <div className="flex gap-3.5">
+                    <div className="w-9 h-9 rounded-lg bg-purple-500/10 border border-purple-500/20 flex items-center justify-center shrink-0">
+                      <GitPullRequest size={18} className="text-purple-400" />
+                    </div>
+                    <div>
+                      <h3 className="text-[15px] font-bold text-[#a1a1aa] cursor-pointer transition-colors leading-snug">
+                        Fix sidebar UI alignment constraints
+                      </h3>
+                      <div className="text-[12px] text-[#6d6d6d] mt-1.5 flex items-center gap-1.5 flex-wrap">
+                        <span className="text-purple-400 font-semibold">
+                          #141
+                        </span>
+                        <span>·</span>
+                        <span>
+                          merged 4 days ago by{' '}
+                          <span className="text-[#a1a1aa] font-medium">
+                            jsingh20
+                          </span>
+                        </span>
+                        <span>·</span>
+                        <span className="font-mono text-[#a1a1aa] bg-white/5 px-1.5 py-0.5 rounded text-[10px]">
+                          hotfix/sidebar-ui
+                        </span>
+                        <span>→</span>
+                        <span className="font-mono text-[#a1a1aa] bg-white/5 px-1.5 py-0.5 rounded text-[10px]">
+                          main
+                        </span>
+                      </div>
                     </div>
                   </div>
+                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 text-[11px] font-bold rounded-full bg-purple-500/10 text-purple-400 border border-purple-500/20 shrink-0">
+                    <CheckCircle2 size={12} /> Merged
+                  </span>
                 </div>
-                <div className="flex items-center gap-2 shrink-0">
-                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 text-[12px] font-medium rounded-full bg-purple-500/10 text-purple-400 border border-purple-500/20">
-                    <CheckCircle2 size={12} /> Merged & Approved
+                <div className="flex items-center gap-4 mt-4 text-[12px]">
+                  <div className="flex items-center gap-1.5 text-[#a1a1aa]">
+                    <span className="text-green-400 font-mono text-[11px]">
+                      +24
+                    </span>
+                    <span className="text-red-400 font-mono text-[11px]">
+                      -8
+                    </span>
+                  </div>
+                  <span className="w-px h-3 bg-[#333]" />
+                  <span className="text-[#6d6d6d]">2 files changed</span>
+                  <span className="w-px h-3 bg-[#333]" />
+                  <span className="text-[#6d6d6d]">1 commit</span>
+                </div>
+              </div>
+
+              {/* KangBot Approved State */}
+              <div className="border-t border-white/5 bg-[#161618] px-5 py-3.5">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-6 h-6 rounded-full bg-[#f97316] flex items-center justify-center">
+                      <span className="text-[10px] font-black text-white">
+                        K
+                      </span>
+                    </div>
+                    <span className="text-[13px] font-bold text-[#e8e8e8]">
+                      KangBot
+                    </span>
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-bold rounded-full bg-green-500/15 text-green-400 border border-green-500/20">
+                      <CheckCircle2 size={10} /> Approved
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-1.5 px-2 py-0.5 rounded bg-green-500/10 text-[10px] font-bold text-green-400">
+                      <CheckCircle2 size={10} /> 0 Issues
+                    </div>
+                    <span className="text-[11px] text-[#6d6d6d]">
+                      Reviewed 4 days ago
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* ── PR Card 3: Draft + KangBot Waiting ── */}
+            <div className="flex flex-col border border-white/5 rounded-xl bg-[#1c1c1c] overflow-hidden hover:border-[#393939] transition-all duration-200 opacity-80">
+              <div className="p-5">
+                <div className="flex items-start justify-between">
+                  <div className="flex gap-3.5">
+                    <div className="w-9 h-9 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center shrink-0">
+                      <GitPullRequest size={18} className="text-[#6d6d6d]" />
+                    </div>
+                    <div>
+                      <h3 className="text-[15px] font-bold text-[#a1a1aa] cursor-pointer transition-colors leading-snug">
+                        [WIP] Implement webhook retry mechanism
+                      </h3>
+                      <div className="text-[12px] text-[#6d6d6d] mt-1.5 flex items-center gap-1.5 flex-wrap">
+                        <span className="text-[#6d6d6d] font-semibold">
+                          #140
+                        </span>
+                        <span>·</span>
+                        <span>
+                          draft · opened 5 days ago by{' '}
+                          <span className="text-[#a1a1aa] font-medium">
+                            jsingh20
+                          </span>
+                        </span>
+                        <span>·</span>
+                        <span className="font-mono text-[#6d6d6d] bg-white/5 px-1.5 py-0.5 rounded text-[10px]">
+                          feature/webhook-retry
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 text-[11px] font-bold rounded-full bg-white/5 text-[#6d6d6d] border border-white/10 shrink-0">
+                    Draft
                   </span>
                 </div>
               </div>
-              <div className="p-4 bg-[#121214]/50 border-t border-white/5">
-                <p className="text-[13px] text-[#a1a1aa] italic">
-                  AI review completed with 0 errors and 0 critical security
-                  issues. Design structural review approved.
-                </p>
+              <div className="border-t border-white/5 bg-[#161618] px-5 py-3.5">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-6 h-6 rounded-full bg-[#333] flex items-center justify-center">
+                      <span className="text-[10px] font-black text-[#6d6d6d]">
+                        K
+                      </span>
+                    </div>
+                    <span className="text-[13px] font-bold text-[#6d6d6d]">
+                      KangBot
+                    </span>
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-bold rounded-full bg-white/5 text-[#6d6d6d] border border-white/10">
+                      <Clock3 size={10} /> Waiting for Ready
+                    </span>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
