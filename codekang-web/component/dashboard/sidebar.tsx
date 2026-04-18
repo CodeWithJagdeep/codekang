@@ -1,49 +1,29 @@
 'use client';
 
-import { useState } from 'react';
+import Image from 'next/image';
 import {
   GitPullRequest,
   AlertCircle,
-  Plus,
-  Settings,
   LayoutDashboard,
   GitFork,
-  ChevronDown,
   BarChart2,
+  Settings,
+  Plus,
+  ChevronRight,
   Zap,
 } from 'lucide-react';
 
-const repos = [
-  {
-    id: 'codekang-platform',
-    name: 'codekang-platform',
-    org: 'CodeWithJagdeep',
-    prs: 3,
-    issues: 8,
-    status: 'active',
-    branch: 'main',
-  },
-  {
-    id: 'codekang-web',
-    name: 'codekang-web',
-    org: 'CodeWithJagdeep',
-    prs: 1,
-    issues: 2,
-    status: 'active',
-    branch: 'main',
-  },
-  {
-    id: 'automous-ai',
-    name: 'automous-ai',
-    org: 'CodeWithJagdeep',
-    prs: 5,
-    issues: 4,
-    status: 'busy',
-    branch: 'main',
-  },
-];
+export type Repo = {
+  id: string;
+  name: string;
+  org: string;
+  prs: number;
+  issues: number;
+  status: 'active' | 'busy' | 'idle';
+  branch: string;
+};
 
-const navItems = [
+const NAV = [
   { icon: LayoutDashboard, label: 'Overview', id: 'overview' },
   { icon: GitFork, label: 'Repositories', id: 'repos' },
   { icon: BarChart2, label: 'Analytics', id: 'analytics' },
@@ -51,23 +31,19 @@ const navItems = [
 ];
 
 function StatusDot({ status }: { status: string }) {
-  const colors: Record<string, string> = {
-    active: 'bg-accent-green',
-    busy: 'bg-accent-orange',
-    idle: 'bg-ink-soft',
-  };
+  const col =
+    { active: '#22c55e', busy: '#f59e0b', idle: '#555' }[status] ?? '#555';
   return (
-    <span className="relative flex h-2 w-2">
+    <span className="relative flex h-2 w-2 shrink-0">
       {status === 'busy' && (
         <span
-          className="animate-ping absolute inline-flex h-full w-full rounded-full bg-accent-orange opacity-60"
-          style={{
-            animation: 'status-ping 1.2s cubic-bezier(0,0,0.2,1) infinite',
-          }}
+          className="kangpulse absolute inline-flex h-full w-full rounded-full opacity-60"
+          style={{ background: col }}
         />
       )}
       <span
-        className={`relative inline-flex rounded-full h-2 w-2 ${colors[status] ?? 'bg-ink-soft'}`}
+        className="relative inline-flex rounded-full h-2 w-2"
+        style={{ background: col }}
       />
     </span>
   );
@@ -76,125 +52,193 @@ function StatusDot({ status }: { status: string }) {
 export default function Sidebar({
   selectedRepo,
   onSelectRepo,
+  activeNav,
+  onNavChange,
+  repos,
+  onAddRepo,
 }: {
-  selectedRepo: string;
+  selectedRepo: string | null;
   onSelectRepo: (id: string) => void;
+  activeNav: string;
+  onNavChange: (id: string) => void;
+  repos: Repo[];
+  onAddRepo: () => void;
 }) {
-  const [activeNav, setActiveNav] = useState('repos');
-
   return (
     <aside
-      className="w-[240px] shrink-0 flex flex-col h-screen border-r border-border"
-      style={{ background: 'var(--bg-subtle)' }}
+      className="w-[220px] shrink-0 flex flex-col h-screen border-r"
+      style={{ background: 'var(--bg-subtle)', borderColor: 'var(--border)' }}
     >
-      {/* Header */}
-      <div className="flex items-center gap-2.5 px-4 h-[56px] border-b border-border">
-        <div className="w-7 h-7 rounded-lg bg-brand flex items-center justify-center">
-          <Zap size={14} strokeWidth={2.5} className="text-bg" />
-        </div>
-        <span className="text-[14px] font-semibold text-ink">CodeKang</span>
-        <button className="ml-auto">
-          <ChevronDown size={13} className="text-ink-soft" />
-        </button>
+      {/* Logo */}
+      <div
+        className="flex items-center gap-2.5 px-4 h-[56px] border-b"
+        style={{ borderColor: 'var(--border)' }}
+      >
+        <Image
+          src="/brandlogo/logo-transparent.png"
+          alt="CodeKang"
+          width={28}
+          height={28}
+          className="object-contain"
+          style={{
+            filter:
+              'brightness(0) saturate(100%) invert(18%) sepia(96%) saturate(6932%) hue-rotate(339deg) brightness(90%) contrast(90%)',
+          }}
+        />
+        <span className="text-[14px] font-bold" style={{ color: 'var(--ink)' }}>
+          CodeKang
+        </span>
       </div>
 
       {/* Nav */}
       <nav className="px-2 pt-3 pb-2">
-        {navItems.map((item) => {
+        {NAV.map((item) => {
           const Icon = item.icon;
+          const active = activeNav === item.id;
           return (
             <button
               key={item.id}
-              onClick={() => setActiveNav(item.id)}
-              className={`w-full flex items-center gap-2.5 px-2.5 py-1.5 rounded-md text-[13px] mb-0.5 transition-colors ${
-                activeNav === item.id
-                  ? 'bg-brand-dim text-brand font-medium'
-                  : 'text-ink-muted hover:text-ink hover:bg-bg-muted'
-              }`}
+              onClick={() => onNavChange(item.id)}
+              className="w-full flex items-center gap-2.5 px-2.5 py-1.5 rounded-md text-[13px] mb-0.5 transition-colors"
+              style={{
+                background: active ? 'var(--brand-dim)' : 'transparent',
+                color: active ? 'var(--brand)' : 'var(--ink-muted)',
+                fontWeight: active ? 600 : 400,
+              }}
             >
               <Icon size={14} strokeWidth={1.8} />
-              <span>{item.label}</span>
+              {item.label}
             </button>
           );
         })}
       </nav>
 
-      <div className="px-4 pt-3 pb-2">
-        <div className="flex items-center justify-between">
-          <span className="text-[11px] font-semibold text-ink-soft uppercase tracking-wider">
-            Repositories
-          </span>
-          <button className="p-0.5 rounded hover:bg-bg-muted text-ink-soft">
-            <Plus size={12} strokeWidth={2} />
-          </button>
-        </div>
-      </div>
+      {/* Repos section */}
+      {activeNav !== 'overview' && (
+        <>
+          <div className="px-4 pt-3 pb-1 flex items-center justify-between">
+            <span
+              className="text-[10.5px] font-semibold uppercase tracking-wider"
+              style={{ color: 'var(--ink-soft)' }}
+            >
+              Repositories
+            </span>
+            <button
+              onClick={onAddRepo}
+              style={{ color: 'var(--ink-soft)' }}
+              className="hover:text-white transition-colors"
+            >
+              <Plus size={12} strokeWidth={2} />
+            </button>
+          </div>
 
-      {/* Repo List */}
-      <div className="flex-1 overflow-y-auto px-2 space-y-0.5">
-        {repos.map((repo) => (
-          <button
-            key={repo.id}
-            onClick={() => onSelectRepo(repo.id)}
-            className={`w-full text-left px-2.5 py-2.5 rounded-lg transition-all ${
-              selectedRepo === repo.id
-                ? 'bg-bg-muted border border-border'
-                : 'hover:bg-bg-muted'
-            }`}
-          >
-            <div className="flex items-center gap-2">
-              <StatusDot status={repo.status} />
-              <span
-                className={`text-[13px] font-medium truncate flex-1 ${selectedRepo === repo.id ? 'text-ink' : 'text-ink-muted'}`}
-              >
-                {repo.name}
-              </span>
-            </div>
-            <div className="flex items-center gap-2 mt-1 pl-4 text-[11.5px] text-ink-soft">
-              <span className="flex items-center gap-1">
-                <GitPullRequest size={10} strokeWidth={2} />
-                {repo.prs} PRs
-              </span>
-              <span className="flex items-center gap-1">
-                <AlertCircle size={10} strokeWidth={2} />
-                {repo.issues} Issues
-              </span>
-            </div>
-          </button>
-        ))}
-      </div>
+          <div className="flex-1 overflow-y-auto px-2 py-1 space-y-0.5">
+            {repos.map((repo) => {
+              const active = selectedRepo === repo.id;
+              return (
+                <button
+                  key={repo.id}
+                  onClick={() => onSelectRepo(repo.id)}
+                  className="w-full text-left px-2.5 py-2 rounded-lg transition-all"
+                  style={{
+                    background: active ? 'var(--bg-muted)' : 'transparent',
+                    border: active
+                      ? '1px solid var(--border)'
+                      : '1px solid transparent',
+                  }}
+                >
+                  <div className="flex items-center gap-2">
+                    <StatusDot status={repo.status} />
+                    <span
+                      className="text-[12.5px] font-medium truncate flex-1"
+                      style={{
+                        color: active ? 'var(--ink)' : 'var(--ink-muted)',
+                      }}
+                    >
+                      {repo.name}
+                    </span>
+                    {active && (
+                      <ChevronRight
+                        size={11}
+                        style={{ color: 'var(--ink-soft)' }}
+                      />
+                    )}
+                  </div>
+                  <div
+                    className="flex items-center gap-3 mt-1 pl-4 text-[11px]"
+                    style={{ color: 'var(--ink-soft)' }}
+                  >
+                    <span className="flex items-center gap-1">
+                      <GitPullRequest size={9} strokeWidth={2} /> {repo.prs}
+                    </span>
+                    <span className="flex items-center gap-1">
+                      <AlertCircle size={9} strokeWidth={2} /> {repo.issues}
+                    </span>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        </>
+      )}
 
-      {/* KangBot Status Footer */}
+      {/* KangBot footer */}
       <div
-        className="border-t border-border p-3 mx-2 my-2 rounded-lg"
-        style={{ background: 'var(--brand-dim)' }}
+        className="mx-2 mb-2 rounded-lg p-2.5"
+        style={{
+          background: 'var(--brand-dim)',
+          border: '1px solid var(--brand-mid)',
+        }}
       >
         <div className="flex items-center gap-2">
           <span className="relative flex h-2 w-2">
-            <span className="kangbot-pulse absolute inline-flex h-full w-full rounded-full bg-brand opacity-75" />
-            <span className="relative inline-flex rounded-full h-2 w-2 bg-brand" />
+            <span
+              className="kangpulse absolute inline-flex h-full w-full rounded-full"
+              style={{ background: 'var(--brand)' }}
+            />
+            <span
+              className="relative inline-flex rounded-full h-2 w-2"
+              style={{ background: 'var(--brand)' }}
+            />
           </span>
-          <span className="text-[12px] font-semibold text-brand">
+          <span
+            className="text-[11.5px] font-semibold"
+            style={{ color: 'var(--brand)' }}
+          >
             KangBot Active
           </span>
         </div>
-        <p className="text-[11px] text-ink-soft mt-1 pl-4">
-          Monitoring 3 repos
+        <p
+          className="text-[10.5px] mt-0.5 pl-4"
+          style={{ color: 'var(--ink-soft)' }}
+        >
+          Monitoring {repos.length} repos
         </p>
       </div>
 
       {/* User */}
-      <div className="border-t border-border px-3 py-2.5 flex items-center gap-2.5">
-        <div className="w-7 h-7 rounded-full bg-accent-purple flex items-center justify-center text-[11px] font-bold text-white">
+      <div
+        className="border-t px-3 py-2.5 flex items-center gap-2.5"
+        style={{ borderColor: 'var(--border)' }}
+      >
+        <div
+          className="w-7 h-7 rounded-full flex items-center justify-center text-[11px] font-bold text-white"
+          style={{ background: 'var(--brand)' }}
+        >
           J
         </div>
         <div className="flex-1 min-w-0">
-          <div className="text-[12.5px] font-medium text-ink truncate">
+          <div
+            className="text-[12px] font-medium"
+            style={{ color: 'var(--ink)' }}
+          >
             Jagdeep
           </div>
-          <div className="text-[11px] text-ink-soft">Pro Plan</div>
+          <div className="text-[10.5px]" style={{ color: 'var(--ink-soft)' }}>
+            Pro Plan
+          </div>
         </div>
-        <Settings size={13} className="text-ink-soft" strokeWidth={1.8} />
+        <Zap size={12} style={{ color: 'var(--brand)' }} strokeWidth={2.5} />
       </div>
     </aside>
   );

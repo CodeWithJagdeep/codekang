@@ -1,35 +1,31 @@
 @import 'tailwindcss';
 
 :root {
-  /* === CodeKang Design System === */
+  /* === CodeKang Black/White/Red Theme === */
+  --bg: #000000;
+  --bg-subtle: #0a0a0a;
+  --bg-muted: #111111;
+  --bg-elevated: #1a1a1a;
 
-  /* Base Colors */
-  --bg: #0d1117;
-  --bg-subtle: #161b22;
-  --bg-muted: #1e2730;
-  --bg-elevated: #21262d;
+  --border: #222222;
+  --border-subtle: #1a1a1a;
 
-  /* Borders */
-  --border: #30363d;
-  --border-subtle: #21262d;
+  --ink: #ffffff;
+  --ink-muted: #a0a0a0;
+  --ink-soft: #555555;
 
-  /* Text */
-  --ink: #e6edf3;
-  --ink-muted: #8b949e;
-  --ink-soft: #656d76;
+  /* Brand: Red */
+  --brand: #e11d48;
+  --brand-dim: rgba(225, 29, 72, 0.12);
+  --brand-mid: rgba(225, 29, 72, 0.25);
+  --brand-glow: rgba(225, 29, 72, 0.4);
 
-  /* Brand & Accents */
-  --accent-blue: #4493f8;
-  --accent-green: #3fb950;
-  --accent-red: #f85149;
-  --accent-orange: #d29922;
-  --accent-purple: #a371f7;
-  --accent-teal: #39d353;
-
-  /* KangBot Brand */
-  --brand: #4ade80;
-  --brand-dim: rgba(74, 222, 128, 0.12);
-  --brand-glow: rgba(74, 222, 128, 0.3);
+  /* Accents */
+  --accent-green: #22c55e;
+  --accent-red: #ef4444;
+  --accent-blue: #60a5fa;
+  --accent-orange: #f59e0b;
+  --accent-purple: #a78bfa;
 }
 
 @theme inline {
@@ -37,25 +33,19 @@
   --color-bg-subtle: var(--bg-subtle);
   --color-bg-muted: var(--bg-muted);
   --color-bg-elevated: var(--bg-elevated);
-
   --color-border: var(--border);
   --color-border-subtle: var(--border-subtle);
-
   --color-ink: var(--ink);
   --color-ink-muted: var(--ink-muted);
   --color-ink-soft: var(--ink-soft);
-
-  --color-accent-blue: var(--accent-blue);
-  --color-accent-green: var(--accent-green);
-  --color-accent-red: var(--accent-red);
-  --color-accent-orange: var(--accent-orange);
-  --color-accent-purple: var(--accent-purple);
-  --color-accent-teal: var(--accent-teal);
-
   --color-brand: var(--brand);
   --color-brand-dim: var(--brand-dim);
-  --color-brand-glow: var(--brand-glow);
-
+  --color-brand-mid: var(--brand-mid);
+  --color-accent-green: var(--accent-green);
+  --color-accent-red: var(--accent-red);
+  --color-accent-blue: var(--accent-blue);
+  --color-accent-orange: var(--accent-orange);
+  --color-accent-purple: var(--accent-purple);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
@@ -71,42 +61,27 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
-/* Scrollbar styling */
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 4px;
+  height: 4px;
 }
 ::-webkit-scrollbar-track {
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
   background: var(--border);
-  border-radius: 3px;
-}
-::-webkit-scrollbar-thumb:hover {
-  background: var(--ink-soft);
+  border-radius: 2px;
 }
 
-/* KangBot pulse animation */
-@keyframes kangbot-pulse {
+@keyframes kangpulse {
   0%,
   100% {
     opacity: 1;
   }
   50% {
-    opacity: 0.4;
+    opacity: 0.3;
   }
 }
-
-.kangbot-pulse {
-  animation: kangbot-pulse 2s ease-in-out infinite;
-}
-
-/* Status dot */
-@keyframes status-ping {
-  75%,
-  100% {
-    transform: scale(2);
-    opacity: 0;
-  }
+.kangpulse {
+  animation: kangpulse 2s ease-in-out infinite;
 }

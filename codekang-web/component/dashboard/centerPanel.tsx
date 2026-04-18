@@ -11,12 +11,15 @@ import {
   Clock,
   Search,
   Filter,
-  ChevronRight,
   Loader2,
   ExternalLink,
+  ChevronRight,
+  Plus,
+  Zap,
 } from 'lucide-react';
+import type { Repo } from './sidebar';
 
-type Tab = 'issues' | 'prs' | 'activity' | 'settings';
+type Tab = 'prs' | 'issues' | 'activity' | 'settings';
 
 const TABS: { id: Tab; label: string; icon: React.ElementType }[] = [
   { id: 'prs', label: 'Pull Requests', icon: GitPullRequest },
@@ -34,37 +37,37 @@ const PRS = [
     time: '2 min ago',
     kangStatus: 'clean',
     kangMsg: 'No blocking issues found',
-    filesChanged: 8,
+    files: 8,
   },
   {
     id: 141,
-    title: 'fix: Resolve critical security vulnerability in auth',
+    title: 'fix: Resolve critical security vulnerability',
     branch: 'hotfix/auth-vulnerability',
     author: 'Sarah K.',
     time: '14 min ago',
     kangStatus: 'attention',
-    kangMsg: 'Needs attention — 2 critical issues',
-    filesChanged: 3,
+    kangMsg: 'Needs attention — 2 critical',
+    files: 3,
   },
   {
     id: 140,
-    title: 'docs: Update API documentation for new endpoints',
+    title: 'docs: Update API documentation',
     branch: 'docs/api-updates',
     author: 'John L.',
     time: '1 hour ago',
     kangStatus: 'reviewing',
     kangMsg: 'KangBot is reviewing...',
-    filesChanged: 12,
+    files: 12,
   },
   {
     id: 139,
-    title: 'refactor: Move auth middleware to shared library',
+    title: 'refactor: Move auth middleware to shared lib',
     branch: 'refactor/auth-middleware',
     author: 'Priya S.',
     time: '3 hours ago',
     kangStatus: 'clean',
     kangMsg: 'All checks passed',
-    filesChanged: 5,
+    files: 5,
   },
 ];
 
@@ -75,7 +78,7 @@ const ISSUES = [
     labels: ['bug', 'critical'],
     time: '30 min ago',
     kangStatus: 'fixing',
-    kangMsg: 'KangBot is analyzing the fix...',
+    kangMsg: 'KangBot analyzing fix...',
   },
   {
     id: 55,
@@ -98,89 +101,59 @@ const ISSUES = [
 const ACTIVITY = [
   {
     icon: '🔍',
-    text: "KangBot researched 'Redis cluster failover' using browser agent",
+    text: "Researched 'Redis cluster failover' via browser agent",
     time: '2 min ago',
-    color: 'text-accent-blue',
   },
   {
     icon: '✅',
     text: 'PR #142 review complete — No blocking issues',
     time: '5 min ago',
-    color: 'text-accent-green',
   },
   {
     icon: '⚡',
     text: 'KangBot opened PR #141 for auth vulnerability fix',
     time: '18 min ago',
-    color: 'text-brand',
   },
   {
     icon: '⚠️',
-    text: 'Issue #56 escalated — retry count exceeded Redis timeout',
+    text: 'Issue #56 escalated — retry count exceeded Redis limit',
     time: '32 min ago',
-    color: 'text-accent-orange',
   },
   {
     icon: '📦',
-    text: 'Repository codekang-platform indexed — 2,841 code chunks',
+    text: 'Repository indexed — 2,841 code chunks',
     time: '1 hour ago',
-    color: 'text-accent-purple',
-  },
-  {
-    icon: '🤖',
-    text: 'KangBot started monitoring automous-ai repo',
-    time: '2 hours ago',
-    color: 'text-ink-muted',
   },
 ];
 
-function KangStatusBadge({ status, msg }: { status: string; msg: string }) {
+function StatusBadge({ status, msg }: { status: string; msg: string }) {
   const map: Record<
     string,
     { icon: React.ElementType; color: string; bg: string }
   > = {
-    clean: {
-      icon: CheckCircle2,
-      color: 'text-accent-green',
-      bg: 'bg-accent-green/10 border-accent-green/20',
-    },
-    attention: {
-      icon: XCircle,
-      color: 'text-accent-red',
-      bg: 'bg-accent-red/10 border-accent-red/20',
-    },
-    reviewing: {
-      icon: Loader2,
-      color: 'text-accent-blue',
-      bg: 'bg-accent-blue/10 border-accent-blue/20',
-    },
-    fixing: {
-      icon: Loader2,
-      color: 'text-accent-orange',
-      bg: 'bg-accent-orange/10 border-accent-orange/20',
-    },
-    pending: {
-      icon: Clock,
-      color: 'text-ink-soft',
-      bg: 'bg-bg-muted border-border',
-    },
-    fixed: {
-      icon: CheckCircle2,
-      color: 'text-brand',
-      bg: 'bg-brand-dim border-brand/20',
-    },
+    clean: { icon: CheckCircle2, color: '#22c55e', bg: 'rgba(34,197,94,0.1)' },
+    attention: { icon: XCircle, color: '#ef4444', bg: 'rgba(239,68,68,0.1)' },
+    reviewing: { icon: Loader2, color: '#60a5fa', bg: 'rgba(96,165,250,0.1)' },
+    fixing: { icon: Loader2, color: '#f59e0b', bg: 'rgba(245,158,11,0.1)' },
+    pending: { icon: Clock, color: '#555', bg: 'rgba(85,85,85,0.2)' },
+    fixed: { icon: CheckCircle2, color: '#e11d48', bg: 'rgba(225,29,72,0.1)' },
   };
   const cfg = map[status] ?? map['pending'];
   const Icon = cfg.icon;
   return (
     <span
-      className={`inline-flex items-center gap-1.5 text-[11.5px] font-medium px-2 py-1 rounded-md border ${cfg.bg} ${cfg.color}`}
+      className="inline-flex items-center gap-1.5 text-[11px] font-medium px-2 py-1 rounded-md"
+      style={{
+        color: cfg.color,
+        background: cfg.bg,
+        border: `1px solid ${cfg.color}30`,
+      }}
     >
       <Icon
-        size={11}
+        size={10}
         strokeWidth={2}
         className={
-          status === 'reviewing' || status === 'fixing' ? 'kangbot-pulse' : ''
+          status === 'reviewing' || status === 'fixing' ? 'kangpulse' : ''
         }
       />
       {msg}
@@ -188,23 +161,153 @@ function KangStatusBadge({ status, msg }: { status: string; msg: string }) {
   );
 }
 
-function LabelChip({ label }: { label: string }) {
-  const colors: Record<string, string> = {
-    bug: 'bg-red-500/10 text-red-400 border-red-500/20',
-    critical: 'bg-orange-500/10 text-orange-400 border-orange-500/20',
-    enhancement: 'bg-blue-500/10 text-blue-400 border-blue-500/20',
-    docker: 'bg-sky-500/10 text-sky-400 border-sky-500/20',
-  };
+/* ─── Overview Page ────────────────────────────────────────────────────────── */
+function Overview({
+  repos,
+  onSelectRepo,
+  onAddRepo,
+}: {
+  repos: Repo[];
+  onSelectRepo: (id: string) => void;
+  onAddRepo: () => void;
+}) {
   return (
-    <span
-      className={`text-[10.5px] font-medium px-1.5 py-0.5 rounded border ${colors[label] ?? 'bg-bg-muted text-ink-muted border-border'}`}
-    >
-      {label}
-    </span>
+    <div className="flex-1 overflow-y-auto">
+      {/* Hero */}
+      <div className="px-10 pt-12 pb-6">
+        <div className="flex items-center gap-3 mb-1">
+          <Zap size={18} style={{ color: 'var(--brand)' }} strokeWidth={2.5} />
+          <h1 className="text-[22px] font-bold" style={{ color: 'var(--ink)' }}>
+            Dashboard Overview
+          </h1>
+        </div>
+        <p className="text-[13px]" style={{ color: 'var(--ink-muted)' }}>
+          Select a repository to view issues, pull requests, and KangBot
+          activity.
+        </p>
+      </div>
+
+      {/* Stats row */}
+      <div className="px-10 grid grid-cols-3 gap-4 mb-8">
+        {[
+          { label: 'Connected Repos', value: repos.length },
+          {
+            label: 'Open Pull Requests',
+            value: repos.reduce((s, r) => s + r.prs, 0),
+          },
+          {
+            label: 'Open Issues',
+            value: repos.reduce((s, r) => s + r.issues, 0),
+          },
+        ].map((s) => (
+          <div
+            key={s.label}
+            className="rounded-xl p-4"
+            style={{
+              background: 'var(--bg-subtle)',
+              border: '1px solid var(--border)',
+            }}
+          >
+            <div
+              className="text-[26px] font-bold"
+              style={{ color: 'var(--ink)' }}
+            >
+              {s.value}
+            </div>
+            <div
+              className="text-[12px] mt-0.5"
+              style={{ color: 'var(--ink-muted)' }}
+            >
+              {s.label}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Repo list */}
+      <div className="px-10">
+        <div className="flex items-center justify-between mb-4">
+          <h2
+            className="text-[14px] font-semibold"
+            style={{ color: 'var(--ink)' }}
+          >
+            Connected Repositories
+          </h2>
+          <button
+            onClick={onAddRepo}
+            className="flex items-center gap-1.5 text-[12px] font-semibold px-3 py-1.5 rounded-lg transition-colors"
+            style={{ background: 'var(--brand)', color: '#fff' }}
+          >
+            <Plus size={13} strokeWidth={2.5} />
+            Add Repository
+          </button>
+        </div>
+
+        <div className="space-y-2">
+          {repos.map((repo) => (
+            <button
+              key={repo.id}
+              onClick={() => onSelectRepo(repo.id)}
+              className="w-full text-left rounded-xl px-5 py-4 transition-all group"
+              style={{
+                background: 'var(--bg-subtle)',
+                border: '1px solid var(--border)',
+              }}
+            >
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div
+                    className="w-8 h-8 rounded-lg flex items-center justify-center text-[11px] font-bold text-white"
+                    style={{ background: 'var(--brand)' }}
+                  >
+                    {repo.name[0].toUpperCase()}
+                  </div>
+                  <div>
+                    <div
+                      className="text-[13.5px] font-semibold"
+                      style={{ color: 'var(--ink)' }}
+                    >
+                      {repo.name}
+                    </div>
+                    <div
+                      className="text-[11.5px]"
+                      style={{ color: 'var(--ink-soft)' }}
+                    >
+                      {repo.org} · {repo.branch}
+                    </div>
+                  </div>
+                </div>
+                <div className="flex items-center gap-4">
+                  <div
+                    className="flex items-center gap-1.5 text-[12px]"
+                    style={{ color: 'var(--ink-muted)' }}
+                  >
+                    <GitPullRequest size={12} strokeWidth={2} /> {repo.prs} PRs
+                  </div>
+                  <div
+                    className="flex items-center gap-1.5 text-[12px]"
+                    style={{ color: 'var(--ink-muted)' }}
+                  >
+                    <AlertCircle size={12} strokeWidth={2} /> {repo.issues}{' '}
+                    Issues
+                  </div>
+                  <ChevronRight
+                    size={14}
+                    style={{ color: 'var(--ink-soft)' }}
+                    className="group-hover:translate-x-0.5 transition-transform"
+                  />
+                </div>
+              </div>
+            </button>
+          ))}
+        </div>
+      </div>
+    </div>
   );
 }
 
-export default function CenterPanel({
+/* ─── Repo Detail ────────────────────────────────────────────────────────── */
+function RepoDetail({
   repoId,
   onSelectPR,
   selectedPR,
@@ -216,123 +319,171 @@ export default function CenterPanel({
   const [tab, setTab] = useState<Tab>('prs');
 
   return (
-    <section
-      className="flex-1 min-w-0 flex flex-col h-screen border-r border-border"
-      style={{ background: 'var(--bg)' }}
-    >
-      {/* Top Header */}
-      <div className="h-[56px] border-b border-border flex items-center px-5 gap-3">
-        <div className="flex items-center gap-2 min-w-0">
-          <GitPullRequest
-            size={15}
-            className="text-ink-muted shrink-0"
-            strokeWidth={1.8}
-          />
-          <span className="text-[13px] text-ink-muted">CodeWithJagdeep</span>
-          <ChevronRight size={13} className="text-ink-soft" strokeWidth={2} />
-          <span className="text-[13px] font-semibold text-ink truncate">
-            {repoId}
-          </span>
-        </div>
+    <>
+      {/* Repo header */}
+      <div
+        className="h-[56px] border-b flex items-center px-5 gap-2 shrink-0"
+        style={{ borderColor: 'var(--border)', background: 'var(--bg-subtle)' }}
+      >
+        <GitPullRequest
+          size={14}
+          strokeWidth={1.8}
+          style={{ color: 'var(--ink-soft)' }}
+        />
+        <span style={{ color: 'var(--ink-muted)' }} className="text-[12.5px]">
+          CodeWithJagdeep
+        </span>
+        <ChevronRight
+          size={12}
+          strokeWidth={2}
+          style={{ color: 'var(--ink-soft)' }}
+        />
+        <span className="text-[13px] font-bold" style={{ color: 'var(--ink)' }}>
+          {repoId}
+        </span>
         <a
           href={`https://github.com/CodeWithJagdeep/${repoId}`}
           target="_blank"
           rel="noopener noreferrer"
-          className="ml-auto flex items-center gap-1 text-[11.5px] text-ink-soft hover:text-ink transition-colors"
+          className="ml-auto flex items-center gap-1 text-[11px]"
+          style={{ color: 'var(--ink-soft)' }}
         >
-          <ExternalLink size={12} strokeWidth={1.8} />
-          GitHub
+          <ExternalLink size={11} strokeWidth={1.8} /> GitHub
         </a>
       </div>
 
-      {/* Tab Bar */}
+      {/* Tab bar */}
       <div
-        className="border-b border-border flex items-center px-4 gap-1 h-[44px]"
-        style={{ background: 'var(--bg-subtle)' }}
+        className="border-b flex items-center px-4 gap-1 h-[44px] shrink-0"
+        style={{ borderColor: 'var(--border)', background: 'var(--bg-muted)' }}
       >
         {TABS.map((t) => {
           const Icon = t.icon;
+          const active = tab === t.id;
           return (
             <button
               key={t.id}
               onClick={() => setTab(t.id)}
-              className={`flex items-center gap-1.5 px-3 py-1 rounded-md text-[12.5px] font-medium transition-colors ${
-                tab === t.id
-                  ? 'bg-bg-muted text-ink border border-border'
-                  : 'text-ink-muted hover:text-ink hover:bg-bg-muted'
-              }`}
+              className="flex items-center gap-1.5 px-3 py-1 rounded-md text-[12px] font-medium transition-colors"
+              style={{
+                background: active ? 'var(--bg)' : 'transparent',
+                color: active ? 'var(--ink)' : 'var(--ink-soft)',
+                border: active
+                  ? '1px solid var(--border)'
+                  : '1px solid transparent',
+              }}
             >
-              <Icon size={13} strokeWidth={1.8} />
+              <Icon size={12} strokeWidth={1.8} />
               {t.label}
               {t.id === 'prs' && (
-                <span className="ml-0.5 bg-accent-blue/20 text-accent-blue text-[10px] font-bold px-1 rounded">
+                <span
+                  className="ml-0.5 text-[9px] font-bold px-1 rounded"
+                  style={{
+                    background: 'rgba(225,29,72,0.2)',
+                    color: 'var(--brand)',
+                  }}
+                >
                   {PRS.length}
                 </span>
               )}
               {t.id === 'issues' && (
-                <span className="ml-0.5 bg-accent-red/20 text-accent-red text-[10px] font-bold px-1 rounded">
+                <span
+                  className="ml-0.5 text-[9px] font-bold px-1 rounded"
+                  style={{
+                    background: 'rgba(239,68,68,0.2)',
+                    color: '#ef4444',
+                  }}
+                >
                   {ISSUES.length}
                 </span>
               )}
             </button>
           );
         })}
-
-        {/* Search */}
-        <div className="ml-auto flex items-center gap-1.5 border border-border rounded-md px-2.5 py-1 bg-bg-muted w-[180px]">
-          <Search size={12} className="text-ink-soft" strokeWidth={1.8} />
-          <input
-            className="flex-1 bg-transparent text-[12px] text-ink placeholder:text-ink-soft outline-none"
-            placeholder={`Search ${tab === 'prs' ? 'pull requests' : 'issues'}...`}
+        <div
+          className="ml-auto flex items-center gap-1.5 rounded-md px-2 py-1 border"
+          style={{
+            background: 'var(--bg)',
+            borderColor: 'var(--border)',
+            width: 160,
+          }}
+        >
+          <Search
+            size={11}
+            style={{ color: 'var(--ink-soft)' }}
+            strokeWidth={1.8}
           />
-          <Filter size={11} className="text-ink-soft" strokeWidth={1.8} />
+          <input
+            className="flex-1 bg-transparent text-[11px] outline-none"
+            placeholder="Search..."
+            style={{ color: 'var(--ink)' }}
+          />
+          <Filter size={10} style={{ color: 'var(--ink-soft)' }} />
         </div>
       </div>
 
       {/* Content */}
       <div className="flex-1 overflow-y-auto">
-        {/* Pull Requests Tab */}
         {tab === 'prs' && (
-          <div className="divide-y divide-border-subtle">
+          <div
+            className="divide-y"
+            style={{ borderColor: 'var(--border-subtle)' }}
+          >
             {PRS.map((pr) => (
               <div
                 key={pr.id}
                 onClick={() => onSelectPR(pr.id)}
-                className={`px-5 py-4 cursor-pointer transition-colors ${
-                  selectedPR === pr.id ? 'bg-bg-subtle' : 'hover:bg-bg-subtle'
-                }`}
+                className="px-5 py-4 cursor-pointer transition-colors"
+                style={{
+                  background:
+                    selectedPR === pr.id ? 'var(--bg-muted)' : 'transparent',
+                }}
               >
                 <div className="flex items-start gap-3">
                   <GitPullRequest
-                    size={15}
+                    size={14}
                     strokeWidth={2}
-                    className="mt-0.5 shrink-0 text-accent-green"
+                    className="mt-0.5 shrink-0"
+                    style={{ color: '#22c55e' }}
                   />
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                      <span className="text-[13.5px] font-medium text-ink leading-snug">
+                    <div className="flex items-start gap-2">
+                      <span
+                        className="text-[13px] font-medium"
+                        style={{ color: 'var(--ink)' }}
+                      >
                         {pr.title}
                       </span>
-                      <span className="text-[12px] text-ink-soft font-mono shrink-0">
+                      <span
+                        className="text-[11px] font-mono shrink-0"
+                        style={{ color: 'var(--ink-soft)' }}
+                      >
                         #{pr.id}
                       </span>
                     </div>
-                    <div className="flex flex-wrap items-center gap-2 mt-1.5 text-[11.5px] text-ink-soft">
-                      <span className="font-mono bg-bg-muted px-1.5 py-0.5 rounded border border-border">
+                    <div
+                      className="flex flex-wrap items-center gap-2 mt-1 text-[11px]"
+                      style={{ color: 'var(--ink-soft)' }}
+                    >
+                      <span
+                        className="font-mono px-1.5 py-0.5 rounded border text-[10.5px]"
+                        style={{
+                          background: 'var(--bg-muted)',
+                          borderColor: 'var(--border)',
+                        }}
+                      >
                         {pr.branch}
                       </span>
                       <span>→ main</span>
-                      <span>by {pr.author}</span>
+                      <span>·</span>
+                      <span>{pr.author}</span>
                       <span>·</span>
                       <span>{pr.time}</span>
                       <span>·</span>
-                      <span>{pr.filesChanged} files</span>
+                      <span>{pr.files} files</span>
                     </div>
-                    <div className="mt-2.5">
-                      <KangStatusBadge
-                        status={pr.kangStatus}
-                        msg={pr.kangMsg}
-                      />
+                    <div className="mt-2">
+                      <StatusBadge status={pr.kangStatus} msg={pr.kangMsg} />
                     </div>
                   </div>
                 </div>
@@ -341,39 +492,61 @@ export default function CenterPanel({
           </div>
         )}
 
-        {/* Issues Tab */}
         {tab === 'issues' && (
-          <div className="divide-y divide-border-subtle">
+          <div
+            className="divide-y"
+            style={{ borderColor: 'var(--border-subtle)' }}
+          >
             {ISSUES.map((issue) => (
               <div
                 key={issue.id}
-                className="px-5 py-4 hover:bg-bg-subtle transition-colors cursor-pointer"
+                className="px-5 py-4 cursor-pointer transition-colors hover:bg-bg-muted"
               >
                 <div className="flex items-start gap-3">
                   <AlertCircle
-                    size={15}
+                    size={14}
                     strokeWidth={2}
-                    className="mt-0.5 shrink-0 text-accent-red"
+                    className="mt-0.5 shrink-0"
+                    style={{ color: '#ef4444' }}
                   />
                   <div className="flex-1">
                     <div className="flex items-center gap-2">
-                      <span className="text-[13.5px] font-medium text-ink">
+                      <span
+                        className="text-[13px] font-medium"
+                        style={{ color: 'var(--ink)' }}
+                      >
                         {issue.title}
                       </span>
-                      <span className="text-[12px] text-ink-soft font-mono shrink-0">
+                      <span
+                        className="text-[11px] font-mono"
+                        style={{ color: 'var(--ink-soft)' }}
+                      >
                         #{issue.id}
                       </span>
                     </div>
                     <div className="flex items-center gap-1.5 mt-1.5">
                       {issue.labels.map((l) => (
-                        <LabelChip key={l} label={l} />
+                        <span
+                          key={l}
+                          className="text-[10px] font-medium px-1.5 py-0.5 rounded border"
+                          style={{
+                            color: '#ef4444',
+                            background: 'rgba(239,68,68,0.1)',
+                            borderColor: 'rgba(239,68,68,0.2)',
+                          }}
+                        >
+                          {l}
+                        </span>
                       ))}
-                      <span className="text-[11.5px] text-ink-soft ml-1">
+                      <span
+                        className="text-[11px] ml-1"
+                        style={{ color: 'var(--ink-soft)' }}
+                      >
                         {issue.time}
                       </span>
                     </div>
-                    <div className="mt-2.5">
-                      <KangStatusBadge
+                    <div className="mt-2">
+                      <StatusBadge
                         status={issue.kangStatus}
                         msg={issue.kangMsg}
                       />
@@ -385,74 +558,119 @@ export default function CenterPanel({
           </div>
         )}
 
-        {/* Activity Tab */}
         {tab === 'activity' && (
-          <div className="px-5 py-4 space-y-1">
-            <div className="text-[12px] text-ink-soft uppercase tracking-wider font-semibold mb-4">
+          <div className="px-5 py-5 space-y-1">
+            <div
+              className="text-[10.5px] font-semibold uppercase tracking-wider mb-4"
+              style={{ color: 'var(--ink-soft)' }}
+            >
               KangBot Live Activity
             </div>
             {ACTIVITY.map((item, i) => (
               <div
                 key={i}
-                className="flex items-start gap-3 py-2.5 border-l-2 border-border pl-4 ml-2"
+                className="flex items-start gap-3 py-2.5 pl-4 ml-2 border-l-2"
+                style={{ borderColor: 'var(--border)' }}
               >
                 <span className="text-base shrink-0">{item.icon}</span>
-                <div className="flex-1">
-                  <p className={`text-[12.5px] ${item.color}`}>{item.text}</p>
-                  <span className="text-[11px] text-ink-soft">{item.time}</span>
+                <div>
+                  <p
+                    className="text-[12.5px]"
+                    style={{ color: 'var(--ink-muted)' }}
+                  >
+                    {item.text}
+                  </p>
+                  <span
+                    className="text-[10.5px]"
+                    style={{ color: 'var(--ink-soft)' }}
+                  >
+                    {item.time}
+                  </span>
                 </div>
               </div>
             ))}
           </div>
         )}
 
-        {/* Settings Tab */}
         {tab === 'settings' && (
-          <div className="px-5 py-6 max-w-lg space-y-6">
-            <div>
-              <h3 className="text-[14px] font-semibold text-ink mb-3">
-                KangBot Auto-Fix
-              </h3>
-              <div className="space-y-3">
-                {[
-                  {
-                    label: 'Auto-fix bug issues',
-                    sub: 'KangBot opens a PR when a fix is ready',
-                    enabled: true,
-                  },
-                  {
-                    label: 'Review all PRs',
-                    sub: 'KangBot adds inline comments to every PR',
-                    enabled: true,
-                  },
-                  {
-                    label: 'Human approval before PR',
-                    sub: 'Require your approval before KangBot opens PRs',
-                    enabled: false,
-                  },
-                ].map((s) => (
-                  <div
-                    key={s.label}
-                    className="flex items-start justify-between gap-4 p-3 rounded-lg border border-border bg-bg-subtle"
-                  >
-                    <div>
-                      <div className="text-[13px] font-medium text-ink">
-                        {s.label}
-                      </div>
-                      <div className="text-[11.5px] text-ink-muted mt-0.5">
-                        {s.sub}
-                      </div>
-                    </div>
-                    <div
-                      className={`w-9 h-5 rounded-full cursor-pointer shrink-0 mt-0.5 ${s.enabled ? 'bg-brand' : 'bg-bg-muted border border-border'}`}
-                    />
-                  </div>
-                ))}
+          <div className="px-6 py-6 max-w-md space-y-4">
+            <h3
+              className="text-[13px] font-semibold"
+              style={{ color: 'var(--ink)' }}
+            >
+              KangBot Auto-Fix Settings
+            </h3>
+            {[
+              { label: 'Auto-fix bug issues', enabled: true },
+              { label: 'Review all PRs automatically', enabled: true },
+              { label: 'Require human approval before PR', enabled: false },
+            ].map((s) => (
+              <div
+                key={s.label}
+                className="flex items-center justify-between p-3 rounded-lg border"
+                style={{
+                  background: 'var(--bg-subtle)',
+                  borderColor: 'var(--border)',
+                }}
+              >
+                <span className="text-[12.5px]" style={{ color: 'var(--ink)' }}>
+                  {s.label}
+                </span>
+                <div
+                  className="w-9 h-5 rounded-full cursor-pointer"
+                  style={{
+                    background: s.enabled
+                      ? 'var(--brand)'
+                      : 'var(--bg-elevated)',
+                    border: '1px solid var(--border)',
+                  }}
+                />
               </div>
-            </div>
+            ))}
           </div>
         )}
       </div>
+    </>
+  );
+}
+
+/* ─── CenterPanel Export ─────────────────────────────────────────────────── */
+export default function CenterPanel({
+  activeNav,
+  selectedRepo,
+  onSelectRepo,
+  onSelectPR,
+  selectedPR,
+  repos,
+  onAddRepo,
+}: {
+  activeNav: string;
+  selectedRepo: string | null;
+  onSelectRepo: (id: string) => void;
+  onSelectPR: (id: number) => void;
+  selectedPR: number | null;
+  repos: Repo[];
+  onAddRepo: () => void;
+}) {
+  return (
+    <section
+      className="flex-1 min-w-0 flex flex-col h-screen border-r"
+      style={{ background: 'var(--bg)', borderColor: 'var(--border)' }}
+    >
+      {/* Overview page when no repo selected OR explicitly on overview */}
+      {activeNav === 'overview' || !selectedRepo ? (
+        <Overview
+          repos={repos}
+          onSelectRepo={onSelectRepo}
+          onAddRepo={onAddRepo}
+        />
+      ) : (
+        <RepoDetail
+          repoId={selectedRepo}
+          onSelectPR={onSelectPR}
+          selectedPR={selectedPR}
+        />
+      )}
     </section>
   );
 }

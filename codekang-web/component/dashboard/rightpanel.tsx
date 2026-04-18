@@ -104,7 +104,7 @@ const REVIEW_DATA: Record<
     title: 'docs: Update API documentation for new endpoints',
     branch: 'docs/api-updates',
     author: 'John L.',
-    summary: 'KangBot is currently reviewing this PR...',
+    summary: 'KangBot is currently reviewing this PR…',
     risk: 'low',
     comments: [],
     filesChanged: [
@@ -185,17 +185,29 @@ export default function RightPanel({
   if (!selectedPR) {
     return (
       <aside
-        className="w-[380px] shrink-0 flex flex-col h-screen border-l border-border"
-        style={{ background: 'var(--bg-subtle)' }}
+        className="w-[380px] shrink-0 flex flex-col h-screen border-l"
+        style={{ background: 'var(--bg-subtle)', borderColor: 'var(--border)' }}
       >
         <div className="flex-1 flex flex-col items-center justify-center text-center px-6">
-          <div className="w-12 h-12 rounded-xl bg-brand-dim flex items-center justify-center mb-4">
-            <Zap size={20} className="text-brand" strokeWidth={2} />
+          <div
+            className="w-12 h-12 rounded-xl flex items-center justify-center mb-4"
+            style={{
+              background: 'var(--brand-dim)',
+              border: '1px solid var(--brand-mid)',
+            }}
+          >
+            <Zap size={20} style={{ color: 'var(--brand)' }} strokeWidth={2} />
           </div>
-          <h3 className="text-[14px] font-semibold text-ink mb-2">
+          <h3
+            className="text-[14px] font-semibold mb-2"
+            style={{ color: 'var(--ink)' }}
+          >
             KangBot Review Panel
           </h3>
-          <p className="text-[12.5px] text-ink-muted leading-relaxed">
+          <p
+            className="text-[12.5px] leading-relaxed"
+            style={{ color: 'var(--ink-muted)' }}
+          >
             Select a Pull Request or Issue from the list to see KangBot's AI
             analysis, inline comments, and risk assessment.
           </p>
@@ -212,13 +224,24 @@ export default function RightPanel({
 
   return (
     <aside
-      className="w-[380px] shrink-0 flex flex-col h-screen border-l border-border"
-      style={{ background: 'var(--bg-subtle)' }}
+      className="w-[380px] shrink-0 flex flex-col h-screen border-l"
+      style={{ background: 'var(--bg-subtle)', borderColor: 'var(--border)' }}
     >
       {/* Header */}
-      <div className="h-[56px] border-b border-border flex items-center px-4 gap-2">
-        <Zap size={13} className="text-brand shrink-0" strokeWidth={2.5} />
-        <span className="text-[13px] font-semibold text-ink flex-1">
+      <div
+        className="h-[56px] border-b flex items-center px-4 gap-2"
+        style={{ borderColor: 'var(--border)' }}
+      >
+        <Zap
+          size={13}
+          style={{ color: 'var(--brand)' }}
+          shrink-0
+          strokeWidth={2.5}
+        />
+        <span
+          className="text-[13px] font-semibold flex-1"
+          style={{ color: 'var(--ink)' }}
+        >
           KangBot Review
         </span>
         <a
@@ -233,7 +256,10 @@ export default function RightPanel({
       {/* Scrollable content */}
       <div className="flex-1 overflow-y-auto">
         {/* PR Info */}
-        <div className="px-4 py-4 border-b border-border">
+        <div
+          className="px-4 py-4 border-b"
+          style={{ borderColor: 'var(--border)' }}
+        >
           <div className="flex items-start gap-2">
             <GitPullRequest
               size={14}
@@ -241,10 +267,16 @@ export default function RightPanel({
               strokeWidth={2}
             />
             <div>
-              <p className="text-[13px] font-medium text-ink leading-snug">
+              <p
+                className="text-[13px] font-medium leading-snug"
+                style={{ color: 'var(--ink)' }}
+              >
                 {data.title}
               </p>
-              <p className="text-[11.5px] text-ink-soft mt-1 font-mono">
+              <p
+                className="text-[11.5px] mt-1 font-mono"
+                style={{ color: 'var(--ink-soft)' }}
+              >
                 {data.branch} → main · by {data.author}
               </p>
             </div>
@@ -252,8 +284,14 @@ export default function RightPanel({
         </div>
 
         {/* Risk Assessment */}
-        <div className="px-4 py-4 border-b border-border">
-          <div className="text-[11px] font-semibold text-ink-soft uppercase tracking-wider mb-3">
+        <div
+          className="px-4 py-4 border-b"
+          style={{ borderColor: 'var(--border)' }}
+        >
+          <div
+            className="text-[11px] font-semibold uppercase tracking-wider mb-3"
+            style={{ color: 'var(--ink-soft)' }}
+          >
             Risk Assessment
           </div>
           <div
@@ -267,19 +305,34 @@ export default function RightPanel({
         </div>
 
         {/* AI Summary */}
-        <div className="px-4 py-4 border-b border-border">
-          <div className="text-[11px] font-semibold text-ink-soft uppercase tracking-wider mb-3">
+        <div
+          className="px-4 py-4 border-b"
+          style={{ borderColor: 'var(--border)' }}
+        >
+          <div
+            className="text-[11px] font-semibold uppercase tracking-wider mb-3"
+            style={{ color: 'var(--ink-soft)' }}
+          >
             Summary
           </div>
-          <p className="text-[12.5px] text-ink-muted leading-relaxed">
+          <p
+            className="text-[12.5px] leading-relaxed"
+            style={{ color: 'var(--ink-muted)' }}
+          >
             {data.summary}
           </p>
         </div>
 
         {/* Inline Comments */}
         {data.comments.length > 0 && (
-          <div className="px-4 py-4 border-b border-border">
-            <div className="text-[11px] font-semibold text-ink-soft uppercase tracking-wider mb-3">
+          <div
+            className="px-4 py-4 border-b"
+            style={{ borderColor: 'var(--border)' }}
+          >
+            <div
+              className="text-[11px] font-semibold uppercase tracking-wider mb-3"
+              style={{ color: 'var(--ink-soft)' }}
+            >
               Inline Comments ({data.comments.length})
             </div>
             <div className="space-y-3">
@@ -289,15 +342,22 @@ export default function RightPanel({
                 return (
                   <div
                     key={i}
-                    className={`bg-bg-muted rounded-r-lg pl-3 pr-3 py-2.5 ${cfg.bg}`}
+                    className={`rounded-r-lg pl-3 pr-3 py-2.5 ${cfg.bg}`}
+                    style={{ background: 'var(--bg-muted)' }}
                   >
                     <div className="flex items-center gap-1.5 mb-1">
                       <Icon size={11} strokeWidth={2} className={cfg.color} />
-                      <span className="text-[10.5px] font-mono text-ink-soft">
+                      <span
+                        className="text-[10.5px] font-mono"
+                        style={{ color: 'var(--ink-soft)' }}
+                      >
                         {comment.file}:{comment.line}
                       </span>
                     </div>
-                    <p className="text-[12px] text-ink-muted">
+                    <p
+                      className="text-[12px]"
+                      style={{ color: 'var(--ink-muted)' }}
+                    >
                       {comment.message}
                     </p>
                   </div>
@@ -309,7 +369,10 @@ export default function RightPanel({
 
         {/* Files Changed */}
         <div className="px-4 py-4">
-          <div className="text-[11px] font-semibold text-ink-soft uppercase tracking-wider mb-3 flex items-center justify-between">
+          <div
+            className="text-[11px] font-semibold uppercase tracking-wider mb-3 flex items-center justify-between"
+            style={{ color: 'var(--ink-soft)' }}
+          >
             <span>Files Changed ({data.filesChanged.length})</span>
             <ChevronDown size={12} strokeWidth={2} />
           </div>
@@ -317,14 +380,18 @@ export default function RightPanel({
             {data.filesChanged.map((f, i) => (
               <div
                 key={i}
-                className="flex items-center gap-2 p-2 rounded-md hover:bg-bg-muted transition-colors"
+                className="flex items-center gap-2 p-2 rounded-md transition-colors hover:bg-bg-elevated"
               >
                 <FileText
                   size={11}
-                  className="text-ink-soft shrink-0"
+                  className="shrink-0"
+                  style={{ color: 'var(--ink-soft)' }}
                   strokeWidth={1.8}
                 />
-                <span className="text-[11.5px] font-mono text-ink-muted truncate flex-1">
+                <span
+                  className="text-[11.5px] font-mono truncate flex-1"
+                  style={{ color: 'var(--ink-muted)' }}
+                >
                   {f.name}
                 </span>
                 <span className="text-[11px] text-accent-green font-medium shrink-0">
@@ -341,10 +408,16 @@ export default function RightPanel({
 
       {/* Actions */}
       <div className="border-t border-border p-3 flex gap-2">
-        <button className="flex-1 py-2 rounded-lg text-[12.5px] font-semibold bg-brand text-bg hover:bg-brand/90 transition-colors">
+        <button
+          className="flex-1 py-2 rounded-lg text-[12.5px] font-semibold transition-colors"
+          style={{ background: 'var(--brand)', color: '#fff' }}
+        >
           Approve PR
         </button>
-        <button className="flex-1 py-2 rounded-lg text-[12.5px] font-semibold border border-border text-ink-muted hover:text-ink hover:bg-bg-muted transition-colors">
+        <button
+          className="flex-1 py-2 rounded-lg text-[12.5px] font-semibold border transition-colors"
+          style={{ borderColor: 'var(--border)', color: 'var(--ink-muted)' }}
+        >
           Request Fix
         </button>
       </div>
