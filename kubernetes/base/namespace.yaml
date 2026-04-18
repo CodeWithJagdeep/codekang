@@ -1,0 +1,9 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: codekang
+  labels:
+    app: codekang-platform
+    environment: production
+  annotations:
+    description: CodeKang Platform - AI-powered GitHub issue fixing

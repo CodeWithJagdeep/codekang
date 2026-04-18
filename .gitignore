@@ -200,8 +200,8 @@ venv/
 env/
 
 # Cloned repos
-repos/
-temp/
+/repos/
+/temp/
 
 # Screenshots
 screenshots/

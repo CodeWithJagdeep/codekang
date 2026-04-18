@@ -1,0 +1,112 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+metadata:
+  name: codekang-production
+
+namespace: codekang-prod
+
+commonLabels:
+  app: codekang-platform
+  environment: production
+
+commonAnnotations:
+  environment: production
+  managed-by: kustomize
+
+resources:
+  - ../../base
+  - resources.yaml
+  - hpa.yaml
+  - network-policy.yaml
+  - pod-disruption-budget.yaml
+
+replicas:
+  - name: gateway
+    count: 3
+  - name: auth
+    count: 2
+  - name: ai-agent
+    count: 2
+  - name: repos
+    count: 2
+  - name: autonomous
+    count: 2
+  - name: frontend
+    count: 3
+
+images:
+  - name: codekang/gateway
+    newName: gcr.io/codekang/gateway
+    newTag: v1.0.0
+  - name: codekang/auth
+    newName: gcr.io/codekang/auth
+    newTag: v1.0.0
+  - name: codekang/ai-agent
+    newName: gcr.io/codekang/ai-agent
+    newTag: v1.0.0
+  - name: codekang/repos
+    newName: gcr.io/codekang/repos
+    newTag: v1.0.0
+  - name: codekang/autonomous
+    newName: gcr.io/codekang/autonomous
+    newTag: v1.0.0
+  - name: codekang/frontend
+    newName: gcr.io/codekang/frontend
+    newTag: v1.0.0
+
+patches:
+  - target:
+      kind: Deployment
+      name: gateway
+    patch: |-
+      - op: add
+        path: /spec/template/spec/containers/0/resources
+        value:
+          requests:
+            memory: "512Mi"
+            cpu: "250m"
+          limits:
+            memory: "1Gi"
+            cpu: "500m"
+
+  - target:
+      kind: Deployment
+      name: auth
+    patch: |-
+      - op: add
+        path: /spec/template/spec/containers/0/resources
+        value:
+          requests:
+            memory: "256Mi"
+            cpu: "100m"
+          limits:
+            memory: "512Mi"
+            cpu: "200m"
+
+  - target:
+      kind: Deployment
+      name: ai-agent
+    patch: |-
+      - op: add
+        path: /spec/template/spec/containers/0/resources
+        value:
+          requests:
+            memory: "1Gi"
+            cpu: "500m"
+          limits:
+            memory: "2Gi"
+            cpu: "1000m"
+
+  - target:
+      kind: Deployment
+      labelSelector: "app=codekang-platform"
+    patch: |-
+      - op: add
+        path: /spec/template/spec/containers/0/securityContext
+        value:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+              - ALL
+          readOnlyRootFilesystem: false
