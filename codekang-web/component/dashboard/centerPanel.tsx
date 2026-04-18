@@ -28,10 +28,6 @@ export default function CenterPanel({
   repos: Repo[];
   onAddRepo: () => void;
   onSelectRepo: (id: string) => void;
-  // Keep props for compatibility
-  selectedRepo?: string | null;
-  onSelectPR?: (id: number) => void;
-  selectedPR?: number | null;
 }) {
   const [searchTerm, setSearchTerm] = useState('');
   const rowsPerPage = 10;

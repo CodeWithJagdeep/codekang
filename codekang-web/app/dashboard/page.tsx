@@ -1,9 +1,9 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { type Repo } from '@/component/dashboard/sidebar';
 import CenterPanel from '@/component/dashboard/centerPanel';
-import RightPanel from '@/component/dashboard/rightpanel';
 
 const INITIAL_REPOS: Repo[] = [
   {
@@ -45,13 +45,11 @@ const INITIAL_REPOS: Repo[] = [
 ];
 
 export default function DashboardPage() {
+  const router = useRouter();
   const [repos, setRepos] = useState<Repo[]>(INITIAL_REPOS);
-  const [selectedRepo, setSelectedRepo] = useState<string | null>(null);
-  const [selectedPR, setSelectedPR] = useState<number | null>(null);
 
   function handleSelectRepo(id: string) {
-    setSelectedRepo(id);
-    setSelectedPR(null);
+    router.push(`/dashboard/repositories/${id}`);
   }
 
   function handleAddRepo() {
@@ -76,11 +74,7 @@ export default function DashboardPage() {
         repos={repos}
         onAddRepo={handleAddRepo}
         onSelectRepo={handleSelectRepo}
-        selectedRepo={selectedRepo}
-        onSelectPR={setSelectedPR}
-        selectedPR={selectedPR}
       />
-      {selectedRepo && <RightPanel selectedPR={selectedPR} />}
     </div>
   );
 }
