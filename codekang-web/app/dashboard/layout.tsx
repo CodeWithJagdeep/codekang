@@ -4,7 +4,6 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { getAccessToken } from '@/lib/auth';
 import Sidebar from '@/component/dashboard/sidebar';
-import DashboardHeader from '@/component/dashboard/header';
 
 export default function DashboardLayout({
   children,
@@ -48,7 +47,6 @@ export default function DashboardLayout({
     >
       <Sidebar />
       <div className="flex-1 min-w-0 flex flex-col relative z-0">
-        <DashboardHeader />
         {children}
       </div>
     </div>

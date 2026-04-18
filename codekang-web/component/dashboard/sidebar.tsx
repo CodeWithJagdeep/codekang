@@ -243,6 +243,32 @@ export default function Sidebar() {
         </div>
       </div>
 
+      {/* ── Usage Indicator ── */}
+      <div
+        className="px-3.5 py-3 mx-2 mb-2 rounded-lg border"
+        style={{ background: 'rgba(255,255,255,0.02)', borderColor: '#2a2a2a' }}
+      >
+        <div className="flex justify-between text-[11px] font-medium text-[#a1a1aa] mb-2">
+          <span>AI Reviews</span>
+          <span className="text-[#e8e8e8]">30/100</span>
+        </div>
+        <div
+          className="h-1.5 w-full rounded-full overflow-hidden mb-2.5"
+          style={{ background: '#121214' }}
+        >
+          <div
+            className="h-full rounded-full transition-all duration-300"
+            style={{ width: '30%', background: '#f97316' }}
+          />
+        </div>
+        <button
+          className="w-full flex items-center justify-center gap-1.5 text-[12px] font-medium transition-colors"
+          style={{ color: '#f97316' }}
+        >
+          Upgrade to Pro
+        </button>
+      </div>
+
       {/* ── Settings Footer ── */}
       <div style={{ borderTop: '1px solid #2a2a2a' }} className="p-2">
         <Link
