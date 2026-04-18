@@ -12,7 +12,10 @@ import {
   ArrowUpDown,
   MoreVertical,
   ChevronDown,
+  GitPullRequest,
+  AlertCircle,
 } from 'lucide-react';
+
 import type { Repo } from './sidebar';
 
 export default function CenterPanel({
@@ -103,23 +106,29 @@ export default function CenterPanel({
 
         {/* ── Repository Table ── */}
         <div className="flex-1 px-8 overflow-y-auto custom-scrollbar">
-          <div
-            className="border rounded-lg overflow-hidden"
-            style={{ borderColor: '#1f1f23' }}
-          >
+          <div className="border border-white/40 overflow-hidden">
             <table className="w-full text-left border-collapse">
               <thead>
-                <tr style={{ background: '#1c1c1f' }}>
+                <tr className="bg-gray-100/10">
                   <th
-                    className="px-4 py-3 text-[12px] font-semibold flex items-center gap-2"
+                    className="px-4 py-3 text-[13px] font-semibold"
                     style={{ color: '#e8e8e8' }}
                   >
-                    Repository
-                    <ArrowUpDown size={14} className="opacity-40" />
+                    <div className="flex items-center gap-2">
+                      Repository
+                      <ArrowUpDown size={14} className="opacity-40" />
+                    </div>
                   </th>
+                  <th className="px-4 py-3 text-[13px] font-semibold text-[#e8e8e8] whitespace-nowrap text-right">
+                    Pull Requests
+                  </th>
+                  <th className="px-4 py-3 text-[13px] font-semibold text-[#e8e8e8] whitespace-nowrap text-right">
+                    Issues
+                  </th>
+                  <th className="px-4 py-3 w-8"></th>
                 </tr>
               </thead>
-              <tbody className="divide-y" style={{ borderColor: '#1f1f23' }}>
+              <tbody className="divide-y divide-gray-100/10">
                 {filteredRepos.length > 0 ? (
                   filteredRepos.map((repo) => (
                     <tr
@@ -128,24 +137,49 @@ export default function CenterPanel({
                       onClick={() => onSelectRepo(repo.id)}
                     >
                       <td className="px-4 py-4">
-                        <div className="flex items-center justify-between">
-                          <span
-                            className="text-[14px] font-medium"
-                            style={{ color: '#e8e8e8' }}
-                          >
-                            {repo.name}
+                        <span
+                          className="text-[16px] font-medium"
+                          style={{ color: '#e8e8e8' }}
+                        >
+                          {repo.name}
+                        </span>
+                      </td>
+                      <td
+                        className="px-4 py-4 text-right text-[13px]"
+                        style={{ color: '#a1a1aa' }}
+                      >
+                        {repo.prs > 0 ? (
+                          <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-400">
+                            <GitPullRequest size={14} /> {repo.prs}
                           </span>
-                          <MoreVertical
-                            size={16}
-                            className="opacity-0 group-hover:opacity-40 transition-opacity"
-                          />
-                        </div>
+                        ) : (
+                          '—'
+                        )}
+                      </td>
+                      <td
+                        className="px-4 py-4 text-right text-[13px]"
+                        style={{ color: '#a1a1aa' }}
+                      >
+                        {repo.issues > 0 ? (
+                          <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-[#f97316]/10 text-[#f97316]">
+                            <AlertCircle size={14} /> {repo.issues}
+                          </span>
+                        ) : (
+                          '—'
+                        )}
+                      </td>
+                      <td className="px-4 py-4 text-right">
+                        <MoreVertical
+                          size={16}
+                          className="opacity-0 group-hover:opacity-40 transition-opacity ml-auto"
+                        />
                       </td>
                     </tr>
                   ))
                 ) : (
                   <tr>
                     <td
+                      colSpan={4}
                       className="px-4 py-8 text-center"
                       style={{ color: '#71717a' }}
                     >
