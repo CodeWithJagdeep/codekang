@@ -4,15 +4,16 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
-  MessageSquareText,
-  HelpCircle,
-  BookOpen,
+  FolderGit2,
   GitPullRequest,
-  PanelLeft,
-  Settings,
+  Blocks,
+  BarChart2,
+  Bot,
   ChevronDown,
   RefreshCcw,
   Plus,
+  PanelLeft,
+  Settings,
 } from 'lucide-react';
 
 export type Repo = {
@@ -26,10 +27,11 @@ export type Repo = {
 };
 
 const NAV_ITEMS = [
-  { icon: MessageSquareText, label: 'Sessions', id: 'sessions' },
-  { icon: HelpCircle, label: 'Ask', id: 'ask' },
-  { icon: BookOpen, label: 'Wiki', id: 'wiki' },
-  { icon: GitPullRequest, label: 'Review', id: 'review' },
+  { icon: FolderGit2, label: 'Repositories', id: 'repositories' },
+  { icon: GitPullRequest, label: 'Reviews', id: 'reviews' },
+  { icon: Bot, label: 'Agents', id: 'agents' },
+  { icon: Blocks, label: 'Integrations', id: 'integrations' },
+  { icon: BarChart2, label: 'Reports', id: 'reports' },
 ];
 
 const INVOLVED_PRS = [
@@ -154,8 +156,13 @@ export default function Sidebar() {
         {NAV_ITEMS.map((item) => {
           const Icon = item.icon;
           const href =
-            item.id === 'review' ? '/dashboard' : `/dashboard/${item.id}`;
-          const isActive = pathname === href || pathname.startsWith(`${href}/`);
+            item.id === 'repositories' ? '/dashboard' : `/dashboard/${item.id}`;
+
+          const isActive =
+            item.id === 'repositories'
+              ? pathname === '/dashboard'
+              : pathname === href || pathname.startsWith(`${href}/`);
+
           return (
             <Link
               key={item.id}
