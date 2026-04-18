@@ -1,0 +1,38 @@
+# Dependencies
+node_modules/
+
+# Temp working directories (cloned repos, screenshots, cache)
+temp/
+
+# Environment
+.env
+.env.development
+
+# Compiled output
+dist/
+build/
+
+# Logs
+*.log
+logs/
+
+# Temp files
+/tmp
+.DS_Store
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# TypeScript
+*.tsbuildinfo
+
+# Testing
+coverage/
+
+# Sensitive files and cache
+.codex
+github-app-private-key.pem
+local_cache/
