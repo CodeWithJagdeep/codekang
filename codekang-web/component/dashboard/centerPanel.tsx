@@ -42,7 +42,7 @@ export default function CenterPanel({
     return (
       <section
         className="flex-1 flex flex-col h-screen overflow-hidden"
-        style={{ background: '#121214' }}
+        style={{ background: '#1c1c1c' }}
       >
         {/* ── Header / Breadcrumb ── */}
         <div className="px-8 pt-6 pb-2">
