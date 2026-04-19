@@ -16,6 +16,7 @@ import type {
   PlanTier,
   ISocialLoginResponse,
 } from '../common';
+import { MailService } from './mail/mail.service';
 
 interface OAuthProfile {
   provider: 'google' | 'github';
@@ -27,6 +28,18 @@ interface OAuthProfile {
   githubAccessToken?: string;
 }
 
+// Credits threshold (%) below which a pending-billing email is sent
+const LOW_CREDITS_THRESHOLD = 0.1;
+
+// Plan display prices (used in billing emails)
+const PLAN_PRICES: Record<string, string> = {
+  free: '$0',
+  starter: '$15',
+  pro: '$29',
+  team: '$249',
+  enterprise: 'Custom',
+};
+
 @Injectable()
 export class AuthService {
   private readonly googleClient: OAuth2Client;
@@ -37,6 +50,7 @@ export class AuthService {
     private readonly blacklistRepo: Repository<RefreshTokenBlacklist>,
     private readonly jwtService: JwtService,
     private readonly config: ConfigService,
+    private readonly mailService: MailService,
   ) {
     this.googleClient = new OAuth2Client(
       this.config.get('GOOGLE_CLIENT_ID'),
@@ -160,6 +174,8 @@ export class AuthService {
         onboardingCompleted: false,
       });
       await this.userRepo.save(user);
+      // Fire-and-forget: welcome email for brand-new users
+      void this.mailService.sendWelcomeEmail({ email: user.email, name: user.name });
     } else {
       user.provider = profile.provider;
       user.providerId = profile.providerId;
@@ -168,6 +184,8 @@ export class AuthService {
       if (profile.githubUsername) user.githubUsername = profile.githubUsername;
       if (profile.githubAccessToken) user.githubAccessToken = profile.githubAccessToken;
       await this.userRepo.save(user);
+      // Fire-and-forget: login notification for returning users
+      void this.mailService.sendLoginEmail({ email: user.email, name: user.name });
     }
 
     const tokens = this.generateTokens(user);
@@ -182,7 +200,7 @@ export class AuthService {
     return user!;
   }
 
-  // ─── Token management ─────────────────────────────────────────────────────
+  // ─── Token management ─────────────────────────────────────────────────────────
 
   generateTokens(user: User): IAuthTokens {
     const payload = { sub: user.id, email: user.email, plan: user.plan };
@@ -262,7 +280,11 @@ export class AuthService {
   }
 
   async logout(userId: string): Promise<void> {
+    const user = await this.userRepo.findOne({ where: { id: userId } });
     await this.userRepo.update(userId, { refreshToken: '' });
+    if (user) {
+      void this.mailService.sendLogoutEmail({ email: user.email, name: user.name });
+    }
   }
 
   async getSubscription(userId: string): Promise<ISubscription> {
@@ -325,7 +347,23 @@ export class AuthService {
     if (!user) return;
     const plan = PLANS[user.plan];
     if (plan.features.creditsPerMonth === -1) return;
+
     await this.userRepo.increment({ id: userId }, 'creditsUsed', cost);
+
+    // Send low-credits warning when user crosses the threshold
+    const totalCredits = plan.features.creditsPerMonth;
+    const usedAfter = user.creditsUsed + cost;
+    const remainingAfter = totalCredits - usedAfter;
+    const threshold = Math.ceil(totalCredits * LOW_CREDITS_THRESHOLD);
+    const wasAbove = totalCredits - user.creditsUsed > threshold;
+    const nowBelow = remainingAfter <= threshold;
+    if (wasAbove && nowBelow) {
+      void this.mailService.sendPendingBillingEmail(
+        { email: user.email, name: user.name },
+        remainingAfter,
+        user.plan,
+      );
+    }
   }
 
   async cleanExpiredBlacklist(): Promise<void> {
@@ -365,6 +403,8 @@ export class AuthService {
   async updatePlan(userId: string, plan: PlanTier): Promise<IUser> {
     const user = await this.userRepo.findOne({ where: { id: userId } });
     if (!user) throw new UnauthorizedException('User not found');
+
+    const previousPlan = user.plan;
     user.plan = plan;
     // Reset credits on plan change
     const nextMonth = new Date();
@@ -372,6 +412,21 @@ export class AuthService {
     user.creditsUsed = 0;
     user.creditsReset = nextMonth;
     await this.userRepo.save(user);
+
+    // Only send purchase/payment emails when upgrading (not on free plan)
+    if (plan !== 'free' && plan !== previousPlan) {
+      const price = PLAN_PRICES[plan] ?? 'Custom';
+      const invoiceId = `INV-${Date.now()}`;
+      const date = new Date().toDateString();
+      const recipient = { email: user.email, name: user.name };
+
+      void Promise.all([
+        this.mailService.sendPurchaseEmail(recipient, plan, price),
+        this.mailService.sendInvoiceEmail(recipient, plan, price, invoiceId, date),
+        this.mailService.sendPaymentCompleteEmail(recipient, plan, price),
+      ]);
+    }
+
     return this.toPublicUser(user);
   }
 
