@@ -40,11 +40,11 @@ export default function CenterPanel({
   if (activeNav === 'repos') {
     return (
       <section
-        className="flex-1 flex flex-col h-screen overflow-hidden"
+        className="flex-1 flex flex-col h-dvh overflow-hidden"
         style={{ background: '#1c1c1c' }}
       >
         {/* ── Header / Breadcrumb ── */}
-        <div className="px-8 pt-6 pb-2">
+        <div className="px-4 md:px-8 pt-4 md:pt-6 pb-2">
           <div
             className="flex items-center gap-2 text-[12px] font-medium"
             style={{ color: '#a1a1aa' }}
@@ -54,9 +54,12 @@ export default function CenterPanel({
         </div>
 
         {/* ── Title & Actions ── */}
-        <div className="px-8 pb-6 flex items-center justify-between">
+        <div className="px-4 md:px-8 pb-4 md:pb-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
-            <h1 className="text-[28px] font-bold" style={{ color: '#e8e8e8' }}>
+            <h1
+              className="text-[24px] md:text-[28px] font-bold"
+              style={{ color: '#e8e8e8' }}
+            >
               Repositories
             </h1>
             <p className="text-[13px] mt-1" style={{ color: '#a1a1aa' }}>
@@ -65,15 +68,15 @@ export default function CenterPanel({
           </div>
           <div className="flex items-center gap-3">
             <button
-              className="flex items-center gap-2 px-4 py-2 rounded-lg text-[13px] font-semibold border transition-colors hover:bg-white/5"
+              className="flex-1 md:flex-none items-center justify-center flex gap-2 px-4 py-2 rounded-lg text-[13px] font-semibold border transition-colors hover:bg-white/5"
               style={{ borderColor: '#27272a', color: '#e8e8e8' }}
             >
               <RefreshCcw size={16} strokeWidth={2} />
-              Sync Repositories
+              <span className="hidden sm:inline">Sync Repositories</span>
             </button>
             <button
               onClick={onAddRepo}
-              className="flex items-center gap-2 px-4 py-2 rounded-lg text-[13px] font-bold transition-opacity hover:opacity-90"
+              className="flex-1 md:flex-none flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-[13px] font-bold transition-opacity hover:opacity-90 whitespace-nowrap"
               style={{ background: '#f97316', color: '#fff' }}
             >
               <Plus size={18} strokeWidth={2.5} />
@@ -83,16 +86,16 @@ export default function CenterPanel({
         </div>
 
         {/* ── Search Bar ── */}
-        <div className="px-8 pb-4">
+        <div className="px-4 md:px-8 pb-4">
           <div
-            className="flex items-center gap-3 px-3 py-2 rounded-md border max-w-[400px]"
+            className="flex items-center gap-3 px-3 py-2 rounded-md border w-full max-w-[400px]"
             style={{ background: '#121214', borderColor: '#27272a' }}
           >
             <Search size={16} style={{ color: '#71717a' }} strokeWidth={2} />
             <input
               type="text"
               placeholder="Search repositories"
-              className="bg-transparent outline-none flex-1 text-[13px]"
+              className="bg-transparent outline-none flex-1 text-[13px] w-full"
               style={{ color: '#e8e8e8' }}
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
@@ -101,8 +104,8 @@ export default function CenterPanel({
         </div>
 
         {/* ── Repository Table ── */}
-        <div className="flex-1 px-8 overflow-y-auto custom-scrollbar">
-          <div className="border border-white/40 overflow-hidden">
+        <div className="flex-1 px-4 md:px-8 overflow-y-auto custom-scrollbar">
+          <div className="border border-white/40 overflow-x-auto rounded-lg">
             <table className="w-full text-left border-collapse">
               <thead>
                 <tr className="bg-gray-100/10">
@@ -190,7 +193,7 @@ export default function CenterPanel({
 
         {/* ── Pagination ── */}
         <div
-          className="px-8 py-4 flex items-center justify-end gap-8 text-[12px]"
+          className="px-4 md:px-8 py-4 flex flex-wrap items-center justify-center md:justify-end gap-4 md:gap-8 text-[12px]"
           style={{ color: '#a1a1aa' }}
         >
           <div className="flex items-center gap-2">

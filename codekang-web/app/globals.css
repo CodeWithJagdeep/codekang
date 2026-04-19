@@ -50,6 +50,79 @@
   --font-mono: var(--font-geist-mono);
 }
 
+/* ── Light theme CSS vars ── */
+[data-theme='light'] {
+  --bg: #f8f9fa;
+  --bg-subtle: #f1f3f4;
+  --bg-muted: #e8eaed;
+  --bg-elevated: #ffffff;
+  --border: #dadce0;
+  --border-subtle: #e8eaed;
+  --ink: #1c1c1c;
+  --ink-muted: #5f6368;
+  --ink-soft: #9aa0a6;
+}
+
+/* ─────────────────────────────────────────────────────
+   LIGHT MODE: override every hardcoded dark Tailwind class
+   used across dashboard + settings pages.
+   ───────────────────────────────────────────────────── */
+
+/* Page / layout backgrounds */
+[data-theme='light'] .bg-\[\#1c1c1c\]  { background-color: #f4f5f7 !important; }
+[data-theme='light'] .bg-\[\#18181b\]  { background-color: #ffffff !important; }
+[data-theme='light'] .bg-\[\#121214\]  { background-color: #f1f3f4 !important; }
+[data-theme='light'] .bg-\[\#1a1a1c\]  { background-color: #f8f9fa !important; }
+[data-theme='light'] .bg-\[\#1e1e1e\]  { background-color: #f4f5f7 !important; }
+[data-theme='light'] .bg-\[\#181818\]  { background-color: #ffffff !important; }
+
+/* Card / container hover backgrounds */
+[data-theme='light'] .hover\:bg-\[\#1a1a1c\]:hover { background-color: #f0f1f3 !important; }
+[data-theme='light'] .hover\:bg-white\/2:hover      { background-color: rgba(0,0,0,0.03) !important; }
+[data-theme='light'] .hover\:bg-white\/3:hover      { background-color: rgba(0,0,0,0.04) !important; }
+[data-theme='light'] .hover\:bg-white\/5:hover      { background-color: rgba(0,0,0,0.05) !important; }
+[data-theme='light'] .hover\:bg-white\/8:hover      { background-color: rgba(0,0,0,0.06) !important; }
+
+/* Borders */
+[data-theme='light'] .border-\[\#27272a\]            { border-color: #e2e4e7 !important; }
+[data-theme='light'] .border-\[\#27272a\]\/30        { border-color: rgba(226,228,231,0.3) !important; }
+[data-theme='light'] .border-\[\#27272a\]\/40        { border-color: rgba(226,228,231,0.7) !important; }
+[data-theme='light'] .border-\[\#27272a\]\/50        { border-color: rgba(226,228,231,0.8) !important; }
+[data-theme='light'] .border-\[\#27272a\]\/60        { border-color: #e2e4e7 !important; }
+[data-theme='light'] .border-\[\#2a2a2a\]            { border-color: #e2e4e7 !important; }
+[data-theme='light'] .border-\[\#3f3f46\]            { border-color: #c8cacd !important; }
+[data-theme='light'] .hover\:border-\[\#3f3f46\]:hover { border-color: #b0b3b8 !important; }
+
+/* Primary text */
+[data-theme='light'] .text-\[\#f4f4f5\]  { color: #1c1c1c !important; }
+[data-theme='light'] .text-\[\#e4e4e7\]  { color: #2d2d2d !important; }
+[data-theme='light'] .text-\[\#e8e8e8\]  { color: #1c1c1c !important; }
+[data-theme='light'] .group-hover\:text-white:hover { color: #000000 !important; }
+
+/* Muted / secondary text */
+[data-theme='light'] .text-\[\#a1a1aa\]  { color: #5f6368 !important; }
+[data-theme='light'] .text-\[\#71717a\]  { color: #6b7280 !important; }
+[data-theme='light'] .text-\[\#52525b\]  { color: #9ca3af !important; }
+[data-theme='light'] .text-\[\#3f3f46\]  { color: #b0b3b8 !important; }
+[data-theme='light'] .text-\[\#6d6d6d\]  { color: #9aa0a6 !important; }
+[data-theme='light'] .text-\[\#999999\]  { color: #6b7280 !important; }
+
+/* Inputs & code blocks */
+[data-theme='light'] .bg-black\/40       { background-color: rgba(0,0,0,0.05) !important; }
+[data-theme='light'] .bg-black\/60       { background-color: rgba(0,0,0,0.35) !important; }
+[data-theme='light'] .bg-gray-100\/10    { background-color: rgba(0,0,0,0.04) !important; }
+[data-theme='light'] .divide-gray-100\/10 > * + * { border-color: rgba(0,0,0,0.06) !important; }
+
+/* Nav active item */
+[data-theme='light'] .bg-\[\#27272a\]    { background-color: #e8eaed !important; }
+[data-theme='light'] .hover\:bg-\[\#27272a\]\/50:hover { background-color: rgba(0,0,0,0.05) !important; }
+
+/* Sidebar specific inline-style fallback via class */
+[data-theme='light'] .kang-sidebar-bg   { background: #ffffff !important; border-right-color: #e2e4e7 !important; }
+
+/* Scrollbar in light mode */
+[data-theme='light'] ::-webkit-scrollbar-thumb { background: #c8cacd; }
+
 * {
   box-sizing: border-box;
 }

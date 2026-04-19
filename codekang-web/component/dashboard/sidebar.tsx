@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
@@ -14,7 +14,9 @@ import {
   Plus,
   PanelLeft,
   Settings,
+  X,
 } from 'lucide-react';
+import { useTheme } from '@/lib/theme';
 
 export type Repo = {
   id: string;
@@ -37,127 +39,178 @@ const NAV_ITEMS = [
 const INVOLVED_PRS = [
   {
     title: 'fix: complete OAuth flow in LoginMo...',
-    branch: 'devin-ai-integration',
+    branch: 'codekang-ai-integration',
     time: '5 days ago',
     active: true,
   },
 ];
 
-export default function Sidebar() {
+export default function Sidebar({
+  isMobileOpen,
+  setIsMobileOpen,
+}: {
+  isMobileOpen?: boolean;
+  setIsMobileOpen?: (val: boolean) => void;
+} = {}) {
   const pathname = usePathname();
+  const { resolved } = useTheme();
+  const L = resolved === 'light';
+
+  // Light mode colour tokens for inline styles
+  const sideBg      = L ? '#ffffff' : '#1c1c1c';
+  const sideBorder  = L ? '#e2e4e7' : '#2a2a2a';
+  const dropBg      = L ? '#ffffff' : '#1c1c1c';
+  const textPrimary = L ? '#1c1c1c' : '#e8e8e8';
+  const textMuted   = L ? '#5f6368' : '#a1a1aa';
+  const textDim     = L ? '#9aa0a6' : '#6d6d6d';
+  const activeItemBg = L ? 'rgba(0,0,0,0.05)' : 'rgba(255,255,255,0.06)';
+  const hoverItemBg  = L ? 'rgba(0,0,0,0.04)' : 'rgba(255,255,255,0.06)';
+  const iconBg       = L ? '#f1f3f4' : '#2a2a2e';
+  const usageBg      = L ? 'rgba(0,0,0,0.03)' : 'rgba(255,255,255,0.02)';
+  const usageBorder  = L ? '#e2e4e7' : '#2a2a2a';
+  const usageTrack   = L ? '#e8eaed' : '#121214';
+
   const [isOrgDropdownOpen, setIsOrgDropdownOpen] = useState(false);
+  const [isCollapsed, setIsCollapsed] = useState(false);
+  const [isHovered, setIsHovered] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(event.target as Node)
+      ) {
+        setIsOrgDropdownOpen(false);
+      }
+    }
+
+    if (isOrgDropdownOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    } else {
+      document.removeEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isOrgDropdownOpen]);
+
+  // If it's closed (mobile), we don't care about hover states as much, but we'll apply them for desktop.
+  const effectivelyCollapsed = isCollapsed && !isHovered && !isMobileOpen;
 
   return (
     <aside
-      className="w-[240px] shrink-0 flex flex-col h-screen relative z-40"
-      style={{ background: '#1c1c1c', borderRight: '1px solid #2a2a2a' }}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+      className={`shrink-0 flex flex-col h-dvh absolute md:relative z-40 transition-all duration-300 ease-in-out ${
+        effectivelyCollapsed ? 'w-[64px]' : 'w-[240px]'
+      } ${
+        isMobileOpen
+          ? 'translate-x-0 shadow-2xl'
+          : '-translate-x-full md:translate-x-0'
+      }`}
+      style={{ background: sideBg, borderRight: `1px solid ${sideBorder}` }}
     >
+      {/* ── Mobile Close Button ── */}
+      {isMobileOpen && setIsMobileOpen && (
+        <button
+          onClick={() => setIsMobileOpen(false)}
+          className="md:hidden absolute -right-10 top-3 p-1.5 rounded-full border z-50 shadow-xl"
+          style={{ background: sideBg, borderColor: sideBorder, color: textMuted }}
+        >
+          <X size={18} />
+        </button>
+      )}
+
       {/* ── User Header (Organization Dropdown) ── */}
       <div
-        className="flex items-center justify-between px-3 h-[52px] relative cursor-pointer hover:bg-white/2"
-        style={{ borderBottom: '1px solid #2a2a2a' }}
+        className={`flex items-center ${effectivelyCollapsed ? 'justify-center px-0' : 'justify-between px-3'} h-[52px] relative cursor-pointer transition-all duration-300 group/header`}
+        style={{ borderBottom: `1px solid ${sideBorder}` }}
       >
         <button
-          onClick={() => setIsOrgDropdownOpen(!isOrgDropdownOpen)}
-          className="flex items-center gap-2 rounded-md px-1.5 py-1 hover:bg-white/5 transition-colors group flex-1 text-left"
+          onClick={() => {
+            if (effectivelyCollapsed) setIsCollapsed(false);
+            else setIsOrgDropdownOpen(!isOrgDropdownOpen);
+          }}
+          title={effectivelyCollapsed ? 'Expand Sidebar' : undefined}
+          className={`flex items-center gap-2 rounded-md ${effectivelyCollapsed ? 'p-1 justify-center' : 'px-1.5 py-1 flex-1'} transition-colors group text-left overflow-hidden`}
         >
           <div
             className="w-6 h-6 rounded-md flex items-center justify-center text-[11px] font-bold shrink-0"
-            style={{ background: '#2a2a2e', color: '#9d9ea3' }}
+            style={{ background: iconBg, color: textDim }}
           >
             J
           </div>
-          <span
-            className="text-[14px] font-medium flex-1 truncate"
-            style={{ color: '#e8e8e8' }}
+          <div
+            className={`flex items-center transition-all duration-300 ease-in-out whitespace-nowrap overflow-hidden ${effectivelyCollapsed ? 'max-w-0 opacity-0' : 'max-w-[150px] opacity-100 flex-1'}`}
           >
-            Jagdeep singh
-          </span>
-          <ChevronDown
-            size={14}
-            style={{ color: '#52525b' }}
-            strokeWidth={1.5}
-          />
+            <span className="text-[14px] font-medium flex-1 truncate" style={{ color: textPrimary }}>
+              Jagdeep singh
+            </span>
+            <ChevronDown size={14} style={{ color: textMuted }} strokeWidth={1.5} />
+          </div>
         </button>
 
-        {isOrgDropdownOpen && (
-          <>
-            {/* Click-away overlay */}
-            <div
-              className="fixed inset-0 z-40 cursor-default"
-              onClick={() => setIsOrgDropdownOpen(false)}
-            />
-            {/* Dropdown Menu */}
-            <div
-              className="absolute top-[48px] left-2 w-[220px] rounded-lg border shadow-xl overflow-hidden z-50 animate-in fade-in slide-in-from-top-1 duration-200"
-              style={{ background: '#1c1c1c', borderColor: '#2a2a2a' }}
-            >
-              <div className="p-3 border-b" style={{ borderColor: '#2a2a2a' }}>
-                <div
-                  className="text-[11px] font-medium uppercase tracking-wider mb-1"
-                  style={{ color: '#6d6d6d' }}
-                >
-                  Current Project
-                </div>
-                <div
-                  className="text-[13px] font-medium flex items-center gap-2"
-                  style={{ color: '#e8e8e8' }}
-                >
-                  <div
-                    className="w-5 h-5 rounded flex items-center justify-center text-[10px] font-bold"
-                    style={{ background: '#2a2a2e', color: '#9d9ea3' }}
-                  >
-                    C
-                  </div>
-                  codekang-platform
-                </div>
+        {!effectivelyCollapsed && isOrgDropdownOpen && (
+          <div
+            ref={dropdownRef}
+            className="absolute top-[48px] left-2 w-[220px] rounded-lg border shadow-xl overflow-hidden z-50 animate-in fade-in slide-in-from-top-1 duration-200"
+            style={{ background: dropBg, borderColor: sideBorder }}
+          >
+            <div className="p-3 border-b" style={{ borderColor: sideBorder }}>
+              <div className="text-[11px] font-medium uppercase tracking-wider mb-1" style={{ color: textDim }}>
+                Current Project
               </div>
-              <div className="p-1.5">
-                <button
-                  className="w-full flex items-center gap-2 text-left px-2.5 py-2 text-[13px] rounded-md transition-colors"
-                  style={{ color: '#e8e8e8' }}
-                  onMouseEnter={(e) =>
-                    (e.currentTarget.style.background =
-                      'rgba(255,255,255,0.06)')
-                  }
-                  onMouseLeave={(e) =>
-                    (e.currentTarget.style.background = 'transparent')
-                  }
-                >
-                  <RefreshCcw size={14} style={{ color: '#888' }} />
-                  Refresh list
-                </button>
-                <button
-                  className="w-full flex items-center gap-2 text-left px-2.5 py-2 text-[13px] rounded-md transition-colors"
-                  style={{ color: '#e8e8e8' }}
-                  onMouseEnter={(e) =>
-                    (e.currentTarget.style.background =
-                      'rgba(255,255,255,0.06)')
-                  }
-                  onMouseLeave={(e) =>
-                    (e.currentTarget.style.background = 'transparent')
-                  }
-                >
-                  <Plus size={16} style={{ color: '#f97316' }} />
-                  Add project
-                </button>
+              <div className="text-[13px] font-medium flex items-center gap-2" style={{ color: textPrimary }}>
+                <div className="w-5 h-5 rounded flex items-center justify-center text-[10px] font-bold" style={{ background: iconBg, color: textDim }}>
+                  C
+                </div>
+                codekang-platform
               </div>
             </div>
-          </>
+            <div className="p-1.5">
+              <button
+                className="w-full flex items-center gap-2 text-left px-2.5 py-2 text-[13px] rounded-md transition-colors"
+                style={{ color: textPrimary }}
+                onMouseEnter={(e) => (e.currentTarget.style.background = hoverItemBg)}
+                onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
+              >
+                <RefreshCcw size={14} style={{ color: textMuted }} />
+                Refresh list
+              </button>
+              <button
+                className="w-full flex items-center gap-2 text-left px-2.5 py-2 text-[13px] rounded-md transition-colors"
+                style={{ color: textPrimary }}
+                onMouseEnter={(e) => (e.currentTarget.style.background = hoverItemBg)}
+                onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
+              >
+                <Plus size={16} style={{ color: '#f97316' }} />
+                Add project
+              </button>
+            </div>
+          </div>
         )}
 
-        <button className="p-1 px-1.5 ml-1 rounded-md hover:bg-white/5 transition-colors border border-transparent hover:border-[#2a2a2a] shrink-0">
-          <PanelLeft size={16} style={{ color: '#6d6d6d' }} strokeWidth={1.5} />
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            setIsCollapsed(!isCollapsed);
+            if (!isCollapsed) setIsOrgDropdownOpen(false);
+          }}
+          title={isCollapsed && isHovered ? 'Pin Sidebar' : 'Collapse Sidebar'}
+          className={`hidden md:block p-1 rounded-md transition-all duration-300 border border-transparent shrink-0 ${effectivelyCollapsed ? 'absolute -right-3.5 top-1/2 -translate-y-1/2 z-50 opacity-0 group-hover/header:opacity-100 shadow-md' : 'ml-1 px-1.5'}`}
+          style={effectivelyCollapsed ? { background: sideBg, borderColor: sideBorder } : {}}
+        >
+          <PanelLeft size={16} style={{ color: textDim, opacity: isCollapsed && isHovered ? 0.5 : 1 }} strokeWidth={1.5} />
         </button>
       </div>
 
       {/* ── Main Nav ── */}
-      <nav className="px-2 pt-2 pb-1 space-y-0.5">
+      <nav className={`px-2 pt-2 pb-1 space-y-0.5 ${effectivelyCollapsed ? 'flex flex-col items-center' : ''}`}>
         {NAV_ITEMS.map((item) => {
           const Icon = item.icon;
-          const href =
-            item.id === 'repositories' ? '/dashboard' : `/dashboard/${item.id}`;
-
+          const href = item.id === 'repositories' ? '/dashboard' : `/dashboard/${item.id}`;
           const isActive =
             item.id === 'repositories'
               ? pathname === '/dashboard'
@@ -167,18 +220,18 @@ export default function Sidebar() {
             <Link
               key={item.id}
               href={href}
-              className="w-full flex items-center gap-3 px-3 py-2 rounded-md text-[14px] transition-colors"
+              onClick={() => { if (isMobileOpen && setIsMobileOpen) setIsMobileOpen(false); }}
+              title={effectivelyCollapsed ? item.label : undefined}
+              className={`w-full flex items-center rounded-md text-[14px] transition-all duration-300 ${effectivelyCollapsed ? 'justify-center p-2.5 max-w-[40px]' : 'gap-3 px-3 py-2 max-w-full'}`}
               style={{
-                background: isActive ? 'rgba(255,255,255,0.06)' : 'transparent',
-                color: isActive ? '#e8e8e8' : '#999999',
+                background: isActive ? activeItemBg : 'transparent',
+                color: isActive ? textPrimary : textMuted,
               }}
             >
-              <Icon
-                size={18}
-                strokeWidth={1.5}
-                style={{ opacity: isActive ? 1 : 0.7 }}
-              />
-              <span className={isActive ? 'font-medium' : 'font-normal'}>
+              <Icon size={18} strokeWidth={1.5} className="shrink-0" style={{ opacity: isActive ? 1 : 0.7 }} />
+              <span
+                className={`transition-all duration-300 ease-in-out overflow-hidden whitespace-nowrap ${effectivelyCollapsed ? 'max-w-0 opacity-0' : 'max-w-[150px] opacity-100'} ${isActive ? 'font-medium' : 'font-normal'}`}
+              >
                 {item.label}
               </span>
             </Link>
@@ -187,54 +240,22 @@ export default function Sidebar() {
       </nav>
 
       {/* ── Sections ── */}
-      <div className="flex-1 overflow-y-auto custom-scrollbar pt-4">
-        {/* Created PRs */}
+      <div className={`flex-1 overflow-y-auto custom-scrollbar pt-4 transition-all duration-300 ease-in-out ${effectivelyCollapsed ? 'opacity-0 invisible max-h-0' : 'opacity-100 visible max-h-full'}`}>
         <div className="px-4 mb-2">
-          <div
-            className="text-[13px] font-medium mb-1"
-            style={{ color: '#6d6d6d' }}
-          >
-            Created PRs
-          </div>
-          <div className="text-[13px]" style={{ color: '#444' }}>
-            No pull requests
-          </div>
+          <div className="text-[13px] font-medium mb-1 whitespace-nowrap" style={{ color: textDim }}>Created PRs</div>
+          <div className="text-[13px] whitespace-nowrap" style={{ color: L ? '#b0b3b8' : '#444' }}>No pull requests</div>
         </div>
 
-        {/* Involved PRs */}
         <div className="px-4 mt-6 mb-2">
-          <div
-            className="text-[13px] font-medium mb-2"
-            style={{ color: '#6d6d6d' }}
-          >
-            Involved PRs
-          </div>
+          <div className="text-[13px] font-medium mb-2 whitespace-nowrap" style={{ color: textDim }}>Involved PRs</div>
           <div className="space-y-1">
             {INVOLVED_PRS.map((pr, i) => (
-              <button
-                key={i}
-                className="w-full text-left p-1 rounded-md transition-colors hover:bg-white/5"
-              >
+              <button key={i} className="w-full text-left p-1 rounded-md transition-colors whitespace-nowrap">
                 <div className="flex items-start gap-2.5">
-                  <GitPullRequest
-                    size={16}
-                    strokeWidth={2}
-                    className="shrink-0 mt-0.5"
-                    style={{ color: '#00cc66' }}
-                  />
+                  <GitPullRequest size={16} strokeWidth={2} className="shrink-0 mt-0.5" style={{ color: '#00cc66' }} />
                   <div className="min-w-0">
-                    <div
-                      className="text-[13.5px] font-medium truncate"
-                      style={{ color: '#e8e8e8' }}
-                    >
-                      {pr.title}
-                    </div>
-                    <div
-                      className="text-[12px] mt-0.5"
-                      style={{ color: '#666' }}
-                    >
-                      {pr.time} · {pr.branch}
-                    </div>
+                    <div className="text-[13.5px] font-medium truncate" style={{ color: textPrimary }}>{pr.title}</div>
+                    <div className="text-[12px] mt-0.5" style={{ color: textMuted }}>{pr.time} · {pr.branch}</div>
                   </div>
                 </div>
               </button>
@@ -245,39 +266,37 @@ export default function Sidebar() {
 
       {/* ── Usage Indicator ── */}
       <div
-        className="px-3.5 py-3 mx-2 mb-2 rounded-lg border"
-        style={{ background: 'rgba(255,255,255,0.02)', borderColor: '#2a2a2a' }}
+        className={`px-3.5 py-3 mx-2 mb-2 rounded-lg border transition-all duration-300 ease-in-out overflow-hidden whitespace-nowrap ${effectivelyCollapsed ? 'max-h-0 min-h-0 p-0 m-0 opacity-0 border-transparent invisible' : 'max-h-[100px] opacity-100'}`}
+        style={{ background: usageBg, borderColor: effectivelyCollapsed ? 'transparent' : usageBorder }}
       >
-        <div className="flex justify-between text-[11px] font-medium text-[#a1a1aa] mb-2">
+        <div className="flex justify-between text-[11px] font-medium mb-2" style={{ color: textMuted }}>
           <span>AI Reviews</span>
-          <span className="text-[#e8e8e8]">30/100</span>
+          <span style={{ color: textPrimary }}>30/100</span>
         </div>
-        <div
-          className="h-1.5 w-full rounded-full overflow-hidden mb-2.5"
-          style={{ background: '#121214' }}
-        >
-          <div
-            className="h-full rounded-full transition-all duration-300"
-            style={{ width: '30%', background: '#f97316' }}
-          />
+        <div className="h-1.5 w-full rounded-full overflow-hidden mb-2.5" style={{ background: usageTrack }}>
+          <div className="h-full rounded-full transition-all duration-300" style={{ width: '30%', background: '#f97316' }} />
         </div>
-        <button
-          className="w-full flex items-center justify-center gap-1.5 text-[12px] font-medium transition-colors"
-          style={{ color: '#f97316' }}
-        >
+        <button className="w-full flex items-center justify-center gap-1.5 text-[12px] font-medium transition-colors" style={{ color: '#f97316' }}>
           Upgrade to Pro
         </button>
       </div>
 
       {/* ── Settings Footer ── */}
-      <div style={{ borderTop: '1px solid #2a2a2a' }} className="p-2">
+      <div
+        style={{ borderTop: `1px solid ${sideBorder}` }}
+        className={`p-2 transition-all duration-300 ${effectivelyCollapsed ? 'flex justify-center' : ''}`}
+      >
         <Link
           href="/settings"
-          className="w-full flex items-center gap-3 px-3 py-2 rounded-md text-[14px] transition-colors hover:bg-white/5"
-          style={{ color: '#999' }}
+          title={effectivelyCollapsed ? 'Settings' : undefined}
+          onClick={() => { if (isMobileOpen && setIsMobileOpen) setIsMobileOpen(false); }}
+          className={`flex items-center rounded-md text-[14px] transition-all duration-300 ${effectivelyCollapsed ? 'justify-center p-2.5 max-w-[40px] w-full' : 'gap-3 px-3 py-2 w-full'}`}
+          style={{ color: textMuted }}
         >
-          <Settings size={18} strokeWidth={1.5} />
-          <span>Settings</span>
+          <Settings size={18} strokeWidth={1.5} className="shrink-0" />
+          <span className={`transition-all duration-300 ease-in-out overflow-hidden whitespace-nowrap ${effectivelyCollapsed ? 'max-w-0 opacity-0' : 'max-w-[150px] opacity-100'}`}>
+            Settings
+          </span>
         </Link>
       </div>
     </aside>
