@@ -310,7 +310,7 @@ export default function IntegrationsPage() {
   const configuringItem = list.find((i) => i.id === configuring);
 
   return (
-    <div className="max-w-4xl mx-auto space-y-7 animate-in fade-in slide-in-from-bottom-2 duration-400">
+    <div className="space-y-7 animate-in fade-in slide-in-from-bottom-2 duration-400">
       <div className="flex items-center justify-between gap-4">
         <div>
           <h1

@@ -27,7 +27,7 @@ export default function GeneralSettings() {
   };
 
   return (
-    <div className="max-w-4xl mx-auto space-y-12 animate-in fade-in slide-in-from-bottom-2 duration-500">
+    <div className="space-y-12 animate-in fade-in slide-in-from-bottom-2 duration-500">
       <div>
         <h1 className="text-2xl font-bold text-[#f8f8f8]">General</h1>
         <p className="text-[14px] text-[#909090] mt-1">

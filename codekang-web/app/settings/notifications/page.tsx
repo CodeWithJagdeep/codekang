@@ -167,7 +167,7 @@ export default function NotificationsPage() {
   };
 
   return (
-    <div className="max-w-4xl mx-auto space-y-7 animate-in fade-in slide-in-from-bottom-2 duration-500">
+    <div className="space-y-7 animate-in fade-in slide-in-from-bottom-2 duration-500">
       <div>
         <h1
           className="text-[24px] font-bold tracking-tight"

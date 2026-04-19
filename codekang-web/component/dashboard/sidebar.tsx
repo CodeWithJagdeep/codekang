@@ -31,7 +31,6 @@ export type Repo = {
 const NAV_ITEMS = [
   { icon: FolderGit2, label: 'Repositories', id: 'repositories' },
   { icon: GitPullRequest, label: 'Reviews', id: 'reviews' },
-  { icon: Bot, label: 'Agents', id: 'agents' },
   { icon: Blocks, label: 'Integrations', id: 'integrations' },
   { icon: BarChart2, label: 'Reports', id: 'reports' },
 ];
@@ -57,18 +56,18 @@ export default function Sidebar({
   const L = resolved === 'light';
 
   // Light mode colour tokens for inline styles
-  const sideBg      = L ? '#ffffff' : '#1c1c1c';
-  const sideBorder  = L ? '#e2e4e7' : '#2a2a2a';
-  const dropBg      = L ? '#ffffff' : '#1c1c1c';
+  const sideBg = L ? '#ffffff' : '#1c1c1c';
+  const sideBorder = L ? '#e2e4e7' : '#2a2a2a';
+  const dropBg = L ? '#ffffff' : '#1c1c1c';
   const textPrimary = L ? '#1c1c1c' : '#e8e8e8';
-  const textMuted   = L ? '#5f6368' : '#a1a1aa';
-  const textDim     = L ? '#9aa0a6' : '#6d6d6d';
+  const textMuted = L ? '#5f6368' : '#a1a1aa';
+  const textDim = L ? '#9aa0a6' : '#6d6d6d';
   const activeItemBg = L ? 'rgba(0,0,0,0.05)' : 'rgba(255,255,255,0.06)';
-  const hoverItemBg  = L ? 'rgba(0,0,0,0.04)' : 'rgba(255,255,255,0.06)';
-  const iconBg       = L ? '#f1f3f4' : '#2a2a2e';
-  const usageBg      = L ? 'rgba(0,0,0,0.03)' : 'rgba(255,255,255,0.02)';
-  const usageBorder  = L ? '#e2e4e7' : '#2a2a2a';
-  const usageTrack   = L ? '#e8eaed' : '#121214';
+  const hoverItemBg = L ? 'rgba(0,0,0,0.04)' : 'rgba(255,255,255,0.06)';
+  const iconBg = L ? '#f1f3f4' : '#2a2a2e';
+  const usageBg = L ? 'rgba(0,0,0,0.03)' : 'rgba(255,255,255,0.02)';
+  const usageBorder = L ? '#e2e4e7' : '#2a2a2a';
+  const usageTrack = L ? '#e8eaed' : '#121214';
 
   const [isOrgDropdownOpen, setIsOrgDropdownOpen] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(false);
@@ -117,7 +116,11 @@ export default function Sidebar({
         <button
           onClick={() => setIsMobileOpen(false)}
           className="md:hidden absolute -right-10 top-3 p-1.5 rounded-full border z-50 shadow-xl"
-          style={{ background: sideBg, borderColor: sideBorder, color: textMuted }}
+          style={{
+            background: sideBg,
+            borderColor: sideBorder,
+            color: textMuted,
+          }}
         >
           <X size={18} />
         </button>
@@ -145,10 +148,17 @@ export default function Sidebar({
           <div
             className={`flex items-center transition-all duration-300 ease-in-out whitespace-nowrap overflow-hidden ${effectivelyCollapsed ? 'max-w-0 opacity-0' : 'max-w-[150px] opacity-100 flex-1'}`}
           >
-            <span className="text-[14px] font-medium flex-1 truncate" style={{ color: textPrimary }}>
+            <span
+              className="text-[14px] font-medium flex-1 truncate"
+              style={{ color: textPrimary }}
+            >
               Jagdeep singh
             </span>
-            <ChevronDown size={14} style={{ color: textMuted }} strokeWidth={1.5} />
+            <ChevronDown
+              size={14}
+              style={{ color: textMuted }}
+              strokeWidth={1.5}
+            />
           </div>
         </button>
 
@@ -159,11 +169,20 @@ export default function Sidebar({
             style={{ background: dropBg, borderColor: sideBorder }}
           >
             <div className="p-3 border-b" style={{ borderColor: sideBorder }}>
-              <div className="text-[11px] font-medium uppercase tracking-wider mb-1" style={{ color: textDim }}>
+              <div
+                className="text-[11px] font-medium uppercase tracking-wider mb-1"
+                style={{ color: textDim }}
+              >
                 Current Project
               </div>
-              <div className="text-[13px] font-medium flex items-center gap-2" style={{ color: textPrimary }}>
-                <div className="w-5 h-5 rounded flex items-center justify-center text-[10px] font-bold" style={{ background: iconBg, color: textDim }}>
+              <div
+                className="text-[13px] font-medium flex items-center gap-2"
+                style={{ color: textPrimary }}
+              >
+                <div
+                  className="w-5 h-5 rounded flex items-center justify-center text-[10px] font-bold"
+                  style={{ background: iconBg, color: textDim }}
+                >
                   C
                 </div>
                 codekang-platform
@@ -173,8 +192,12 @@ export default function Sidebar({
               <button
                 className="w-full flex items-center gap-2 text-left px-2.5 py-2 text-[13px] rounded-md transition-colors"
                 style={{ color: textPrimary }}
-                onMouseEnter={(e) => (e.currentTarget.style.background = hoverItemBg)}
-                onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
+                onMouseEnter={(e) =>
+                  (e.currentTarget.style.background = hoverItemBg)
+                }
+                onMouseLeave={(e) =>
+                  (e.currentTarget.style.background = 'transparent')
+                }
               >
                 <RefreshCcw size={14} style={{ color: textMuted }} />
                 Refresh list
@@ -182,8 +205,12 @@ export default function Sidebar({
               <button
                 className="w-full flex items-center gap-2 text-left px-2.5 py-2 text-[13px] rounded-md transition-colors"
                 style={{ color: textPrimary }}
-                onMouseEnter={(e) => (e.currentTarget.style.background = hoverItemBg)}
-                onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
+                onMouseEnter={(e) =>
+                  (e.currentTarget.style.background = hoverItemBg)
+                }
+                onMouseLeave={(e) =>
+                  (e.currentTarget.style.background = 'transparent')
+                }
               >
                 <Plus size={16} style={{ color: '#f97316' }} />
                 Add project
@@ -200,17 +227,31 @@ export default function Sidebar({
           }}
           title={isCollapsed && isHovered ? 'Pin Sidebar' : 'Collapse Sidebar'}
           className={`hidden md:block p-1 rounded-md transition-all duration-300 border border-transparent shrink-0 ${effectivelyCollapsed ? 'absolute -right-3.5 top-1/2 -translate-y-1/2 z-50 opacity-0 group-hover/header:opacity-100 shadow-md' : 'ml-1 px-1.5'}`}
-          style={effectivelyCollapsed ? { background: sideBg, borderColor: sideBorder } : {}}
+          style={
+            effectivelyCollapsed
+              ? { background: sideBg, borderColor: sideBorder }
+              : {}
+          }
         >
-          <PanelLeft size={16} style={{ color: textDim, opacity: isCollapsed && isHovered ? 0.5 : 1 }} strokeWidth={1.5} />
+          <PanelLeft
+            size={16}
+            style={{
+              color: textDim,
+              opacity: isCollapsed && isHovered ? 0.5 : 1,
+            }}
+            strokeWidth={1.5}
+          />
         </button>
       </div>
 
       {/* ── Main Nav ── */}
-      <nav className={`px-2 pt-2 pb-1 space-y-0.5 ${effectivelyCollapsed ? 'flex flex-col items-center' : ''}`}>
+      <nav
+        className={`px-2 pt-2 pb-1 space-y-0.5 ${effectivelyCollapsed ? 'flex flex-col items-center' : ''}`}
+      >
         {NAV_ITEMS.map((item) => {
           const Icon = item.icon;
-          const href = item.id === 'repositories' ? '/dashboard' : `/dashboard/${item.id}`;
+          const href =
+            item.id === 'repositories' ? '/dashboard' : `/dashboard/${item.id}`;
           const isActive =
             item.id === 'repositories'
               ? pathname === '/dashboard'
@@ -220,7 +261,9 @@ export default function Sidebar({
             <Link
               key={item.id}
               href={href}
-              onClick={() => { if (isMobileOpen && setIsMobileOpen) setIsMobileOpen(false); }}
+              onClick={() => {
+                if (isMobileOpen && setIsMobileOpen) setIsMobileOpen(false);
+              }}
               title={effectivelyCollapsed ? item.label : undefined}
               className={`w-full flex items-center rounded-md text-[14px] transition-all duration-300 ${effectivelyCollapsed ? 'justify-center p-2.5 max-w-[40px]' : 'gap-3 px-3 py-2 max-w-full'}`}
               style={{
@@ -228,7 +271,12 @@ export default function Sidebar({
                 color: isActive ? textPrimary : textMuted,
               }}
             >
-              <Icon size={18} strokeWidth={1.5} className="shrink-0" style={{ opacity: isActive ? 1 : 0.7 }} />
+              <Icon
+                size={18}
+                strokeWidth={1.5}
+                className="shrink-0"
+                style={{ opacity: isActive ? 1 : 0.7 }}
+              />
               <span
                 className={`transition-all duration-300 ease-in-out overflow-hidden whitespace-nowrap ${effectivelyCollapsed ? 'max-w-0 opacity-0' : 'max-w-[150px] opacity-100'} ${isActive ? 'font-medium' : 'font-normal'}`}
               >
@@ -240,22 +288,57 @@ export default function Sidebar({
       </nav>
 
       {/* ── Sections ── */}
-      <div className={`flex-1 overflow-y-auto custom-scrollbar pt-4 transition-all duration-300 ease-in-out ${effectivelyCollapsed ? 'opacity-0 invisible max-h-0' : 'opacity-100 visible max-h-full'}`}>
+      <div
+        className={`flex-1 overflow-y-auto custom-scrollbar pt-4 transition-all duration-300 ease-in-out ${effectivelyCollapsed ? 'opacity-0 invisible max-h-0' : 'opacity-100 visible max-h-full'}`}
+      >
         <div className="px-4 mb-2">
-          <div className="text-[13px] font-medium mb-1 whitespace-nowrap" style={{ color: textDim }}>Created PRs</div>
-          <div className="text-[13px] whitespace-nowrap" style={{ color: L ? '#b0b3b8' : '#444' }}>No pull requests</div>
+          <div
+            className="text-[13px] font-medium mb-1 whitespace-nowrap"
+            style={{ color: textDim }}
+          >
+            Created PRs
+          </div>
+          <div
+            className="text-[13px] whitespace-nowrap"
+            style={{ color: L ? '#b0b3b8' : '#444' }}
+          >
+            No pull requests
+          </div>
         </div>
 
         <div className="px-4 mt-6 mb-2">
-          <div className="text-[13px] font-medium mb-2 whitespace-nowrap" style={{ color: textDim }}>Involved PRs</div>
+          <div
+            className="text-[13px] font-medium mb-2 whitespace-nowrap"
+            style={{ color: textDim }}
+          >
+            Involved PRs
+          </div>
           <div className="space-y-1">
             {INVOLVED_PRS.map((pr, i) => (
-              <button key={i} className="w-full text-left p-1 rounded-md transition-colors whitespace-nowrap">
+              <button
+                key={i}
+                className="w-full text-left p-1 rounded-md transition-colors whitespace-nowrap"
+              >
                 <div className="flex items-start gap-2.5">
-                  <GitPullRequest size={16} strokeWidth={2} className="shrink-0 mt-0.5" style={{ color: '#00cc66' }} />
+                  <GitPullRequest
+                    size={16}
+                    strokeWidth={2}
+                    className="shrink-0 mt-0.5"
+                    style={{ color: '#00cc66' }}
+                  />
                   <div className="min-w-0">
-                    <div className="text-[13.5px] font-medium truncate" style={{ color: textPrimary }}>{pr.title}</div>
-                    <div className="text-[12px] mt-0.5" style={{ color: textMuted }}>{pr.time} · {pr.branch}</div>
+                    <div
+                      className="text-[13.5px] font-medium truncate"
+                      style={{ color: textPrimary }}
+                    >
+                      {pr.title}
+                    </div>
+                    <div
+                      className="text-[12px] mt-0.5"
+                      style={{ color: textMuted }}
+                    >
+                      {pr.time} · {pr.branch}
+                    </div>
                   </div>
                 </div>
               </button>
@@ -267,16 +350,31 @@ export default function Sidebar({
       {/* ── Usage Indicator ── */}
       <div
         className={`px-3.5 py-3 mx-2 mb-2 rounded-lg border transition-all duration-300 ease-in-out overflow-hidden whitespace-nowrap ${effectivelyCollapsed ? 'max-h-0 min-h-0 p-0 m-0 opacity-0 border-transparent invisible' : 'max-h-[100px] opacity-100'}`}
-        style={{ background: usageBg, borderColor: effectivelyCollapsed ? 'transparent' : usageBorder }}
+        style={{
+          background: usageBg,
+          borderColor: effectivelyCollapsed ? 'transparent' : usageBorder,
+        }}
       >
-        <div className="flex justify-between text-[11px] font-medium mb-2" style={{ color: textMuted }}>
+        <div
+          className="flex justify-between text-[11px] font-medium mb-2"
+          style={{ color: textMuted }}
+        >
           <span>AI Reviews</span>
           <span style={{ color: textPrimary }}>30/100</span>
         </div>
-        <div className="h-1.5 w-full rounded-full overflow-hidden mb-2.5" style={{ background: usageTrack }}>
-          <div className="h-full rounded-full transition-all duration-300" style={{ width: '30%', background: '#f97316' }} />
+        <div
+          className="h-1.5 w-full rounded-full overflow-hidden mb-2.5"
+          style={{ background: usageTrack }}
+        >
+          <div
+            className="h-full rounded-full transition-all duration-300"
+            style={{ width: '30%', background: '#f97316' }}
+          />
         </div>
-        <button className="w-full flex items-center justify-center gap-1.5 text-[12px] font-medium transition-colors" style={{ color: '#f97316' }}>
+        <button
+          className="w-full flex items-center justify-center gap-1.5 text-[12px] font-medium transition-colors"
+          style={{ color: '#f97316' }}
+        >
           Upgrade to Pro
         </button>
       </div>
@@ -289,12 +387,16 @@ export default function Sidebar({
         <Link
           href="/settings"
           title={effectivelyCollapsed ? 'Settings' : undefined}
-          onClick={() => { if (isMobileOpen && setIsMobileOpen) setIsMobileOpen(false); }}
+          onClick={() => {
+            if (isMobileOpen && setIsMobileOpen) setIsMobileOpen(false);
+          }}
           className={`flex items-center rounded-md text-[14px] transition-all duration-300 ${effectivelyCollapsed ? 'justify-center p-2.5 max-w-[40px] w-full' : 'gap-3 px-3 py-2 w-full'}`}
           style={{ color: textMuted }}
         >
           <Settings size={18} strokeWidth={1.5} className="shrink-0" />
-          <span className={`transition-all duration-300 ease-in-out overflow-hidden whitespace-nowrap ${effectivelyCollapsed ? 'max-w-0 opacity-0' : 'max-w-[150px] opacity-100'}`}>
+          <span
+            className={`transition-all duration-300 ease-in-out overflow-hidden whitespace-nowrap ${effectivelyCollapsed ? 'max-w-0 opacity-0' : 'max-w-[150px] opacity-100'}`}
+          >
             Settings
           </span>
         </Link>
