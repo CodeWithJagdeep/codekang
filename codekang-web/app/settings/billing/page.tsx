@@ -5,23 +5,13 @@ import {
   Zap,
   X,
   Check,
-  Download,
-  CreditCard,
   Sparkles,
   Bot,
   FolderGit2,
   Loader2,
-  Building2,
-  Pencil,
-  Save,
   FileText,
-  LayoutDashboard,
-  Wallet,
   Plus,
-  Trash2,
   CheckCircle2,
-  AlertCircle,
-  Clock,
 } from 'lucide-react';
 import { useState } from 'react';
 import { useTheme } from '@/lib/theme';
@@ -189,17 +179,14 @@ function UsageMeter({
 const STATUS_CFG = {
   paid: {
     label: 'Paid',
-    icon: CheckCircle2,
     cls: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20',
   },
   upcoming: {
     label: 'Upcoming',
-    icon: Clock,
     cls: 'bg-blue-500/10 text-blue-400 border-blue-500/20',
   },
   failed: {
     label: 'Failed',
-    icon: AlertCircle,
     cls: 'bg-red-500/10 text-red-400 border-red-500/20',
   },
 };
@@ -249,15 +236,6 @@ function UpgradeModal({
 
         <div className="p-7">
           <div className="flex items-center gap-4 mb-6">
-            <div
-              className="w-11 h-11 rounded-md flex items-center justify-center"
-              style={{
-                background: 'rgba(99,102,241,0.1)',
-                border: '1px solid rgba(99,102,241,0.2)',
-              }}
-            >
-              <Zap size={20} style={{ color: '#6366f1' }} />
-            </div>
             <div>
               <h3
                 className="text-[18px] font-bold"
@@ -294,28 +272,20 @@ function UpgradeModal({
 
           <div className="space-y-3 mb-7">
             {[
-              { icon: Sparkles, text: '500 AI code reviews per month' },
+              { text: '500 AI code reviews per month' },
               {
-                icon: Bot,
                 text: 'All 5 AI agents — including Patch & Security',
               },
-              { icon: FolderGit2, text: 'Unlimited connected repositories' },
+              { text: 'Unlimited connected repositories' },
               {
-                icon: ShieldCheck,
                 text: 'Nightly security scans + auto-fix PRs',
               },
-            ].map(({ icon: Icon, text }) => (
+            ].map(({ text }) => (
               <div
                 key={text}
                 className="flex items-center gap-3 text-[13.5px]"
                 style={{ color: textMuted }}
               >
-                <div
-                  className="w-7 h-7 rounded-lg flex items-center justify-center text-emerald-400 shrink-0"
-                  style={{ background: 'rgba(52,211,153,0.08)' }}
-                >
-                  <Icon size={14} />
-                </div>
                 {text}
               </div>
             ))}
@@ -394,15 +364,6 @@ function OverviewTab({
         <div className="relative flex flex-col lg:flex-row lg:items-start gap-6">
           <div className="flex-1 space-y-5">
             <div className="flex items-center gap-3">
-              <div
-                className="w-10 h-10 rounded-md flex items-center justify-center border"
-                style={{
-                  background: `${activePlan.color}12`,
-                  borderColor: `${activePlan.color}25`,
-                }}
-              >
-                <Zap size={18} style={{ color: activePlan.color }} />
-              </div>
               <div>
                 <div className="flex items-center gap-2">
                   <h2
@@ -511,7 +472,7 @@ function OverviewTab({
                   className="flex items-center gap-1.5 px-4 py-2 rounded-md text-[13px] font-bold text-white transition-all"
                   style={{ background: '#6366f1' }}
                 >
-                  <Zap size={13} /> Upgrade
+                  Upgrade
                 </button>
               )}
               <button
@@ -628,7 +589,7 @@ function OverviewTab({
                     className="py-2 rounded-md border text-[13px] font-medium transition-all flex items-center justify-center gap-1.5"
                     style={{ borderColor: cardBorder, color: textMuted }}
                   >
-                    <Building2 size={13} /> Contact sales
+                    Contact sales
                   </button>
                 ) : (
                   <button
@@ -771,7 +732,7 @@ function InvoicesTab() {
               background: 'transparent',
             }}
           >
-            <Download size={13} /> Export
+            Export
           </button>
         </div>
       </div>
@@ -816,7 +777,6 @@ function InvoicesTab() {
 
         {filtered.map((inv, i) => {
           const sc = STATUS_CFG[inv.status];
-          const Icon = sc.icon;
           const isSelected = selected.has(inv.id);
           return (
             <div
@@ -867,7 +827,6 @@ function InvoicesTab() {
                 <span
                   className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-[11px] font-semibold ${sc.cls}`}
                 >
-                  <Icon size={11} />
                   {sc.label}
                 </span>
               </div>
@@ -1055,7 +1014,6 @@ function PaymentTab() {
           style={{ borderColor: cardBorder }}
         >
           <div className="flex items-center gap-3">
-            <CreditCard size={16} style={{ color: '#6366f1' }} />
             <h3
               className="text-[14px] font-semibold"
               style={{ color: textPrimary }}
@@ -1123,14 +1081,10 @@ function PaymentTab() {
             <button
               onClick={() => removeMethod(m.id)}
               disabled={m.isDefault || removingId === m.id}
-              className="p-1.5 rounded-lg transition-colors disabled:opacity-30"
+              className="p-1.5 rounded-lg transition-colors disabled:opacity-30 text-[12px] font-medium"
               style={{ color: textDim }}
             >
-              {removingId === m.id ? (
-                <Loader2 size={14} className="animate-spin" />
-              ) : (
-                <Trash2 size={14} />
-              )}
+              {removingId === m.id ? 'Deleting...' : 'Delete'}
             </button>
           </div>
         ))}
@@ -1145,7 +1099,6 @@ function PaymentTab() {
           className="px-5 py-4 border-b flex items-center gap-3"
           style={{ borderColor: cardBorder }}
         >
-          <Plus size={16} style={{ color: '#6366f1' }} />
           <div>
             <h3
               className="text-[14px] font-semibold"
@@ -1268,12 +1221,7 @@ function PaymentTab() {
                         }))
                       }
                       className={inputCls}
-                      style={{ ...inputStyle, paddingRight: '2.5rem' }}
-                    />
-                    <ShieldCheck
-                      size={14}
-                      className="absolute right-3 top-1/2 -translate-y-1/2"
-                      style={{ color: textDim }}
+                      style={{ ...inputStyle }}
                     />
                   </div>
                 </div>
@@ -1340,11 +1288,6 @@ function PaymentTab() {
                   borderColor: 'rgba(0,156,222,0.15)',
                 }}
               >
-                <ShieldCheck
-                  size={13}
-                  className="shrink-0 mt-0.5"
-                  style={{ color: '#009cde' }}
-                />
                 <p className="text-[12.5px]" style={{ color: '#009cde' }}>
                   You&apos;ll be redirected to PayPal to authorize the payment.
                   No password or card details shared with CodeKang.
@@ -1379,11 +1322,6 @@ function PaymentTab() {
                   borderColor: 'rgba(108,99,255,0.15)',
                 }}
               >
-                <ShieldCheck
-                  size={13}
-                  className="shrink-0 mt-0.5"
-                  style={{ color: '#6c63ff' }}
-                />
                 <p className="text-[12.5px]" style={{ color: '#6c63ff' }}>
                   A payment request will be sent to your UPI app. Supports
                   Google Pay, PhonePe, Paytm, and all BHIM-UPI apps.
@@ -1399,24 +1337,11 @@ function PaymentTab() {
               className="flex-1 py-2.5 rounded-md text-[13.5px] font-bold text-white transition-all flex items-center justify-center gap-2 disabled:opacity-70"
               style={{ background: saved ? '#10b981' : '#6366f1' }}
             >
-              {saving ? (
-                <>
-                  <Loader2 size={15} className="animate-spin" /> Saving…
-                </>
-              ) : saved ? (
-                <>
-                  <CheckCircle2 size={15} /> Saved!
-                </>
-              ) : (
-                <>
-                  <Plus size={15} /> Add{' '}
-                  {provider === 'card'
-                    ? 'card'
-                    : provider === 'paypal'
-                      ? 'PayPal'
-                      : 'UPI'}
-                </>
-              )}
+              {saving
+                ? 'Saving…'
+                : saved
+                  ? 'Saved!'
+                  : `Add ${provider === 'card' ? 'card' : provider === 'paypal' ? 'PayPal' : 'UPI'}`}
             </button>
           </div>
 
@@ -1469,7 +1394,7 @@ function PaymentTab() {
               className="flex items-center gap-1.5 px-3.5 py-2 rounded-md border text-[13px] font-medium transition-all"
               style={{ borderColor: cardBorder, color: textMuted }}
             >
-              <Pencil size={13} /> Edit
+              Edit
             </button>
           ) : (
             <div className="flex gap-2">
@@ -1486,15 +1411,7 @@ function PaymentTab() {
                 className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-md text-[13px] font-bold text-white transition-all disabled:opacity-70"
                 style={{ background: '#6366f1' }}
               >
-                {savingContact ? (
-                  <>
-                    <Loader2 size={13} className="animate-spin" /> Saving…
-                  </>
-                ) : (
-                  <>
-                    <Save size={13} /> Save
-                  </>
-                )}
+                {savingContact ? 'Saving…' : 'Save'}
               </button>
             </div>
           )}
@@ -1588,11 +1505,10 @@ function PaymentTab() {
 const TABS: {
   id: BillingTab;
   label: string;
-  icon: React.ComponentType<{ size?: number }>;
 }[] = [
-  { id: 'overview', label: 'Overview', icon: LayoutDashboard },
-  { id: 'invoices', label: 'Invoices', icon: FileText },
-  { id: 'payment', label: 'Payment', icon: Wallet },
+  { id: 'overview', label: 'Overview' },
+  { id: 'invoices', label: 'Invoices' },
+  { id: 'payment', label: 'Payment' },
 ];
 
 export default function BillingPage() {
@@ -1633,7 +1549,6 @@ export default function BillingPage() {
         }}
       >
         {TABS.map((tab) => {
-          const Icon = tab.icon;
           const isActive = activeTab === tab.id;
           return (
             <button
@@ -1649,7 +1564,6 @@ export default function BillingPage() {
                 boxShadow: isActive ? '0 1px 4px rgba(0,0,0,0.1)' : 'none',
               }}
             >
-              <Icon size={14} />
               {tab.label}
             </button>
           );
