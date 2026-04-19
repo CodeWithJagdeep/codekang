@@ -291,7 +291,7 @@ function UpgradeModal({
           <button
             onClick={handleUpgrade}
             disabled={loading}
-            className="w-full py-3 rounded-md text-[14px] font-bold text-white transition-all flex items-center justify-center gap-2 disabled:opacity-70 border"
+            className="w-full py-3.5 rounded-md text-[15px] font-bold text-white transition-all flex items-center justify-center gap-2 disabled:opacity-70 border"
             style={{ borderColor: '#f97316', background: 'transparent' }}
           >
             {loading ? (
@@ -460,14 +460,14 @@ function OverviewTab({
               {currentPlan !== 'enterprise' && !localUpgraded && (
                 <button
                   onClick={() => setShowUpgrade(true)}
-                  className="flex items-center justify-center px-4 py-2 rounded-md text-[13px] font-bold text-white transition-all border"
+                  className="flex items-center justify-center px-6 py-2.5 rounded-md text-[14px] font-bold text-white transition-all border"
                   style={{ borderColor: '#f97316', background: 'transparent' }}
                 >
                   Upgrade
                 </button>
               )}
               <button
-                className="px-4 py-2 rounded-md border text-[13px] font-medium transition-all"
+                className="px-6 py-2.5 rounded-md border text-[14px] font-medium transition-all"
                 style={{
                   borderColor: cardBorder,
                   color: textMuted,
@@ -566,7 +566,7 @@ function OverviewTab({
                 </div>
                 {isActive ? (
                   <div
-                    className="py-2 rounded-md text-center text-[13px] font-semibold border"
+                    className="py-2.5 rounded-md text-center text-[14px] font-semibold border"
                     style={{
                       color: plan.color,
                       borderColor: `${plan.color}28`,
@@ -577,7 +577,7 @@ function OverviewTab({
                   </div>
                 ) : plan.id === 'enterprise' ? (
                   <button
-                    className="py-2 rounded-md border text-[13px] font-medium transition-all flex items-center justify-center gap-1.5"
+                    className="py-2.5 rounded-md border text-[14px] font-medium transition-all flex items-center justify-center gap-1.5"
                     style={{ borderColor: cardBorder, color: textMuted }}
                   >
                     Contact sales
@@ -585,7 +585,7 @@ function OverviewTab({
                 ) : (
                   <button
                     onClick={() => setShowUpgrade(true)}
-                    className="py-2 rounded-md text-[13px] font-bold text-white transition-all border"
+                    className="py-2.5 rounded-md text-[14px] font-bold text-white transition-all border"
                     style={{
                       borderColor: '#f97316',
                       background: 'transparent',
