@@ -1,37 +1,45 @@
-"use client";
+'use client';
 
-import Image from "next/image";
-import { useRouter } from "next/navigation";
-import { useState } from "react";
-import { signInWithGoogle, signInWithGitHub, saveTokens } from "@/lib/auth";
-import Logo from "@/public/brandlogo/logo-transparent.png";
+import { useRouter } from 'next/navigation';
+import { useState, useRef } from 'react';
+import { signInWithGoogle, signInWithGitHub, saveTokens } from '@/lib/auth';
+import { ArrowRight, Command, ChevronLeft } from 'lucide-react';
 
-type Provider = "google" | "github";
+type Provider = 'google' | 'github' | 'email';
+type Step = 'login' | 'otp';
 
 export default function LoginPage() {
   const router = useRouter();
-  const [loading, setLoading] = useState<Provider | null>(null);
+  const [step, setStep] = useState<Step>('login');
+  const [email, setEmail] = useState('');
+  const [otp, setOtp] = useState(['', '', '', '', '', '']);
+
+  const [loading, setLoading] = useState<Provider | 'verify' | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  async function handleLogin(provider: Provider) {
+  const otpRefs = useRef<(HTMLInputElement | null)[]>([]);
+
+  // ─── OAuth Login Logic ─────────────────────────────────────────
+  async function handleOAuthLogin(provider: 'google' | 'github') {
     setLoading(provider);
     setError(null);
     try {
       const result =
-        provider === "google" ? await signInWithGoogle() : await signInWithGitHub();
+        provider === 'google'
+          ? await signInWithGoogle()
+          : await signInWithGitHub();
 
       saveTokens(result.accessToken, result.refreshToken);
-      localStorage.setItem("user", JSON.stringify(result.user));
+      localStorage.setItem('user', JSON.stringify(result.user));
 
       if (result.isNewUser || !result.user.onboardingCompleted) {
-        router.replace("/onboarding");
+        router.replace('/onboarding');
       } else {
-        router.replace("/dashboard");
+        router.replace('/dashboard');
       }
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : "Sign in failed";
-      // Popup closed by user — don't show an error
-      if (msg.includes("popup-closed") || msg.includes("cancelled")) {
+      const msg = err instanceof Error ? err.message : 'Sign in failed';
+      if (msg.includes('popup-closed') || msg.includes('cancelled')) {
         setLoading(null);
         return;
       }
@@ -40,143 +48,264 @@ export default function LoginPage() {
     }
   }
 
+  // ─── Email Link Logic ─────────────────────────────────────────
+  const handleEmailSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email || !email.includes('@')) {
+      setError('Please enter a valid email address.');
+      return;
+    }
+    setError(null);
+    setLoading('email');
+
+    // Simulate sending OTP
+    setTimeout(() => {
+      setLoading(null);
+      setStep('otp');
+    }, 800);
+  };
+
+  // ─── OTP Logic ────────────────────────────────────────────────
+  const handleOtpChange = (index: number, value: string) => {
+    if (!/^\d*$/.test(value)) return;
+
+    const newOtp = [...otp];
+    newOtp[index] = value;
+    setOtp(newOtp);
+
+    // Auto focus next
+    if (value !== '' && index < 5) {
+      otpRefs.current[index + 1]?.focus();
+    }
+  };
+
+  const handleOtpKeyDown = (
+    index: number,
+    e: React.KeyboardEvent<HTMLInputElement>,
+  ) => {
+    if (e.key === 'Backspace' && otp[index] === '' && index > 0) {
+      otpRefs.current[index - 1]?.focus();
+    }
+  };
+
+  const handleVerifyOtp = () => {
+    const code = otp.join('');
+    if (code.length < 6) {
+      setError('Please enter the complete 6-digit code.');
+      return;
+    }
+    setError(null);
+    setLoading('verify');
+
+    // Simulate verifying OTP and logging in
+    setTimeout(() => {
+      setLoading(null);
+      // Dummy success for now, wait for backend Implementation
+      router.replace('/dashboard');
+    }, 1500);
+  };
+
   return (
-    <div className="min-h-screen text-[#d4d4d4] font-sans overflow-x-hidden">
-      {/* Header */}
-      <header className="flex items-center justify-between px-6 lg:px-12">
-        <div className="flex items-center gap-2">
-          <Image
-            src={Logo}
-            alt="CodeKang"
-            width={120}
-            height={32}
-            className="w-auto h-16"
-          />
-        </div>
-      </header>
+    <div className="min-h-screen bg-[#09090b] flex items-center justify-center font-sans tracking-tight relative overflow-hidden">
+      {/* Subtle Background Glows */}
+      <div className="absolute top-1/4 left-1/4 w-[400px] h-[400px] bg-indigo-500/10 blur-[120px] rounded-full pointer-events-none" />
+      <div className="absolute bottom-1/4 right-1/4 w-[400px] h-[400px] bg-emerald-500/5 blur-[120px] rounded-full pointer-events-none" />
 
-      <main className="flex flex-col lg:flex-row min-h-[calc(100vh-80px)] px-6 mt-6 lg:px-10 relative overflow-hidden">
-        {/* Left Side */}
-        <div className="w-full lg:w-[50%] flex flex-col bg-white/10 justify-center rounded-4xl py-10 lg:py-10">
-          <div className="absolute top-[20%] left-[10%] w-[300px] h-[300px] bg-gradient-to-br from-[#d4af37]/20 to-transparent blur-[120px] pointer-events-none" />
-          <div className="absolute bottom-[20%] left-[30%] w-[250px] h-[250px] bg-gradient-to-tr from-[#6366f1]/10 to-transparent blur-[100px] pointer-events-none" />
-
-          <div className="max-w-full mx-auto lg:mx-0">
-            <h1 className="text-5xl text-center text-white leading-[1.1] tracking-tight mb-6">
-              Intelligent Code,
-              <br /> faster delivery
-            </h1>
-            <p className="text-xl text-white/90 max-w-md mx-auto text-center mb-12">
-              CodeKang analyzes your codebase, finds issues, and suggests fixes
-              in seconds.
-            </p>
-
-            {error && (
-              <div className="mb-6 mx-auto max-w-xl p-4 bg-red-500/20 border border-red-500/50 rounded-lg text-red-300 text-sm">
-                {error}
-              </div>
-            )}
-
-            <div className="w-full max-w-xl mx-auto rounded-[24px] relative">
-              <div className="space-y-6 relative z-10">
-                <div className="grid grid-cols-2 gap-3">
-                  {/* Google */}
-                  <button
-                    onClick={() => handleLogin("google")}
-                    disabled={loading !== null}
-                    className="flex items-center justify-center gap-2 py-3 px-4 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl text-sm font-medium transition-all text-white disabled:opacity-60 disabled:cursor-not-allowed"
-                  >
-                    {loading === "google" ? (
-                      <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                    ) : (
-                      <svg width="18" height="18" viewBox="0 0 24 24">
-                        <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
-                        <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
-                        <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" />
-                        <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
-                      </svg>
-                    )}
-                    Google
-                  </button>
-
-                  {/* GitHub */}
-                  <button
-                    onClick={() => handleLogin("github")}
-                    disabled={loading !== null}
-                    className="flex items-center justify-center gap-2 py-3 px-4 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl text-sm font-medium transition-all text-white disabled:opacity-60 disabled:cursor-not-allowed"
-                  >
-                    {loading === "github" ? (
-                      <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                    ) : (
-                      <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
-                        <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z" />
-                      </svg>
-                    )}
-                    GitHub
-                  </button>
-                </div>
-                <p className="text-center text-xs text-white/50">
-                  More providers coming soon
-                </p>
-              </div>
-            </div>
-
-            <button className="mt-8 text-sm font-medium text-[#a1a1a1] hover:text-white transition-all underline underline-offset-4 decoration-white/20">
-              Request enterprise access
-            </button>
+      <div className="w-full max-w-[400px] p-8 mx-auto z-10 animate-in fade-in slide-in-from-bottom-4 duration-700">
+        {/* Header */}
+        <div className="flex flex-col items-center mb-10 text-center">
+          <div className="w-12 h-12 bg-white flex items-center justify-center rounded-xl shadow-[0_0_15px_rgba(255,255,255,0.1)] mb-6">
+            <Command size={24} className="text-black" />
           </div>
+
+          {step === 'login' ? (
+            <>
+              <h1 className="text-2xl font-semibold text-white mb-2">
+                Welcome back
+              </h1>
+              <p className="text-[14px] text-[#a1a1aa]">
+                Sign in to your CodeKang account.
+              </p>
+            </>
+          ) : (
+            <>
+              <h1 className="text-2xl font-semibold text-white mb-2">
+                Check your email
+              </h1>
+              <p className="text-[14px] text-[#a1a1aa] px-4">
+                We&apos;ve sent a 6-digit verification code to <br />
+                <span className="text-white font-medium">{email}</span>
+              </p>
+            </>
+          )}
         </div>
 
-        {/* Right Side: Preview Card */}
-        <div className="hidden lg:flex w-[50%] items-center justify-center py-24">
-          <div className="w-full max-w-[640px] aspect-[4/3] rounded-[32px] bg-[#f0f0e8] p-8 shadow-2xl relative group hover:-translate-y-1 transition-transform duration-500">
-            <div className="flex items-center justify-between mb-8">
-              <div className="flex items-center gap-2">
-                <div className="w-3 h-3 rounded-full bg-[#1a1614]/10" />
-                <div className="w-3 h-3 rounded-full bg-[#1a1614]/10" />
-                <div className="w-3 h-3 rounded-full bg-[#1a1614]/10" />
-              </div>
-              <div className="text-[10px] font-bold text-[#1a1614]/40 uppercase tracking-widest">
-                Project Health Overview
-              </div>
-            </div>
-
-            <div className="mb-12">
-              <h2 className="text-[64px] font-serif font-light text-[#1a1614] leading-[1.1] tracking-tight">
-                What CodeKang
-                <br />
-                Found This Week
-              </h2>
-            </div>
-
-            <div className="w-full h-8 rounded-lg bg-[#1a1614]/10 mb-12 flex items-center px-4">
-              <span className="text-[10px] font-bold text-[#1a1614]/40 uppercase tracking-widest">
-                Team Engineering Insights
-              </span>
-            </div>
-
-            <div>
-              <div className="text-[20px] font-serif font-light text-[#1a1614] mb-6">
-                Real-time performance metrics...
-              </div>
-              <div className="grid grid-cols-3 gap-4">
-                <div className="p-6 rounded-2xl bg-[#1a1614] text-white">
-                  <div className="text-[48px] font-serif font-light mb-4 leading-none">124</div>
-                  <div className="text-[10px] font-bold text-white/40 uppercase tracking-widest">Issues detected</div>
-                </div>
-                <div className="p-6 rounded-2xl bg-[#1a1614] text-white">
-                  <div className="text-[48px] font-serif font-light mb-4 leading-none">42</div>
-                  <div className="text-[10px] font-bold text-white/40 uppercase tracking-widest">PRs reviewed</div>
-                </div>
-                <div className="p-6 rounded-2xl bg-[#1a1614] text-white">
-                  <div className="text-[48px] font-serif font-light mb-4 leading-none">85%</div>
-                  <div className="text-[10px] font-bold text-white/40 uppercase tracking-widest">Code Quality Score</div>
-                </div>
-              </div>
-            </div>
+        {/* Error Banner */}
+        {error && (
+          <div className="mb-6 p-3 bg-red-500/10 border border-red-500/20 rounded-md text-[13px] text-red-400 text-center animate-in fade-in duration-300">
+            {error}
           </div>
+        )}
+
+        {/* Main Card */}
+        <div className="bg-[#18181b] border border-[#27272a] rounded-2xl p-6 shadow-2xl">
+          {/* Step 1: Login Options */}
+          {step === 'login' && (
+            <div className="space-y-4">
+              <div className="flex flex-col gap-3">
+                <button
+                  onClick={() => handleOAuthLogin('github')}
+                  disabled={loading !== null}
+                  className="flex items-center justify-center gap-2 py-2.5 bg-[#09090b] border border-[#27272a] hover:bg-[#27272a]/50 rounded-lg text-[13px] font-medium transition-all text-[#e4e4e7] disabled:opacity-50"
+                >
+                  {loading === 'github' ? (
+                    <span className="w-4 h-4 border-2 border-white/20 border-t-white rounded-full animate-spin" />
+                  ) : (
+                    <svg
+                      width="16"
+                      height="16"
+                      viewBox="0 0 24 24"
+                      fill="currentColor"
+                    >
+                      <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z" />
+                    </svg>
+                  )}
+                  GitHub
+                </button>
+                <button
+                  onClick={() => handleOAuthLogin('google')}
+                  disabled={loading !== null}
+                  className="flex items-center justify-center gap-2 py-2.5 bg-[#09090b] border border-[#27272a] hover:bg-[#27272a]/50 rounded-lg text-[13px] font-medium transition-all text-[#e4e4e7] disabled:opacity-50"
+                >
+                  {loading === 'google' ? (
+                    <span className="w-4 h-4 border-2 border-white/20 border-t-white rounded-full animate-spin" />
+                  ) : (
+                    <svg width="16" height="16" viewBox="0 0 24 24">
+                      <path
+                        fill="#4285F4"
+                        d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
+                      />
+                      <path
+                        fill="#34A853"
+                        d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+                      />
+                      <path
+                        fill="#FBBC05"
+                        d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
+                      />
+                      <path
+                        fill="#EA4335"
+                        d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
+                      />
+                    </svg>
+                  )}
+                  Google
+                </button>
+              </div>
+
+              <div className="relative py-2">
+                <div className="absolute inset-0 flex items-center">
+                  <div className="w-full border-t border-[#27272a]"></div>
+                </div>
+                <div className="relative flex justify-center text-[11px] uppercase tracking-wider">
+                  <span className="bg-[#18181b] px-2 text-[#52525b]">
+                    Or with Email
+                  </span>
+                </div>
+              </div>
+
+              <form onSubmit={handleEmailSubmit} className="space-y-3">
+                <div>
+                  <label htmlFor="email" className="sr-only">
+                    Email address
+                  </label>
+                  <input
+                    id="email"
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="name@company.com"
+                    className="w-full bg-[#09090b] border border-[#27272a] rounded-lg px-4 py-2.5 text-[14px] text-white placeholder:text-[#52525b] outline-none focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/50 transition-all"
+                  />
+                </div>
+                <button
+                  type="submit"
+                  disabled={loading !== null || !email}
+                  className="w-full flex items-center justify-center gap-2 py-2.5 bg-white text-black rounded-lg text-[14px] font-semibold hover:bg-white/90 transition-all disabled:opacity-50 disabled:cursor-not-allowed group"
+                >
+                  {loading === 'email' ? (
+                    <span className="w-4 h-4 border-2 border-black/20 border-t-black rounded-full animate-spin" />
+                  ) : (
+                    <>
+                      Continue with Email
+                      <ArrowRight
+                        size={16}
+                        className="text-black/50 group-hover:text-black transition-colors"
+                      />
+                    </>
+                  )}
+                </button>
+              </form>
+            </div>
+          )}
+
+          {/* Step 2: OTP Verification */}
+          {step === 'otp' && (
+            <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
+              <div className="flex justify-between gap-2.5">
+                {otp.map((digit, i) => (
+                  <input
+                    key={i}
+                    type="text"
+                    maxLength={1}
+                    value={digit}
+                    ref={(el) => {
+                      otpRefs.current[i] = el;
+                    }}
+                    onChange={(e) => handleOtpChange(i, e.target.value)}
+                    onKeyDown={(e) => handleOtpKeyDown(i, e)}
+                    className="w-10 h-12 bg-[#09090b] border border-[#27272a] rounded-lg text-center text-lg font-medium text-white outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all"
+                  />
+                ))}
+              </div>
+
+              <button
+                onClick={handleVerifyOtp}
+                disabled={loading === 'verify' || otp.join('').length < 6}
+                className="w-full flex items-center justify-center gap-2 py-2.5 bg-white text-black rounded-lg text-[14px] font-semibold hover:bg-white/90 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {loading === 'verify' ? (
+                  <span className="w-4 h-4 border-2 border-black/20 border-t-black rounded-full animate-spin" />
+                ) : (
+                  'Verify Code'
+                )}
+              </button>
+
+              <div className="flex items-center justify-center pt-2">
+                <button
+                  onClick={() => setStep('login')}
+                  className="flex items-center gap-1.5 text-[12px] text-[#a1a1aa] hover:text-white transition-colors"
+                >
+                  <ChevronLeft size={14} /> Back to login
+                </button>
+              </div>
+            </div>
+          )}
         </div>
-      </main>
+
+        {/* Footer */}
+        <p className="text-center text-[12px] text-[#71717a] mt-8">
+          By continuing, you agree to CodeKang&apos;s{' '}
+          <a href="#" className="underline hover:text-white transition-colors">
+            Terms of Service
+          </a>{' '}
+          &{' '}
+          <a href="#" className="underline hover:text-white transition-colors">
+            Privacy Policy
+          </a>
+          .
+        </p>
+      </div>
     </div>
   );
 }
