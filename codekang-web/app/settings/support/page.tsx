@@ -6,7 +6,6 @@ import {
   BookOpen,
   Mail,
   ChevronRight,
-  ExternalLink,
   X,
   Send,
   Check,
@@ -19,6 +18,7 @@ import {
 import { SiGithub, SiX } from 'react-icons/si';
 import { useState, useRef, useEffect } from 'react';
 import { useTheme } from '@/lib/theme';
+import Link from 'next/link';
 
 // ── Types ──
 
@@ -106,7 +106,8 @@ export default function SupportPage() {
   const { resolved } = useTheme();
   const L = resolved === 'light';
   const textPrimary = L ? '#111' : '#f8f8f8';
-  const textMuted = L ? '#5f6368' : '#909090';
+  const textMuted = L ? '#5f6368' : '#a1a1aa';
+  const textDim = L ? '#9aa0a6' : '#6d6d6d';
   const cardBg = L ? '#ffffff' : '#18181b';
   const cardBorder = L ? '#e2e4e7' : '#27272a';
   const inputBg = L ? '#f4f5f7' : '#111113';
@@ -435,7 +436,7 @@ export default function SupportPage() {
                         className="text-[13px] italic"
                         style={{ color: textMuted }}
                       >
-                        "{activeTicket.feedback}"
+                        &quot;{activeTicket.feedback}&quot;
                       </p>
                     )}
                   </div>

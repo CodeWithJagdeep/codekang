@@ -283,7 +283,7 @@ export default function SettingsLayout({
 
         {/* Content area */}
         <div
-          className={`px-5 md:px-8 mx-auto w-full py-7 md:py-10 pb-24 flex-1 ${pathname === '/settings/billing' ? 'max-w-6xl' : 'max-w-4xl'}`}
+          className={`px-5 md:px-8 mx-auto w-full py-7 md:py-10 pb-24 flex-1 ${pathname === '/settings' ? 'max-w-4xl' : 'max-w-full'}`}
         >
           {children}
         </div>
