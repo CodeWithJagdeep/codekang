@@ -8,15 +8,16 @@ import {
   GitPullRequest,
   Blocks,
   BarChart2,
-  Bot,
   ChevronDown,
   RefreshCcw,
   Plus,
   PanelLeft,
   Settings,
   X,
+  LogOut,
 } from 'lucide-react';
 import { useTheme } from '@/lib/theme';
+import { signOut } from '@/lib/auth';
 
 export type Repo = {
   id: string;
@@ -73,6 +74,12 @@ export default function Sidebar({
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
+
+  const handleLogout = async () => {
+    setIsLoggingOut(true);
+    await signOut();
+  };
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -379,10 +386,10 @@ export default function Sidebar({
         </button>
       </div>
 
-      {/* ── Settings Footer ── */}
+      {/* ── Settings & Logout Footer ── */}
       <div
         style={{ borderTop: `1px solid ${sideBorder}` }}
-        className={`p-2 transition-all duration-300 ${effectivelyCollapsed ? 'flex justify-center' : ''}`}
+        className={`p-2 transition-all duration-300 ${effectivelyCollapsed ? 'flex flex-col items-center gap-1' : ''}`}
       >
         <Link
           href="/settings"
@@ -400,6 +407,24 @@ export default function Sidebar({
             Settings
           </span>
         </Link>
+        <button
+          onClick={handleLogout}
+          disabled={isLoggingOut}
+          title={effectivelyCollapsed ? 'Logout' : undefined}
+          className={`flex items-center rounded-md text-[14px] transition-all duration-300 disabled:opacity-50 ${effectivelyCollapsed ? 'justify-center p-2.5 max-w-[40px] w-full' : 'gap-3 px-3 py-2 w-full'}`}
+          style={{ color: isLoggingOut ? textDim : '#f87171' }}
+        >
+          <LogOut
+            size={18}
+            strokeWidth={1.5}
+            className={`shrink-0 ${isLoggingOut ? 'animate-pulse' : ''}`}
+          />
+          <span
+            className={`transition-all duration-300 ease-in-out overflow-hidden whitespace-nowrap ${effectivelyCollapsed ? 'max-w-0 opacity-0' : 'max-w-[150px] opacity-100'}`}
+          >
+            {isLoggingOut ? 'Signing out…' : 'Logout'}
+          </span>
+        </button>
       </div>
     </aside>
   );
