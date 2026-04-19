@@ -20,6 +20,9 @@ export class MailService {
     const resendKey = this.config.get<string>('RESEND_API_KEY');
     if (resendKey) {
       this.resend = new Resend(resendKey);
+      this.logger.log(`Resend initialized (API key found)`);
+    } else {
+      this.logger.warn(`No RESEND_API_KEY found in config`);
     }
 
     const zohoUser = this.config.get<string>('ZOHO_SMTP_USER');
@@ -39,26 +42,34 @@ export class MailService {
   private async send(payload: EmailPayload): Promise<void> {
     if (this.resend) {
       try {
+        this.logger.log(
+          `Attempting to send email via Resend to ${payload.to}...`,
+        );
         await this.resend.emails.send({
           from: this.fromAddress,
           to: payload.to,
           subject: payload.subject,
           html: payload.html,
         });
+        this.logger.log(`Resend: Successfully sent email to ${payload.to}`);
         return;
       } catch (err) {
-        this.logger.warn(`Resend failed, falling back to Zoho: ${err}`);
+        this.logger.error(`Resend failed, falling back to Zoho: ${err}`);
       }
     }
 
     if (this.zohoTransport) {
       try {
+        this.logger.log(
+          `Attempting to send email via Zoho to ${payload.to}...`,
+        );
         await this.zohoTransport.sendMail({
           from: this.fromAddress,
           to: payload.to,
           subject: payload.subject,
           html: payload.html,
         });
+        this.logger.log(`Zoho: Successfully sent email to ${payload.to}`);
         return;
       } catch (err) {
         this.logger.error(`Zoho SMTP failed: ${err}`);
