@@ -231,55 +231,56 @@ export default function SettingsLayout({
 
       {/* Main */}
       <main className="flex-1 min-w-0 h-full overflow-y-auto relative flex flex-col no-scrollbar">
-        {/* Mobile header */}
+        {/* Sticky Breadcrumb Header */}
         <div
-          className="md:hidden flex items-center justify-between px-5 py-3.5 sticky top-0 z-30"
+          className="sticky top-0 z-30 flex items-center justify-between px-5 md:px-8 py-3.5 border-b backdrop-blur-md transition-all"
           style={{
-            background: sideBg,
-            borderBottom: `1px solid ${borderColor}`,
+            background:
+              sideBg === '#181818'
+                ? 'rgba(24, 24, 27, 0.8)'
+                : 'rgba(255, 255, 255, 0.8)',
+            borderColor: borderColor,
           }}
         >
           <div className="flex items-center gap-3">
             <button
               onClick={() => setIsMobileMenuOpen(true)}
-              className="p-1.5 rounded-lg border transition-colors"
+              className="md:hidden p-1.5 rounded-lg border transition-colors"
               style={{ borderColor, color: textMuted }}
             >
               <Menu size={18} />
             </button>
-            <span
-              className="text-[14px] font-semibold"
-              style={{ color: textPrimary }}
-            >
-              Settings
-            </span>
+            <div className="text-[13px] font-medium" style={{ color: textDim }}>
+              <span className="hidden sm:inline">Settings </span>
+              <span
+                className="sm:hidden text-[14px] font-semibold"
+                style={{ color: textPrimary }}
+              >
+                Settings
+              </span>
+              <span className="mx-1" style={{ color: borderColor }}>
+                /
+              </span>
+              <span style={{ color: textPrimary }}>
+                {NAV_GROUPS.flatMap((g) => g.items).find(
+                  (i) => i.href === pathname,
+                )?.label ?? 'Profile'}
+              </span>
+            </div>
           </div>
           <Link
             href="/dashboard"
-            className="text-[13px]"
-            style={{ color: textMuted }}
+            className="text-[12px] font-medium px-3 py-1.5 rounded-lg border hover:bg-white/5 transition-all"
+            style={{ borderColor, color: textMuted }}
           >
-            Back
+            <span className="hidden sm:inline">Back to Dashboard</span>
+            <span className="sm:hidden">Back</span>
           </Link>
         </div>
 
-        {/* Breadcrumb (desktop) */}
-        <div className="hidden md:block px-8 pt-6 pb-0">
-          <div className="text-[13px] font-medium" style={{ color: textDim }}>
-            Settings{' '}
-            <span className="mx-1" style={{ color: borderColor }}>
-              /
-            </span>
-            <span style={{ color: textPrimary }}>
-              {NAV_GROUPS.flatMap((g) => g.items).find(
-                (i) => i.href === pathname,
-              )?.label ?? 'Profile'}
-            </span>
-          </div>
-        </div>
-
+        {/* Content area */}
         <div
-          className={`pt-6 md:pt-8 px-5 md:px-8 mx-auto w-full pb-24 flex-1 ${pathname === '/settings/billing' ? 'max-w-6xl' : 'max-w-4xl'}`}
+          className={`px-5 md:px-8 mx-auto w-full py-7 md:py-10 pb-24 flex-1 ${pathname === '/settings/billing' ? 'max-w-6xl' : 'max-w-4xl'}`}
         >
           {children}
         </div>
