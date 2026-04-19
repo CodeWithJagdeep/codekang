@@ -230,7 +230,10 @@ export default function SettingsLayout({
       </aside>
 
       {/* Main */}
-      <main className="flex-1 min-w-0 h-full overflow-y-auto relative flex flex-col no-scrollbar">
+      <main
+        ref={mainRef}
+        className="flex-1 min-w-0 h-full overflow-y-auto relative flex flex-col no-scrollbar"
+      >
         {/* Sticky Breadcrumb Header */}
         <div
           className="sticky top-0 z-30 flex items-center justify-between px-5 md:px-8 py-3.5 border-b backdrop-blur-md transition-all"
