@@ -148,13 +148,13 @@ export default function GeneralSettings() {
                 Delete Organization
               </p>
               <p className="text-[11.5px] text-[#71717a] mt-0.5">
-                Permanently remove all data, agents, and integrations. This
-                cannot be undone.
+                Permanently remove all organization data, agents, and
+                integrations. This cannot be undone.
               </p>
             </div>
             <button className="px-6 py-2 rounded-lg bg-red-500/10 hover:bg-red-500 text-red-500 hover:text-white transition-all text-[13px] font-bold flex items-center justify-center gap-2">
               <Trash2 size={14} />
-              Delete account
+              Delete organization
             </button>
           </div>
         </div>
