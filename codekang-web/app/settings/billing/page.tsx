@@ -86,7 +86,7 @@ const PLANS = [
     price: '$29',
     period: '/month',
     description: 'For growing teams that ship fast.',
-    color: '#e11d48',
+    color: '#6366f1',
     popular: true,
     features: [
       '500 AI reviews / month',
@@ -170,8 +170,8 @@ function UpgradeModal({ onClose, onUpgrade }: { onClose: () => void; onUpgrade: 
 
         <div className="p-7">
           <div className="flex items-center gap-4 mb-6">
-            <div className="w-11 h-11 rounded-xl flex items-center justify-center" style={{ background: 'rgba(225,29,72,0.1)', border: '1px solid rgba(225,29,72,0.2)' }}>
-              <Zap size={20} style={{ color: '#e11d48' }} />
+            <div className="w-11 h-11 rounded-xl flex items-center justify-center" style={{ background: 'rgba(99,102,241,0.1)', border: '1px solid rgba(99,102,241,0.2)' }}>
+              <Zap size={20} style={{ color: '#6366f1' }} />
             </div>
             <div>
               <h3 className="text-[18px] font-bold" style={{ color: textPrimary }}>Upgrade to Pro</h3>
@@ -179,7 +179,7 @@ function UpgradeModal({ onClose, onUpgrade }: { onClose: () => void; onUpgrade: 
             </div>
           </div>
 
-          <div className="flex items-baseline gap-1.5 mb-6 px-4 py-4 rounded-xl border" style={{ background: 'rgba(225,29,72,0.04)', borderColor: 'rgba(225,29,72,0.15)' }}>
+          <div className="flex items-baseline gap-1.5 mb-6 px-4 py-4 rounded-xl border" style={{ background: 'rgba(99,102,241,0.04)', borderColor: 'rgba(99,102,241,0.15)' }}>
             <span className="text-[34px] font-black" style={{ color: textPrimary }}>$29</span>
             <span className="text-[13px]" style={{ color: textMuted }}>/month</span>
             <span className="ml-auto text-[12px] text-emerald-400 font-semibold">14-day free trial</span>
@@ -205,7 +205,7 @@ function UpgradeModal({ onClose, onUpgrade }: { onClose: () => void; onUpgrade: 
             onClick={handleUpgrade}
             disabled={loading}
             className="w-full py-3 rounded-xl text-[14px] font-bold text-white transition-all flex items-center justify-center gap-2 disabled:opacity-70"
-            style={{ background: '#e11d48' }}
+            style={{ background: '#6366f1' }}
           >
             {loading ? <><Loader2 size={16} className="animate-spin" />Activating…</> : 'Start 14-day Free Trial'}
           </button>
@@ -309,7 +309,7 @@ function OverviewTab({
                 <button
                   onClick={() => setShowUpgrade(true)}
                   className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-[13px] font-bold text-white transition-all"
-                  style={{ background: '#e11d48' }}
+                  style={{ background: '#6366f1' }}
                 >
                   <Zap size={13} /> Upgrade
                 </button>
@@ -520,7 +520,7 @@ function InvoicesTab() {
               style={{
                 gridTemplateColumns: 'auto 1fr 120px 110px 100px 40px',
                 borderColor: cardBorder,
-                background: isSelected ? 'rgba(225,29,72,0.04)' : 'transparent',
+                background: isSelected ? 'rgba(99,102,241,0.04)' : 'transparent',
               }}
               onMouseEnter={e => { if (!isSelected) (e.currentTarget as HTMLElement).style.background = rowHover; }}
               onMouseLeave={e => { if (!isSelected) (e.currentTarget as HTMLElement).style.background = 'transparent'; }}
@@ -777,7 +777,7 @@ function PaymentTab() {
               <label className="flex items-center gap-3 cursor-pointer pt-1">
                 <div className="relative">
                   <input type="checkbox" checked={saveCard} onChange={e => setSaveCard(e.target.checked)} className="peer sr-only" />
-                  <div className="w-4 h-4 rounded border transition-all peer-checked:border-[#e11d48]" style={{ borderColor: cardBorder, background: saveCard ? '#e11d48' : 'transparent' }}>
+                  <div className="w-4 h-4 rounded border transition-all peer-checked:border-[#6366f1]" style={{ borderColor: cardBorder, background: saveCard ? '#6366f1' : 'transparent' }}>
                     {saveCard && <Check size={10} strokeWidth={3} className="text-white m-auto" style={{ display: 'flex', marginTop: '2px', marginLeft: '2px' }} />}
                   </div>
                 </div>
@@ -837,7 +837,7 @@ function PaymentTab() {
               onClick={handleSave}
               disabled={saving || saved}
               className="flex-1 py-2.5 rounded-xl text-[13.5px] font-bold text-white transition-all flex items-center justify-center gap-2 disabled:opacity-70"
-              style={{ background: saved ? '#10b981' : '#e11d48' }}
+              style={{ background: saved ? '#10b981' : '#6366f1' }}
             >
               {saving
                 ? <><Loader2 size={15} className="animate-spin" /> Saving…</>
@@ -879,7 +879,7 @@ function PaymentTab() {
                 onClick={handleContactSave}
                 disabled={savingContact}
                 className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-[13px] font-bold text-white transition-all disabled:opacity-70"
-                style={{ background: '#e11d48' }}
+                style={{ background: '#6366f1' }}
               >
                 {savingContact ? <><Loader2 size={13} className="animate-spin" /> Saving…</> : <><Save size={13} /> Save</>}
               </button>
