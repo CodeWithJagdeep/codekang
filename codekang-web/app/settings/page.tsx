@@ -8,17 +8,11 @@ import {
   Monitor,
   Moon,
   Sun,
-  Bell,
-  Bot,
-  Shield,
   Trash2,
   ChevronDown,
   Copy,
   CheckCircle2,
   AlertTriangle,
-  Sparkles,
-  MessageSquare,
-  Bug,
 } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
 import { useTheme } from '@/lib/theme';
@@ -531,31 +525,26 @@ export default function SettingsProfilePage() {
           [
             {
               key: 'autoReview',
-              icon: Sparkles,
               label: 'Auto-review PRs',
               sub: 'KangBot reviews every opened pull request automatically.',
             },
             {
               key: 'autoPatch',
-              icon: GitMerge,
               label: 'Auto-patch critical bugs',
               sub: 'Automatically open fix PRs for critical findings.',
             },
             {
               key: 'explainFindings',
-              icon: MessageSquare,
               label: 'Explain findings in plain English',
               sub: 'Each finding includes a human-readable explanation and code example.',
             },
             {
               key: 'blockMergeOnCritical',
-              icon: Shield,
               label: 'Block merge on critical findings',
               sub: 'Prevent merging PRs that have unresolved critical issues.',
             },
             {
               key: 'reviewDrafts',
-              icon: Bug,
               label: 'Review draft PRs',
               sub: 'Include draft pull requests in AI review queue.',
             },
@@ -580,37 +569,31 @@ export default function SettingsProfilePage() {
           [
             {
               key: 'prReview',
-              icon: Bot,
               label: 'PR review completed',
               sub: 'When KangBot finishes reviewing a pull request.',
             },
             {
               key: 'bugDetected',
-              icon: Bug,
               label: 'Bug detected',
               sub: 'When a new bug or vulnerability is found.',
             },
             {
               key: 'fixSuggested',
-              icon: Sparkles,
               label: 'Fix suggestion ready',
               sub: 'When an automated patch PR is opened.',
             },
             {
               key: 'agentComplete',
-              icon: Bell,
               label: 'Agent task completed',
               sub: 'When a scheduled or manual agent run finishes.',
             },
             {
               key: 'securityAlert',
-              icon: Shield,
               label: 'Security alerts',
               sub: 'Critical security vulnerabilities that need attention.',
             },
             {
               key: 'weeklyReport',
-              icon: Monitor,
               label: 'Weekly digest',
               sub: 'A summary of AI activity and repository health every Monday.',
             },
