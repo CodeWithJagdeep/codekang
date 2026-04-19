@@ -838,7 +838,7 @@ function InvoicesTab() {
               </p>
               <div className="flex justify-end">
                 <button
-                  className="p-1.5 rounded-lg transition-colors"
+                  className="p-1.5 rounded-lg transition-colors text-[12px] font-medium"
                   style={{ color: textDim }}
                   onClick={(e) => {
                     e.stopPropagation();
@@ -846,11 +846,7 @@ function InvoicesTab() {
                   }}
                   title="Download invoice"
                 >
-                  {downloading === inv.id ? (
-                    <Loader2 size={14} className="animate-spin" />
-                  ) : (
-                    <Download size={14} />
-                  )}
+                  {downloading === inv.id ? '...' : 'PDF'}
                 </button>
               </div>
             </div>
@@ -977,7 +973,7 @@ function PaymentTab() {
     {
       id: 'card' as PayProvider,
       label: 'Credit / Debit Card',
-      icon: <CreditCard size={15} />,
+      icon: null,
     },
     {
       id: 'paypal' as PayProvider,
