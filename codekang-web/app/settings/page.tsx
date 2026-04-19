@@ -688,6 +688,18 @@ export default function SettingsProfilePage() {
             </button>
           </div>
         </Row>
+        <Row>
+          <RowLabel
+            label="Bitbucket"
+            sub="Connect to enable Bitbucket repository reviews."
+          />
+          <button
+            onClick={() => showToast('Bitbucket OAuth coming soon', 'error')}
+            className="px-4 py-2 rounded-xl bg-[#27272a] text-[14px] font-medium text-[#a1a1aa] hover:bg-[#3f3f46] transition-all"
+          >
+            Connect
+          </button>
+        </Row>
         <Row last>
           <RowLabel
             label="GitLab"
