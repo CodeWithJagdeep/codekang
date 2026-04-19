@@ -311,22 +311,22 @@ export default function Sidebar({
             className="text-[13px] font-medium mb-2 whitespace-nowrap"
             style={{ color: textDim }}
           >
-            Involved PRs
+            Latest PRs
           </div>
           <div className="space-y-1">
             {INVOLVED_PRS.map((pr, i) => (
               <button
                 key={i}
-                className="w-full text-left p-1 rounded-md transition-colors whitespace-nowrap"
+                className="w-full text-left p-1 rounded-md transition-colors hover:bg-white/5 group/pr"
               >
-                <div className="flex items-start gap-2.5">
+                <div className="flex items-start gap-2.5 min-w-0">
                   <GitPullRequest
                     size={16}
                     strokeWidth={2}
-                    className="shrink-0 mt-0.5"
+                    className="shrink-0 mt-0.5 opacity-70 group-hover/pr:opacity-100 transition-opacity"
                     style={{ color: '#00cc66' }}
                   />
-                  <div className="min-w-0">
+                  <div className="flex-1 min-w-0">
                     <div
                       className="text-[13.5px] font-medium truncate"
                       style={{ color: textPrimary }}
@@ -334,7 +334,7 @@ export default function Sidebar({
                       {pr.title}
                     </div>
                     <div
-                      className="text-[12px] mt-0.5"
+                      className="text-[12px] mt-0.5 truncate"
                       style={{ color: textMuted }}
                     >
                       {pr.time} · {pr.branch}
