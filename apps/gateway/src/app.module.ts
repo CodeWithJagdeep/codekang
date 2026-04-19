@@ -12,7 +12,12 @@ import { PlansProxyModule } from './modules/plans/plans.module';
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
-      envFilePath: ['.env', '../../.env'],
+      envFilePath: [
+        '.env.development',
+        '.env',
+        '../../.env.development',
+        '../../.env',
+      ],
     }),
 
     ThrottlerModule.forRoot([
