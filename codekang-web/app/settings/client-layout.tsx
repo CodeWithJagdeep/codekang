@@ -12,7 +12,6 @@ import {
   LifeBuoy,
   ShieldCheck,
   Bell,
-  KeyRound,
   Blocks,
   Users,
   Settings2,
@@ -68,12 +67,6 @@ const NAV_GROUPS: NavGroup[] = [
         label: 'Notifications',
         href: '/settings/notifications',
         icon: Bell,
-      },
-      {
-        id: 'api-keys',
-        label: 'API Keys',
-        href: '/settings/api-keys',
-        icon: KeyRound,
       },
       {
         id: 'integrations',
