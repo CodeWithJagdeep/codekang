@@ -8,10 +8,8 @@ import {
   Monitor,
   Moon,
   Sun,
-  GitBranch,
   Bell,
   Bot,
-  GitFork,
   Shield,
   Trash2,
   ChevronDown,
@@ -19,7 +17,6 @@ import {
   CheckCircle2,
   AlertTriangle,
   Sparkles,
-  GitMerge,
   MessageSquare,
   Bug,
 } from 'lucide-react';
@@ -493,15 +490,10 @@ export default function SettingsProfilePage() {
         description="Customize how CodeKang looks on your device."
       >
         <Row last>
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-indigo-500/10 flex items-center justify-center text-indigo-400 shrink-0">
-              <Monitor size={17} />
-            </div>
-            <RowLabel
-              label="Theme"
-              sub="Applies immediately across the entire platform."
-            />
-          </div>
+          <RowLabel
+            label="Theme"
+            sub="Applies immediately across the entire platform."
+          />
           <div className="flex items-center p-1 bg-[#121214] border border-[#27272a] rounded-xl">
             {(
               [
@@ -570,12 +562,7 @@ export default function SettingsProfilePage() {
           ] as const
         ).map((item, i, arr) => (
           <Row key={item.key} last={i === arr.length - 1}>
-            <div className="flex items-center gap-3">
-              <div className="w-16 h-16 rounded-2xl bg-linear-to-br from-[#3b82f6]/10 to-[#8b5cf6]/10 border border-[#3b82f6]/20 flex items-center justify-center mx-auto mb-4 text-[#3b82f6]">
-                <item.icon size={16} />
-              </div>
-              <RowLabel label={item.label} sub={item.sub} />
-            </div>
+            <RowLabel label={item.label} sub={item.sub} />
             <Toggle
               enabled={kangbot[item.key]}
               onChange={() => toggleKangbot(item.key)}
@@ -630,12 +617,7 @@ export default function SettingsProfilePage() {
           ] as const
         ).map((item, i, arr) => (
           <Row key={item.key} last={i === arr.length - 1}>
-            <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-xl bg-[#27272a] flex items-center justify-center text-[#71717a] shrink-0">
-                <item.icon size={16} />
-              </div>
-              <RowLabel label={item.label} sub={item.sub} />
-            </div>
+            <RowLabel label={item.label} sub={item.sub} />
             <Toggle
               enabled={notifs[item.key]}
               onChange={() => toggleNotif(item.key)}
@@ -650,15 +632,10 @@ export default function SettingsProfilePage() {
         description="Configure how KangBot authors commits and pull requests."
       >
         <Row last>
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-orange-500/10 flex items-center justify-center text-orange-400 shrink-0">
-              <GitBranch size={17} />
-            </div>
-            <RowLabel
-              label="Commit authoring"
-              sub="Attribution for AI-generated commits and fix PRs."
-            />
-          </div>
+          <RowLabel
+            label="Commit authoring"
+            sub="Attribution for AI-generated commits and fix PRs."
+          />
           <div className="relative">
             <button
               onClick={() => setAuthoringOpen((v) => !v)}
@@ -714,15 +691,10 @@ export default function SettingsProfilePage() {
         description="External services linked to your CodeKang account."
       >
         <Row>
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-[#27272a] flex items-center justify-center text-[#e8e8e8] shrink-0">
-              <GitFork size={17} />
-            </div>
-            <RowLabel
-              label="GitHub"
-              sub="Required for repository access and PR reviews."
-            />
-          </div>
+          <RowLabel
+            label="GitHub"
+            sub="Required for repository access and PR reviews."
+          />
           <div className="flex items-center gap-2.5">
             <span className="flex items-center gap-1.5 text-[13px] text-emerald-400">
               <CheckCircle2 size={14} />
@@ -734,15 +706,10 @@ export default function SettingsProfilePage() {
           </div>
         </Row>
         <Row last>
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-[#27272a] flex items-center justify-center text-[#71717a] shrink-0">
-              <Bot size={17} />
-            </div>
-            <RowLabel
-              label="GitLab"
-              sub="Connect to enable GitLab repository reviews."
-            />
-          </div>
+          <RowLabel
+            label="GitLab"
+            sub="Connect to enable GitLab repository reviews."
+          />
           <button
             onClick={() => showToast('GitLab OAuth coming soon', 'error')}
             className="px-4 py-2 rounded-xl bg-[#27272a] text-[14px] font-medium text-[#a1a1aa] hover:bg-[#3f3f46] transition-all"
