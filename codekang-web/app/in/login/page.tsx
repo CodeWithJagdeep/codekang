@@ -13,6 +13,10 @@ export default function LoginPage() {
   const [step, setStep] = useState<Step>('login');
   const [email, setEmail] = useState('');
   const [otp, setOtp] = useState(['', '', '', '', '', '']);
+  const [visibleIndices, setVisibleIndices] = useState<{
+    [key: number]: boolean;
+  }>({});
+  const timeoutsRef = useRef<{ [key: number]: NodeJS.Timeout }>({});
 
   const [loading, setLoading] = useState<Provider | 'verify' | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -65,6 +69,14 @@ export default function LoginPage() {
     }, 800);
   };
 
+  // ─── Privacy Helpers ──────────────────────────────────────────
+  const maskEmail = (str: string) => {
+    const [local, domain] = str.split('@');
+    if (!local || !domain) return str;
+    if (local.length <= 3) return `***@${domain}`;
+    return `${local.slice(0, 3)}***@${domain}`;
+  };
+
   // ─── OTP Logic ────────────────────────────────────────────────
   const handleOtpChange = (index: number, value: string) => {
     if (!/^\d*$/.test(value)) return;
@@ -73,9 +85,24 @@ export default function LoginPage() {
     newOtp[index] = value;
     setOtp(newOtp);
 
-    // Auto focus next
-    if (value !== '' && index < 5) {
-      otpRefs.current[index + 1]?.focus();
+    if (value !== '') {
+      // Show digit
+      setVisibleIndices((prev) => ({ ...prev, [index]: true }));
+
+      // Clear existing timeout
+      if (timeoutsRef.current[index]) {
+        clearTimeout(timeoutsRef.current[index]);
+      }
+
+      // Hide after 1 second
+      timeoutsRef.current[index] = setTimeout(() => {
+        setVisibleIndices((prev) => ({ ...prev, [index]: false }));
+      }, 1000);
+
+      // Auto focus next
+      if (index < 5) {
+        otpRefs.current[index + 1]?.focus();
+      }
     }
   };
 
@@ -134,7 +161,9 @@ export default function LoginPage() {
               </h1>
               <p className="text-[14px] text-[#a1a1aa] px-4">
                 We&apos;ve sent a 6-digit verification code to <br />
-                <span className="text-white font-medium">{email}</span>
+                <span className="text-white font-medium">
+                  {maskEmail(email)}
+                </span>
               </p>
             </>
           )}
@@ -148,7 +177,7 @@ export default function LoginPage() {
         )}
 
         {/* Main Card */}
-        <div className="bg-[#18181b] border border-[#27272a] rounded-2xl p-6 shadow-2xl">
+        <div className="rounded-2xl shadow-2xl">
           {/* Step 1: Login Options */}
           {step === 'login' && (
             <div className="space-y-4">
@@ -156,10 +185,10 @@ export default function LoginPage() {
                 <button
                   onClick={() => handleOAuthLogin('github')}
                   disabled={loading !== null}
-                  className="flex items-center justify-center gap-2 py-2.5 bg-[#09090b] border border-[#27272a] hover:bg-[#27272a]/50 rounded-lg text-[13px] font-medium transition-all text-[#e4e4e7] disabled:opacity-50"
+                  className="flex items-center justify-center gap-2 py-2.5 bg-[white] text-black border border-[#27272a]  rounded-lg text-[15px] font-medium transition-all disabled:opacity-50"
                 >
                   {loading === 'github' ? (
-                    <span className="w-4 h-4 border-2 border-white/20 border-t-white rounded-full animate-spin" />
+                    <span className="w-5 h-5 border-2 border-white/20 border-t-white rounded-full animate-spin" />
                   ) : (
                     <svg
                       width="16"
@@ -170,15 +199,15 @@ export default function LoginPage() {
                       <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z" />
                     </svg>
                   )}
-                  GitHub
+                  Continue with GitHub
                 </button>
                 <button
                   onClick={() => handleOAuthLogin('google')}
                   disabled={loading !== null}
-                  className="flex items-center justify-center gap-2 py-2.5 bg-[#09090b] border border-[#27272a] hover:bg-[#27272a]/50 rounded-lg text-[13px] font-medium transition-all text-[#e4e4e7] disabled:opacity-50"
+                  className="flex items-center justify-center gap-2 py-2.5 bg-[white] text-black border border-[#27272a] rounded-lg text-[15px] font-medium transition-all disabled:opacity-50"
                 >
                   {loading === 'google' ? (
-                    <span className="w-4 h-4 border-2 border-white/20 border-t-white rounded-full animate-spin" />
+                    <span className="w-5 h-5 border-2 border-white/20 border-t-white rounded-full animate-spin" />
                   ) : (
                     <svg width="16" height="16" viewBox="0 0 24 24">
                       <path
@@ -199,7 +228,7 @@ export default function LoginPage() {
                       />
                     </svg>
                   )}
-                  Google
+                  Continue with Google
                 </button>
               </div>
 
@@ -207,10 +236,8 @@ export default function LoginPage() {
                 <div className="absolute inset-0 flex items-center">
                   <div className="w-full border-t border-[#27272a]"></div>
                 </div>
-                <div className="relative flex justify-center text-[11px] uppercase tracking-wider">
-                  <span className="bg-[#18181b] px-2 text-[#52525b]">
-                    Or with Email
-                  </span>
+                <div className="relative flex justify-center text-[12px] mx-5 uppercase tracking-wider">
+                  <span className="px-2 text-[#e4e4e7]">Or with Email</span>
                 </div>
               </div>
 
@@ -231,10 +258,10 @@ export default function LoginPage() {
                 <button
                   type="submit"
                   disabled={loading !== null || !email}
-                  className="w-full flex items-center justify-center gap-2 py-2.5 bg-white text-black rounded-lg text-[14px] font-semibold hover:bg-white/90 transition-all disabled:opacity-50 disabled:cursor-not-allowed group"
+                  className="w-full flex items-center justify-center gap-2 py-2.5 bg-white text-black rounded-lg text-[15px]  hover:bg-white/90 transition-all disabled:opacity-50 disabled:cursor-not-allowed group"
                 >
                   {loading === 'email' ? (
-                    <span className="w-4 h-4 border-2 border-black/20 border-t-black rounded-full animate-spin" />
+                    <span className="w-5 h-5 border-2 border-black/20 border-t-black rounded-full animate-spin" />
                   ) : (
                     <>
                       Continue with Email
@@ -254,18 +281,23 @@ export default function LoginPage() {
             <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
               <div className="flex justify-between gap-2.5">
                 {otp.map((digit, i) => (
-                  <input
-                    key={i}
-                    type="text"
-                    maxLength={1}
-                    value={digit}
-                    ref={(el) => {
-                      otpRefs.current[i] = el;
-                    }}
-                    onChange={(e) => handleOtpChange(i, e.target.value)}
-                    onKeyDown={(e) => handleOtpKeyDown(i, e)}
-                    className="w-10 h-12 bg-[#09090b] border border-[#27272a] rounded-lg text-center text-lg font-medium text-white outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all"
-                  />
+                  <div key={i} className="relative">
+                    <input
+                      type="text"
+                      maxLength={1}
+                      value={otp[i] !== '' && !visibleIndices[i] ? '*' : otp[i]}
+                      ref={(el) => {
+                        otpRefs.current[i] = el;
+                      }}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        const char = val.slice(-1);
+                        handleOtpChange(i, char);
+                      }}
+                      onKeyDown={(e) => handleOtpKeyDown(i, e)}
+                      className="w-10 h-12 bg-[#09090b] border border-[#27272a] rounded-lg text-center text-lg font-medium text-white outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all"
+                    />
+                  </div>
                 ))}
               </div>
 
