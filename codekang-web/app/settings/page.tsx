@@ -22,11 +22,6 @@ import {
   GitMerge,
   MessageSquare,
   Bug,
-  Layout,
-  Settings,
-  AtSign,
-  User,
-  Mail,
 } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
 import { useTheme } from '@/lib/theme';
@@ -80,7 +75,7 @@ function Toggle({
       onClick={() => onChange(!enabled)}
       role="switch"
       aria-checked={enabled}
-      className={`relative inline-flex h-5 w-9 shrink-0 rounded-full border-2 border-transparent transition-colors duration-200 focus:outline-none ${enabled ? 'bg-emerald-500' : 'bg-zinc-700'}`}
+      className={`relative inline-flex h-5 w-9 shrink-0 rounded-full border-2 border-transparent transition-colors duration-200 focus:outline-none ${enabled ? 'bg-emerald-500' : 'bg-[#3f3f46]'}`}
     >
       <span
         className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition duration-200 ${enabled ? 'translate-x-4' : 'translate-x-0'}`}
@@ -95,24 +90,20 @@ function Section({
   title,
   description,
   children,
-  className = '',
 }: {
   title: string;
   description?: string;
   children: React.ReactNode;
-  className?: string;
 }) {
   return (
-    <section className={`space-y-4 ${className}`}>
+    <section className="space-y-3">
       <div>
-        <h2 className="text-[17px] font-bold text-[#f4f4f5] tracking-tight">
-          {title}
-        </h2>
+        <h2 className="text-[15px] font-semibold text-[#f4f4f5]">{title}</h2>
         {description && (
-          <p className="text-[14px] text-zinc-500 mt-0.5">{description}</p>
+          <p className="text-[13px] text-[#71717a] mt-0.5">{description}</p>
         )}
       </div>
-      <div className="rounded-2xl border border-[#27272a] bg-[#1c1c1c] overflow-hidden shadow-sm">
+      <div className="rounded-[14px] border border-[#27272a] bg-[#18181b] overflow-hidden">
         {children}
       </div>
     </section>
@@ -128,33 +119,18 @@ function Row({
 }) {
   return (
     <div
-      className={`flex flex-col sm:flex-row sm:items-center justify-between px-6 py-5 gap-4 ${!last ? 'border-b border-[#27272a]' : ''}`}
+      className={`flex flex-col sm:flex-row sm:items-center justify-between px-5 py-4 gap-4 ${!last ? 'border-b border-[#27272a]' : ''}`}
     >
       {children}
     </div>
   );
 }
 
-function RowLabel({
-  label,
-  sub,
-  icon: Icon,
-}: {
-  label: string;
-  sub?: string;
-  icon?: any;
-}) {
+function RowLabel({ label, sub }: { label: string; sub?: string }) {
   return (
-    <div className="flex items-start gap-4">
-      {Icon && (
-        <div className="w-10 h-10 rounded-xl bg-zinc-800 border border-zinc-700 flex items-center justify-center text-zinc-400 shrink-0 mt-0.5">
-          <Icon size={18} />
-        </div>
-      )}
-      <div>
-        <p className="text-[14.5px] font-semibold text-[#f4f4f5]">{label}</p>
-        {sub && <p className="text-[13px] text-zinc-500 mt-0.5">{sub}</p>}
-      </div>
+    <div>
+      <p className="text-[14px] font-medium text-[#f4f4f5]">{label}</p>
+      {sub && <p className="text-[13px] text-[#71717a] mt-0.5">{sub}</p>}
     </div>
   );
 }
@@ -162,8 +138,7 @@ function RowLabel({
 // ── Page ──
 
 export default function SettingsProfilePage() {
-  const { theme, setTheme, resolved } = useTheme();
-  const L = resolved === 'light';
+  const { theme, setTheme } = useTheme();
 
   // Toast
   const [toast, setToast] = useState<{
@@ -191,6 +166,20 @@ export default function SettingsProfilePage() {
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
+  // Commit authoring
+  const [authoring, setAuthoring] = useState('Co-authored (KangBot + User)');
+  const [authoringOpen, setAuthoringOpen] = useState(false);
+
+  // Notifications
+  const [notifs, setNotifs] = useState({
+    prReview: true,
+    bugDetected: true,
+    fixSuggested: true,
+    agentComplete: true,
+    weeklyReport: false,
+    securityAlert: true,
+  });
+
   // KangBot preferences
   const [kangbot, setKangbot] = useState({
     autoReview: true,
@@ -199,6 +188,14 @@ export default function SettingsProfilePage() {
     blockMergeOnCritical: true,
     reviewDrafts: false,
   });
+
+  // Copied user ID
+  const [copied, setCopied] = useState(false);
+  const copyId = () => {
+    navigator.clipboard.writeText('google-auth::uid::kang-2125');
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
 
   const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -228,53 +225,62 @@ export default function SettingsProfilePage() {
     showToast('Bio saved');
   };
 
+  const toggleNotif = (key: keyof typeof notifs) =>
+    setNotifs((p) => {
+      const n = { ...p, [key]: !p[key] };
+      showToast(`Notification preference saved`);
+      return n;
+    });
+
   const toggleKangbot = (key: keyof typeof kangbot) =>
     setKangbot((p) => {
       const n = { ...p, [key]: !p[key] };
-      showToast('KangBot preference saved');
+      showToast(`KangBot preference saved`);
       return n;
     });
 
   return (
-    <div className="space-y-12 animate-in fade-in slide-in-from-bottom-2 duration-500 pb-20">
-      {/* ── Page Title ── */}
+    <div className="space-y-10 animate-in fade-in slide-in-from-bottom-2 duration-400">
       <div>
-        <h1 className="text-[28px] font-bold text-[#f4f4f5] tracking-tight">
-          Personal Profile
+        <h1 className="text-[26px] font-semibold text-[#f4f4f5] tracking-tight">
+          Profile
         </h1>
-        <p className="text-[14px] text-zinc-500 mt-1">
-          Manage your identity, AI preferences, and developer experience.
+        <p className="text-[14px] text-[#71717a] mt-1">
+          Manage your CodeKang account, AI preferences, and notification
+          settings.
         </p>
       </div>
 
-      {/* ── Profile Header Card (The "User Info Panel") ── */}
-      <div className="relative group overflow-hidden rounded-[24px] border border-zinc-800 bg-[#1c1c1c] shadow-2xl">
-        <div className="absolute inset-0 bg-linear-to-br from-blue-600/10 via-purple-600/5 to-transparent opacity-50" />
-
-        <div className="relative px-8 py-10 flex flex-col md:flex-row items-center md:items-start gap-8">
-          {/* Avatar Section */}
-          <div className="relative shrink-0">
-            <div
-              className="w-32 h-32 rounded-[28px] p-1 bg-linear-to-br from-blue-500 via-purple-500 to-pink-500 shadow-xl cursor-pointer hover:scale-105 transition-transform"
-              onClick={() => fileRef.current?.click()}
-            >
-              <div className="w-full h-full rounded-[24px] bg-[#111113] overflow-hidden border-2 border-black flex items-center justify-center relative">
-                {avatarUrl ? (
-                  <Image
-                    src={avatarUrl}
-                    alt="avatar"
-                    fill
-                    className="object-cover"
-                  />
-                ) : (
-                  <span className="text-[32px] font-black text-white/80">
-                    JS
-                  </span>
-                )}
-                <div className="absolute inset-0 bg-black/40 opacity-0 hover:opacity-100 flex items-center justify-center transition-opacity backdrop-blur-sm">
-                  <Camera size={24} className="text-white" />
-                </div>
-              </div>
+      {/* ── User Information ── */}
+      <Section
+        title="User information"
+        description="Your identity on the CodeKang platform."
+      >
+        {/* Avatar */}
+        <Row>
+          <RowLabel
+            label="Profile picture"
+            sub="Shown in reviews, comments, and the dashboard header."
+          />
+          <div
+            className="relative group cursor-pointer w-fit"
+            onClick={() => fileRef.current?.click()}
+          >
+            <div className="w-14 h-14 rounded-full overflow-hidden border border-[#3f3f46] group-hover:border-[#3b82f6] transition-all bg-linear-to-br from-[#3b82f6]/30 to-[#8b5cf6]/30 flex items-center justify-center">
+              {avatarUrl ? (
+                <Image
+                  src={avatarUrl}
+                  alt="avatar"
+                  width={56}
+                  height={56}
+                  className="object-cover w-full h-full"
+                />
+              ) : (
+                <span className="text-[18px] font-bold text-white/60">JS</span>
+              )}
+            </div>
+            <div className="absolute inset-0 bg-black/50 rounded-full opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
+              <Camera size={16} className="text-white" />
             </div>
             <input
               ref={fileRef}
@@ -284,75 +290,37 @@ export default function SettingsProfilePage() {
               onChange={handleAvatarChange}
             />
           </div>
+        </Row>
 
-          {/* Info Section */}
-          <div className="flex-1 text-center md:text-left space-y-4">
-            <div className="space-y-1">
-              <div className="flex flex-col md:flex-row md:items-center gap-2 md:gap-4 justify-center md:justify-start">
-                <h2 className="text-[28px] font-bold text-white tracking-tight">
-                  {name}
-                </h2>
-                <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[11px] font-black uppercase tracking-widest w-fit mx-auto md:mx-0">
-                  <CheckCircle2 size={12} /> Verified
-                </div>
-              </div>
-              <div className="flex items-center gap-1 text-[15px] text-zinc-500 font-medium justify-center md:justify-start">
-                <AtSign size={15} />
-                <span>{username}</span>
-              </div>
-            </div>
-
-            <p className="text-[15px] text-white/70 max-w-xl leading-relaxed italic">
-              &quot;{bio || 'No bio yet — click edit to add one.'}&quot;
-            </p>
-
-            <div className="pt-2 flex flex-wrap gap-3 justify-center md:justify-start">
-              <button
-                onClick={() => setEditingBio(true)}
-                className="px-5 py-2 rounded-xl bg-white text-black text-[13px] font-bold hover:bg-zinc-200 transition-all active:scale-95"
-              >
-                Edit Profile
-              </button>
-              <button
-                className="px-5 py-2 rounded-xl bg-zinc-800 text-zinc-300 text-[13px] font-bold hover:bg-zinc-700 transition-all active:scale-95 border border-zinc-700"
-                onClick={() =>
-                  navigator.clipboard.writeText('google-auth::2125')
-                }
-              >
-                Copy ID
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* ── User Information Fields ── */}
-      <Section title="Identity Details" description="Your core account data.">
+        {/* Display name */}
         <Row>
           <RowLabel
-            label="Display Name"
-            sub="How you appear across CodeKang."
-            icon={User}
+            label="Display name"
+            sub="Used in reviews and team mentions."
           />
           {editingName ? (
             <div className="flex items-center gap-2">
               <input
                 autoFocus
-                className="w-full sm:w-[220px] bg-[#111113] border border-blue-500/50 rounded-xl px-4 py-2.5 text-[14px] text-white outline-none ring-4 ring-blue-500/5"
+                className="w-[180px] bg-[#121214] border border-[#3b82f6] rounded-lg px-3 py-2 text-[14px] text-[#f4f4f5] outline-none"
                 value={tempName}
                 onChange={(e) => setTempName(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') saveName();
+                  if (e.key === 'Escape') setEditingName(false);
+                }}
               />
               <button
                 onClick={saveName}
-                className="p-2.5 rounded-xl bg-emerald-500 text-black hover:bg-emerald-400 transition-all"
+                className="p-2 rounded-lg bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 transition-colors"
               >
-                <Check size={18} />
+                <Check size={15} />
               </button>
               <button
                 onClick={() => setEditingName(false)}
-                className="p-2.5 rounded-xl bg-zinc-800 text-zinc-400 hover:bg-zinc-700 transition-all"
+                className="p-2 rounded-lg bg-[#27272a] text-[#71717a] hover:bg-[#3f3f46] transition-colors"
               >
-                <X size={18} />
+                <X size={15} />
               </button>
             </div>
           ) : (
@@ -361,52 +329,119 @@ export default function SettingsProfilePage() {
                 setTempName(name);
                 setEditingName(true);
               }}
-              className="px-4 py-2.5 rounded-xl border border-zinc-800 hover:border-zinc-700 bg-zinc-800/20 text-[14px] text-white font-medium flex items-center gap-3 transition-all min-w-[140px]"
+              className="flex items-center gap-3 bg-[#121214] border border-[#27272a] hover:border-[#3f3f46] transition-all rounded-xl px-4 py-2.5 group w-full sm:w-[200px]"
             >
-              <span className="flex-1 text-left">{name}</span>
-              <Pencil size={14} className="text-zinc-500" />
+              <span className="text-[14px] text-[#f4f4f5] font-medium flex-1 text-left">
+                {name}
+              </span>
+              <Pencil
+                size={13}
+                className="text-[#52525b] group-hover:text-[#a1a1aa] shrink-0"
+              />
             </button>
           )}
         </Row>
+
+        {/* Username */}
+        <Row>
+          <RowLabel label="Username" sub="Your unique @handle on CodeKang." />
+          {editingUsername ? (
+            <div className="flex items-center gap-2">
+              <div className="flex items-center bg-[#121214] border border-[#3b82f6] rounded-lg overflow-hidden">
+                <span className="pl-3 text-[14px] text-[#52525b]">@</span>
+                <input
+                  autoFocus
+                  className="w-[140px] bg-transparent px-2 py-2 text-[14px] text-[#f4f4f5] outline-none"
+                  value={tempUsername}
+                  onChange={(e) =>
+                    setTempUsername(
+                      e.target.value.toLowerCase().replace(/\s/g, ''),
+                    )
+                  }
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') saveUsername();
+                    if (e.key === 'Escape') setEditingUsername(false);
+                  }}
+                />
+              </div>
+              <button
+                onClick={saveUsername}
+                className="p-2 rounded-lg bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 transition-colors"
+              >
+                <Check size={15} />
+              </button>
+              <button
+                onClick={() => setEditingUsername(false)}
+                className="p-2 rounded-lg bg-[#27272a] text-[#71717a] hover:bg-[#3f3f46] transition-colors"
+              >
+                <X size={15} />
+              </button>
+            </div>
+          ) : (
+            <button
+              onClick={() => {
+                setTempUsername(username);
+                setEditingUsername(true);
+              }}
+              className="flex items-center gap-3 bg-[#121214] border border-[#27272a] hover:border-[#3f3f46] transition-all rounded-xl px-4 py-2.5 group w-full sm:w-[200px]"
+            >
+              <span className="text-[14px] text-[#71717a]">@</span>
+              <span className="text-[14px] text-[#f4f4f5] font-medium flex-1 text-left">
+                {username}
+              </span>
+              <Pencil
+                size={13}
+                className="text-[#52525b] group-hover:text-[#a1a1aa] shrink-0"
+              />
+            </button>
+          )}
+        </Row>
+
+        {/* Email */}
         <Row>
           <RowLabel
-            label="Email Address"
-            sub="Synced with Google."
-            icon={Mail}
+            label="Email address"
+            sub="Tied to your Google account. Cannot be changed."
           />
-          <span className="text-[14px] text-zinc-400 font-mono bg-zinc-900/50 px-4 py-2.5 rounded-xl border border-zinc-800/50">
+          <span className="text-[14px] text-[#71717a] bg-[#121214] px-4 py-2.5 rounded-xl border border-[#27272a] font-mono">
             jagdeepsnh57@gmail.com
           </span>
         </Row>
-        <Row last>
+
+        {/* Bio */}
+        <Row>
           <RowLabel
-            label="Bio / Headline"
-            sub="Max 160 characters."
-            icon={MessageSquare}
+            label="Bio"
+            sub="A short description shown on your profile."
           />
           {editingBio ? (
-            <div className="w-full sm:w-[280px] space-y-2">
+            <div className="flex flex-col gap-2 w-full sm:w-[280px]">
               <textarea
                 autoFocus
-                className="w-full bg-[#111113] border border-blue-500/50 rounded-xl px-4 py-3 text-[14px] text-white outline-none resize-none"
                 rows={3}
-                maxLength={160}
+                className="w-full bg-[#121214] border border-[#3b82f6] rounded-xl px-3 py-2.5 text-[14px] text-[#f4f4f5] outline-none resize-none"
                 value={tempBio}
                 onChange={(e) => setTempBio(e.target.value)}
+                maxLength={160}
               />
-              <div className="flex justify-end gap-2">
-                <button
-                  onClick={() => setEditingBio(false)}
-                  className="px-4 py-1.5 rounded-lg text-zinc-500 text-[13px] font-bold hover:text-white"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={saveBio}
-                  className="px-4 py-1.5 rounded-lg bg-white text-black text-[13px] font-bold"
-                >
-                  Save
-                </button>
+              <div className="flex items-center justify-between">
+                <span className="text-[12px] text-[#52525b]">
+                  {tempBio.length}/160
+                </span>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => setEditingBio(false)}
+                    className="px-3 py-1.5 rounded-lg text-[13px] text-[#71717a] hover:text-[#f4f4f5] transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={saveBio}
+                    className="px-3 py-1.5 rounded-lg bg-[#f4f4f5] text-[#1c1c1c] text-[13px] font-semibold hover:bg-white transition-all"
+                  >
+                    Save
+                  </button>
+                </div>
               </div>
             </div>
           ) : (
@@ -415,107 +450,368 @@ export default function SettingsProfilePage() {
                 setTempBio(bio);
                 setEditingBio(true);
               }}
-              className="px-4 py-2.5 rounded-xl border border-zinc-800 hover:border-zinc-700 bg-zinc-800/20 text-[14px] text-white font-medium flex items-center gap-3 transition-all sm:max-w-[300px]"
+              className="flex items-start gap-3 bg-[#121214] border border-[#27272a] hover:border-[#3f3f46] transition-all rounded-xl px-4 py-3 group w-full sm:w-[280px] text-left"
             >
-              <span className="flex-1 text-left truncate">
-                {bio || 'Write a bio...'}
+              <span className="text-[14px] text-[#a1a1aa] flex-1 leading-relaxed">
+                {bio || 'Add a bio…'}
               </span>
-              <Pencil size={14} className="text-zinc-500" />
+              <Pencil
+                size={13}
+                className="text-[#52525b] group-hover:text-[#a1a1aa] shrink-0 mt-0.5"
+              />
             </button>
           )}
         </Row>
-      </Section>
 
-      {/* ── KangBot AI Section (Vibrant Enhancements) ── */}
-      <Section
-        title="KangBot AI Agent"
-        description="Configure how the autonomous reviewer behaves."
-      >
-        <div className="divide-y divide-zinc-800">
-          {(
-            [
-              {
-                key: 'autoReview',
-                icon: Bot,
-                label: 'Autonomous Reviewing',
-                sub: 'Trigger AI reviews on every PR opening / update.',
-                color: 'text-blue-400',
-                bg: 'bg-blue-500/10',
-              },
-              {
-                key: 'autoPatch',
-                icon: Sparkles,
-                label: 'Self-Healing (Auto-Patch)',
-                sub: 'Automatically generate fix PRs for critical vulnerabilities.',
-                color: 'text-purple-400',
-                bg: 'bg-purple-500/10',
-              },
-              {
-                key: 'explainFindings',
-                icon: MessageSquare,
-                label: 'Natural Language Logic',
-                sub: 'Explain technical findings using simplified conversational English.',
-                color: 'text-emerald-400',
-                bg: 'bg-emerald-500/10',
-              },
-              {
-                key: 'blockMergeOnCritical',
-                icon: Shield,
-                label: 'Security Guardrail',
-                sub: 'Block merges if KangBot detects unresolved critical issues.',
-                color: 'text-red-400',
-                bg: 'bg-red-500/10',
-              },
-            ] as const
-          ).map((item, i, arr) => (
-            <div
-              key={item.key}
-              className="px-6 py-6 flex items-center justify-between gap-4 group hover:bg-white/[0.01] transition-colors"
+        {/* User ID */}
+        <Row last>
+          <RowLabel
+            label="User ID"
+            sub="Your platform identifier for API access."
+          />
+          <div className="flex items-center gap-2">
+            <code className="text-[13px] text-[#52525b] font-mono bg-[#121214] px-3 py-2 rounded-xl border border-[#27272a]">
+              google-auth::uid::kang-2125
+            </code>
+            <button
+              onClick={copyId}
+              className="p-2 rounded-lg border border-[#27272a] text-[#52525b] hover:text-[#a1a1aa] hover:border-[#3f3f46] transition-all"
             >
-              <div className="flex items-start gap-4">
-                <div
-                  className={`w-12 h-12 rounded-2xl ${item.bg} border border-white/5 flex items-center justify-center ${item.color} shrink-0 shadow-inner group-hover:scale-110 transition-transform`}
-                >
-                  <item.icon size={20} />
-                </div>
-                <div>
-                  <p className="text-[15px] font-bold text-white tracking-tight">
-                    {item.label}
-                  </p>
-                  <p className="text-[13px] text-zinc-500 mt-1 max-w-md">
-                    {item.sub}
-                  </p>
-                </div>
-              </div>
-              <Toggle
-                enabled={kangbot[item.key as keyof typeof kangbot]}
-                onChange={() => toggleKangbot(item.key as any)}
-              />
-            </div>
-          ))}
-        </div>
+              {copied ? (
+                <Check size={14} className="text-emerald-400" />
+              ) : (
+                <Copy size={14} />
+              )}
+            </button>
+          </div>
+        </Row>
       </Section>
 
-      {/* ── Danger Zone ── */}
-      <div className="pt-8">
-        <div className="rounded-2xl border border-red-500/20 bg-red-500/5 p-8 flex flex-col md:flex-row items-center justify-between gap-6">
-          <div className="text-center md:text-left">
-            <h3 className="text-[18px] font-bold text-red-400">Danger Zone</h3>
-            <p className="text-[13.5px] text-red-400/60 mt-1">
-              Permanently delete your account and all associated AI logs.
-            </p>
+      {/* ── Appearance ── */}
+      <Section
+        title="Appearance"
+        description="Customize how CodeKang looks on your device."
+      >
+        <Row last>
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl bg-indigo-500/10 flex items-center justify-center text-indigo-400 shrink-0">
+              <Monitor size={17} />
+            </div>
+            <RowLabel
+              label="Theme"
+              sub="Applies immediately across the entire platform."
+            />
+          </div>
+          <div className="flex items-center p-1 bg-[#121214] border border-[#27272a] rounded-xl">
+            {(
+              [
+                { value: 'light', icon: Sun, label: 'Light' },
+                { value: 'dark', icon: Moon, label: 'Dark' },
+                { value: 'system', icon: Monitor, label: 'System' },
+              ] as const
+            ).map((t) => (
+              <button
+                key={t.value}
+                onClick={() => {
+                  setTheme(t.value);
+                  showToast(`Theme set to ${t.label}`);
+                }}
+                className={`flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-[13px] font-medium transition-all ${
+                  theme === t.value
+                    ? 'bg-[#27272a] text-[#f4f4f5] shadow-sm'
+                    : 'text-[#71717a] hover:text-[#a1a1aa]'
+                }`}
+              >
+                <t.icon size={13} />
+                {t.label}
+              </button>
+            ))}
+          </div>
+        </Row>
+      </Section>
+
+      {/* ── KangBot AI ── */}
+      <Section
+        title="KangBot AI"
+        description="Control how the AI agent behaves across your repositories."
+      >
+        {(
+          [
+            {
+              key: 'autoReview',
+              icon: Sparkles,
+              label: 'Auto-review PRs',
+              sub: 'KangBot reviews every opened pull request automatically.',
+            },
+            {
+              key: 'autoPatch',
+              icon: GitMerge,
+              label: 'Auto-patch critical bugs',
+              sub: 'Automatically open fix PRs for critical findings.',
+            },
+            {
+              key: 'explainFindings',
+              icon: MessageSquare,
+              label: 'Explain findings in plain English',
+              sub: 'Each finding includes a human-readable explanation and code example.',
+            },
+            {
+              key: 'blockMergeOnCritical',
+              icon: Shield,
+              label: 'Block merge on critical findings',
+              sub: 'Prevent merging PRs that have unresolved critical issues.',
+            },
+            {
+              key: 'reviewDrafts',
+              icon: Bug,
+              label: 'Review draft PRs',
+              sub: 'Include draft pull requests in AI review queue.',
+            },
+          ] as const
+        ).map((item, i, arr) => (
+          <Row key={item.key} last={i === arr.length - 1}>
+            <div className="flex items-center gap-3">
+              <div className="w-16 h-16 rounded-2xl bg-linear-to-br from-[#3b82f6]/10 to-[#8b5cf6]/10 border border-[#3b82f6]/20 flex items-center justify-center mx-auto mb-4 text-[#3b82f6]">
+                <item.icon size={16} />
+              </div>
+              <RowLabel label={item.label} sub={item.sub} />
+            </div>
+            <Toggle
+              enabled={kangbot[item.key]}
+              onChange={() => toggleKangbot(item.key)}
+            />
+          </Row>
+        ))}
+      </Section>
+
+      {/* ── Notifications ── */}
+      <Section
+        title="Notifications"
+        description="Choose what emails and in-app alerts you receive."
+      >
+        {(
+          [
+            {
+              key: 'prReview',
+              icon: Bot,
+              label: 'PR review completed',
+              sub: 'When KangBot finishes reviewing a pull request.',
+            },
+            {
+              key: 'bugDetected',
+              icon: Bug,
+              label: 'Bug detected',
+              sub: 'When a new bug or vulnerability is found.',
+            },
+            {
+              key: 'fixSuggested',
+              icon: Sparkles,
+              label: 'Fix suggestion ready',
+              sub: 'When an automated patch PR is opened.',
+            },
+            {
+              key: 'agentComplete',
+              icon: Bell,
+              label: 'Agent task completed',
+              sub: 'When a scheduled or manual agent run finishes.',
+            },
+            {
+              key: 'securityAlert',
+              icon: Shield,
+              label: 'Security alerts',
+              sub: 'Critical security vulnerabilities that need attention.',
+            },
+            {
+              key: 'weeklyReport',
+              icon: Monitor,
+              label: 'Weekly digest',
+              sub: 'A summary of AI activity and repository health every Monday.',
+            },
+          ] as const
+        ).map((item, i, arr) => (
+          <Row key={item.key} last={i === arr.length - 1}>
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-xl bg-[#27272a] flex items-center justify-center text-[#71717a] shrink-0">
+                <item.icon size={16} />
+              </div>
+              <RowLabel label={item.label} sub={item.sub} />
+            </div>
+            <Toggle
+              enabled={notifs[item.key]}
+              onChange={() => toggleNotif(item.key)}
+            />
+          </Row>
+        ))}
+      </Section>
+
+      {/* ── Git ── */}
+      <Section
+        title="Git configuration"
+        description="Configure how KangBot authors commits and pull requests."
+      >
+        <Row last>
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl bg-orange-500/10 flex items-center justify-center text-orange-400 shrink-0">
+              <GitBranch size={17} />
+            </div>
+            <RowLabel
+              label="Commit authoring"
+              sub="Attribution for AI-generated commits and fix PRs."
+            />
+          </div>
+          <div className="relative">
+            <button
+              onClick={() => setAuthoringOpen((v) => !v)}
+              className="flex items-center gap-3 bg-[#121214] border border-[#27272a] hover:border-[#3f3f46] transition-all rounded-xl px-4 py-2.5 w-full sm:w-[240px]"
+            >
+              <span className="text-[14px] text-[#f4f4f5] flex-1 text-left">
+                {authoring}
+              </span>
+              <ChevronDown size={14} className="text-[#52525b] shrink-0" />
+            </button>
+            {authoringOpen && (
+              <>
+                <div
+                  className="fixed inset-0 z-10"
+                  onClick={() => setAuthoringOpen(false)}
+                />
+                <div className="absolute right-0 top-12 w-[260px] bg-[#121214] border border-[#27272a] rounded-xl shadow-xl z-20 overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+                  {[
+                    'Co-authored (KangBot + User)',
+                    'KangBot only',
+                    'User only',
+                    'Custom author…',
+                  ].map((opt) => (
+                    <button
+                      key={opt}
+                      onClick={() => {
+                        setAuthoring(opt);
+                        setAuthoringOpen(false);
+                        showToast('Git authoring preference saved');
+                      }}
+                      className={`w-full text-left px-4 py-3 text-[14px] transition-colors flex items-center justify-between ${
+                        authoring === opt
+                          ? 'text-[#f4f4f5] bg-white/5'
+                          : 'text-[#71717a] hover:text-[#a1a1aa] hover:bg-white/3'
+                      }`}
+                    >
+                      {opt}
+                      {authoring === opt && (
+                        <Check size={14} className="text-emerald-400" />
+                      )}
+                    </button>
+                  ))}
+                </div>
+              </>
+            )}
+          </div>
+        </Row>
+      </Section>
+
+      {/* ── Connected accounts ── */}
+      <Section
+        title="Connected accounts"
+        description="External services linked to your CodeKang account."
+      >
+        <Row>
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl bg-[#27272a] flex items-center justify-center text-[#e8e8e8] shrink-0">
+              <GitFork size={17} />
+            </div>
+            <RowLabel
+              label="GitHub"
+              sub="Required for repository access and PR reviews."
+            />
+          </div>
+          <div className="flex items-center gap-2.5">
+            <span className="flex items-center gap-1.5 text-[13px] text-emerald-400">
+              <CheckCircle2 size={14} />
+              Connected as @jagdeep
+            </span>
+            <button className="px-3 py-1.5 rounded-lg text-[13px] text-[#71717a] border border-[#27272a] hover:text-red-400 hover:border-red-500/30 transition-all">
+              Disconnect
+            </button>
+          </div>
+        </Row>
+        <Row last>
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl bg-[#27272a] flex items-center justify-center text-[#71717a] shrink-0">
+              <Bot size={17} />
+            </div>
+            <RowLabel
+              label="GitLab"
+              sub="Connect to enable GitLab repository reviews."
+            />
           </div>
           <button
-            className="px-6 py-2.5 rounded-xl bg-red-500 text-white text-[13px] font-black hover:bg-red-600 transition-all active:scale-95 shadow-lg shadow-red-500/20"
-            onClick={() =>
-              showToast('Check your email to confirm deletion', 'error')
-            }
+            onClick={() => showToast('GitLab OAuth coming soon', 'error')}
+            className="px-4 py-2 rounded-xl bg-[#27272a] text-[14px] font-medium text-[#a1a1aa] hover:bg-[#3f3f46] transition-all"
           >
-            DELETE ACCOUNT
+            Connect
           </button>
-        </div>
-      </div>
+        </Row>
+      </Section>
 
+      {/* ── Danger zone ── */}
+      <section className="space-y-3">
+        <div>
+          <h2 className="text-[15px] font-semibold text-red-400">
+            Danger zone
+          </h2>
+          <p className="text-[13px] text-[#71717a] mt-0.5">
+            Irreversible actions. Proceed with caution.
+          </p>
+        </div>
+        <div className="rounded-[14px] border border-red-500/20 bg-red-500/3 overflow-hidden">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between px-5 py-4 gap-4 border-b border-red-500/10">
+            <div>
+              <p className="text-[14px] font-medium text-[#f4f4f5]">
+                Delete all AI data
+              </p>
+              <p className="text-[13px] text-[#71717a] mt-0.5">
+                Permanently removes all KangBot findings, logs, and fix history.
+              </p>
+            </div>
+            <button
+              onClick={() =>
+                showToast(
+                  'Please confirm from the email we just sent you',
+                  'error',
+                )
+              }
+              className="flex items-center gap-2 px-4 py-2 rounded-xl border border-red-500/25 text-[13px] font-medium text-red-400 hover:bg-red-500/10 transition-all shrink-0"
+            >
+              <Trash2 size={14} />
+              Delete AI data
+            </button>
+          </div>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between px-5 py-4 gap-4">
+            <div>
+              <p className="text-[14px] font-medium text-[#f4f4f5]">
+                Delete account
+              </p>
+              <p className="text-[13px] text-[#71717a] mt-0.5">
+                Permanently delete your account and all associated data. This
+                cannot be undone.
+              </p>
+            </div>
+            <button
+              onClick={() =>
+                showToast(
+                  'Confirmation email sent to jagdeepsnh57@gmail.com',
+                  'error',
+                )
+              }
+              className="flex items-center gap-2 px-4 py-2 rounded-xl bg-red-500/10 border border-red-500/25 text-[13px] font-semibold text-red-400 hover:bg-red-500/20 transition-all shrink-0"
+            >
+              <Trash2 size={14} />
+              Delete account
+            </button>
+          </div>
+        </div>
+      </section>
+
+      {/* Toast */}
       {toast && (
         <Toast
           message={toast.msg}
