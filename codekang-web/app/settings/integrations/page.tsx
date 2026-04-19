@@ -310,7 +310,7 @@ export default function IntegrationsPage() {
   const configuringItem = list.find((i) => i.id === configuring);
 
   return (
-    <div className="space-y-7 animate-in fade-in slide-in-from-bottom-2 duration-400">
+    <div className="max-w-4xl mx-auto space-y-7 animate-in fade-in slide-in-from-bottom-2 duration-400">
       <div className="flex items-center justify-between gap-4">
         <div>
           <h1
@@ -325,8 +325,8 @@ export default function IntegrationsPage() {
         </div>
         <Link
           href="/dashboard/integrations"
-          className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-[13px] font-bold text-white shadow-lg shadow-rose-500/10 transition-all hover:scale-[1.02] active:scale-[0.98]"
-          style={{ background: '#e11d48' }}
+          className="flex items-center gap-2 px-4 py-2.5 rounded-md text-[13px] font-bold text-white shadow-lg shadow-indigo-500/10 transition-all hover:scale-[1.02] active:scale-[0.98]"
+          style={{ background: '#6366f1' }}
         >
           <Plus size={16} /> Add Plug
         </Link>
@@ -336,7 +336,7 @@ export default function IntegrationsPage() {
       <div className="flex flex-col gap-4">
         {connectedList.length === 0 ? (
           <div
-            className="py-12 text-center rounded-2xl border border-dashed"
+            className="py-12 text-center rounded-md border border-dashed"
             style={{ borderColor: cardBorder }}
           >
             <p className="text-[14px] font-medium" style={{ color: textMuted }}>
@@ -344,7 +344,7 @@ export default function IntegrationsPage() {
             </p>
             <Link
               href="/dashboard/integrations"
-              className="text-[13px] text-rose-500 hover:underline mt-2 inline-block"
+              className="text-[13px] text-indigo-400 hover:underline mt-2 inline-block"
             >
               Browse integrations to connect
             </Link>
@@ -353,12 +353,12 @@ export default function IntegrationsPage() {
           connectedList.map((integration) => (
             <div
               key={integration.id}
-              className="rounded-2xl border p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 transition-all"
+              className="rounded-md border p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 transition-all"
               style={{ background: cardBg, borderColor: cardBorder }}
             >
               <div className="flex items-center gap-4">
                 <div
-                  className="w-12 h-12 rounded-xl flex items-center justify-center shrink-0 border"
+                  className="w-12 h-12 rounded-md flex items-center justify-center shrink-0 border"
                   style={{
                     background: '#111113',
                     borderColor: cardBorder,
@@ -399,14 +399,14 @@ export default function IntegrationsPage() {
               <div className="flex items-center gap-2">
                 <button
                   onClick={() => setConfiguring(integration.id)}
-                  className="px-4 py-2 rounded-xl border text-[13px] font-medium transition-all hover:bg-white/5 active:scale-95"
+                  className="px-4 py-2 rounded-md border text-[13px] font-medium transition-all hover:bg-white/5 active:scale-95"
                   style={{ borderColor: cardBorder, color: textMuted }}
                 >
                   Configure
                 </button>
                 <button
                   onClick={() => handleDisconnect(integration.id)}
-                  className="px-4 py-2 rounded-xl border text-[13px] font-medium transition-all text-red-400 border-red-500/10 hover:bg-red-500/5 active:scale-95"
+                  className="px-4 py-2 rounded-md border text-[13px] font-medium transition-all text-red-500 border-red-500/10 hover:bg-red-500/5 active:scale-95"
                 >
                   Disconnect
                 </button>
@@ -417,7 +417,7 @@ export default function IntegrationsPage() {
       </div>
 
       <div
-        className="mt-8 p-6 rounded-2xl border bg-linear-to-b from-transparent to-[#e11d48]/5"
+        className="mt-8 p-6 rounded-md border bg-linear-to-b from-transparent to-indigo-500/5"
         style={{ borderColor: cardBorder }}
       >
         <h3 className="text-[16px] font-bold" style={{ color: textPrimary }}>
@@ -429,7 +429,7 @@ export default function IntegrationsPage() {
         </p>
         <Link
           href="/dashboard/integrations"
-          className="text-rose-500 text-[13px] font-bold flex items-center gap-1.5 hover:gap-2 transition-all"
+          className="text-indigo-400 text-[13px] font-bold flex items-center gap-1.5 hover:gap-2 transition-all"
         >
           View integration marketplace <ExternalLink size={14} />
         </Link>

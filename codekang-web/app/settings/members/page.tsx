@@ -156,7 +156,7 @@ export default function MembersPage() {
   };
 
   return (
-    <div className="space-y-8 animate-in fade-in slide-in-from-bottom-2 duration-500">
+    <div className="max-w-4xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-2 duration-500">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6">
         <div>
@@ -172,10 +172,10 @@ export default function MembersPage() {
         </div>
         <button
           onClick={() => setIsInviteOpen(true)}
-          className="px-5 py-2.5 rounded-xl bg-white text-black hover:bg-zinc-200 transition-all text-[13px] font-bold shadow-xl shadow-white/5 flex items-center justify-center gap-2 active:scale-95"
+          className="flex items-center gap-2 px-5 py-2.5 rounded-md bg-[#6366f1] hover:bg-[#4f46e5] text-[13.5px] font-bold text-white transition-all shadow-lg shadow-indigo-500/10"
         >
           <UserPlus size={16} />
-          Invite Teammate
+          Invite Member
         </button>
       </div>
 
@@ -200,7 +200,7 @@ export default function MembersPage() {
         ].map((stat) => (
           <div
             key={stat.label}
-            className="p-5 rounded-2xl border bg-[#1c1c1c] shadow-sm"
+            className="p-5 rounded-md border bg-[#18181b] shadow-sm"
             style={{ borderColor: cardBorder }}
           >
             <p className="text-[11px] font-bold uppercase tracking-widest opacity-40 mb-1">
@@ -223,10 +223,10 @@ export default function MembersPage() {
             placeholder="Search by name or email..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full bg-[#111113] border border-[#2a2a2a] rounded-xl py-3 pl-11 pr-4 text-[13.5px] text-[#e8e8e8] outline-none focus:border-white/20 transition-all"
+            className="w-full bg-[#111113] border border-[#27272a] rounded-md py-3 pl-11 pr-4 text-[13.5px] text-[#f8f8f8] outline-none focus:border-[#6366f1] transition-all"
           />
         </div>
-        <button className="w-full sm:w-auto flex items-center justify-between gap-3 px-4 py-3 rounded-xl bg-[#111113] border border-[#2a2a2a] text-[13.5px] text-[#a1a1aa] hover:border-white/10 transition-all">
+        <button className="w-full sm:w-auto flex items-center justify-between gap-3 px-4 py-3 rounded-md bg-[#111113] border border-[#27272a] text-[13.5px] text-[#909090] hover:border-[#6366f1] transition-all">
           Sort by: Recent
           <ChevronDown size={14} />
         </button>
@@ -234,7 +234,7 @@ export default function MembersPage() {
 
       {/* Members Table */}
       <div
-        className="rounded-2xl border shadow-2xl overflow-hidden"
+        className="rounded-md border shadow-2xl overflow-hidden"
         style={{ background: cardBg, borderColor: cardBorder }}
       >
         <div className="overflow-x-auto">

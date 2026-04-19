@@ -88,7 +88,7 @@ function Section({
 
   return (
     <section
-      className="rounded-2xl border overflow-hidden"
+      className="rounded-md border overflow-hidden"
       style={{ background: cardBg, borderColor: cardBorder }}
     >
       <div className="px-6 py-5 border-b" style={{ borderColor: cardBorder }}>
@@ -221,7 +221,7 @@ export default function SecurityPage() {
   };
 
   const inputCls =
-    'w-full rounded-xl px-4 py-2.5 text-[13px] outline-none transition-all border';
+    'w-full rounded-md px-4 py-2.5 text-[13px] outline-none transition-all border';
 
   const pwStrength = (() => {
     const p = pwForm.next;
@@ -233,7 +233,7 @@ export default function SecurityPage() {
   })();
 
   return (
-    <div className="space-y-7 animate-in fade-in slide-in-from-bottom-2 duration-400">
+    <div className="max-w-4xl mx-auto space-y-7 animate-in fade-in slide-in-from-bottom-2 duration-400">
       <div>
         <h1
           className="text-[24px] font-bold tracking-tight"
@@ -266,7 +266,7 @@ export default function SecurityPage() {
 
           {twoFAEnabled && showQR && (
             <div
-              className="rounded-xl border p-5 space-y-4"
+              className="rounded-md border p-5 space-y-4"
               style={{ background: inputBg, borderColor: inputBorder }}
             >
               <div className="flex items-start gap-4">
@@ -352,8 +352,8 @@ export default function SecurityPage() {
               <div className="flex gap-2 pt-1">
                 <button
                   onClick={() => setShowQR(false)}
-                  className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-[13px] font-bold text-white"
-                  style={{ background: '#e11d48' }}
+                  className="flex items-center gap-1.5 px-4 py-2 rounded-md text-[13px] font-bold text-white transition-all shadow-sm"
+                  style={{ background: '#6366f1' }}
                 >
                   <Check size={14} /> I&apos;ve set it up
                 </button>
@@ -362,7 +362,7 @@ export default function SecurityPage() {
                     setTwoFAEnabled(false);
                     setShowQR(false);
                   }}
-                  className="px-4 py-2 rounded-xl border text-[13px] font-medium"
+                  className="px-4 py-2 rounded-md border text-[13px] font-medium transition-all"
                   style={{ borderColor: cardBorder, color: textMuted }}
                 >
                   Cancel
@@ -455,7 +455,7 @@ export default function SecurityPage() {
 
           {pwError && (
             <div
-              className="flex items-center gap-2 p-3 rounded-xl border"
+              className="flex items-center gap-2 p-3 rounded-md border"
               style={{
                 background: 'rgba(239,68,68,0.06)',
                 borderColor: 'rgba(239,68,68,0.2)',
@@ -469,8 +469,8 @@ export default function SecurityPage() {
           <button
             onClick={handlePwSave}
             disabled={savingPw || savedPw}
-            className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-[13px] font-bold text-white transition-all disabled:opacity-70"
-            style={{ background: savedPw ? '#10b981' : '#e11d48' }}
+            className="flex items-center gap-2 px-5 py-2.5 rounded-md text-[13px] font-bold text-white transition-all disabled:opacity-70 shadow-sm"
+            style={{ background: savedPw ? '#10b981' : '#6366f1' }}
           >
             {savingPw ? (
               <>
@@ -497,7 +497,7 @@ export default function SecurityPage() {
             {sessions.map((s) => (
               <div
                 key={s.id}
-                className="flex items-center gap-4 p-4 rounded-xl border transition-all"
+                className="flex items-center gap-4 p-4 rounded-md border transition-all"
                 style={{
                   background: inputBg,
                   borderColor: inputBorder,
@@ -505,19 +505,14 @@ export default function SecurityPage() {
                 }}
               >
                 <div
-                  className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
+                  className="w-10 h-10 rounded-md flex items-center justify-center shrink-0 font-bold border text-[11px]"
                   style={{
                     background: cardBg,
-                    border: `1px solid ${cardBorder}`,
+                    borderColor: cardBorder,
+                    color: textDim,
                   }}
                 >
-                  {s.os === 'iOS' ? (
-                    <Smartphone size={16} style={{ color: textDim }} />
-                  ) : s.device.includes('VS Code') ? (
-                    <Key size={16} style={{ color: textDim }} />
-                  ) : (
-                    <Monitor size={16} style={{ color: textDim }} />
-                  )}
+                  {s.os === 'iOS' ? 'iOS' : s.os === 'Win' ? 'WIN' : 'LIN'}
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
@@ -552,7 +547,7 @@ export default function SecurityPage() {
                   <button
                     onClick={() => handleRevokeSession(s.id)}
                     disabled={revokingId === s.id}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-[12px] font-medium transition-all disabled:opacity-50"
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-md border text-[12px] font-medium transition-all disabled:opacity-50"
                     style={{ borderColor: cardBorder, color: textMuted }}
                   >
                     {revokingId === s.id ? (

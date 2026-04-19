@@ -498,7 +498,7 @@ export default function SupportPage() {
   }
 
   return (
-    <div className="space-y-8 animate-in fade-in slide-in-from-bottom-2 duration-500">
+    <div className="max-w-4xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-2 duration-500">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1
@@ -514,14 +514,14 @@ export default function SupportPage() {
         <div className="flex items-center gap-3">
           <button
             onClick={() => setView('list')}
-            className="px-5 py-2.5 rounded-xl border text-[13px] font-bold transition-all hover:bg-white/5"
+            className="px-5 py-2.5 rounded-md border text-[13px] font-bold transition-all hover:bg-white/5"
             style={{ borderColor: cardBorder, color: textPrimary }}
           >
             View My Tickets
           </button>
           <button
             onClick={() => setView('create')}
-            className="px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-[13px] font-bold text-white transition-all shadow-lg shadow-blue-500/10"
+            className="px-5 py-2.5 rounded-md bg-[#6366f1] hover:bg-[#4f46e5] text-[13px] font-bold text-white transition-all shadow-lg shadow-indigo-500/10"
           >
             Create Ticket
           </button>
@@ -531,10 +531,10 @@ export default function SupportPage() {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <button
           onClick={() => setView('create')}
-          className="group flex items-start gap-4 p-6 rounded-2xl border bg-linear-to-br from-[#1c1c1c] to-[#1c1c1c] hover:to-emerald-500/5 transition-all text-left"
+          className="group flex items-start gap-4 p-6 rounded-md border bg-linear-to-br from-[#18181b] to-[#18181b] hover:to-indigo-500/5 transition-all text-left"
           style={{ borderColor: cardBorder }}
         >
-          <div className="w-12 h-12 rounded-xl bg-emerald-500/10 flex items-center justify-center shrink-0 text-emerald-400 group-hover:scale-110 transition-transform">
+          <div className="w-12 h-12 rounded-md bg-[#6366f1]/10 flex items-center justify-center shrink-0 text-[#6366f1] group-hover:scale-110 transition-transform">
             <MessageSquare size={22} />
           </div>
           <div>
@@ -553,10 +553,10 @@ export default function SupportPage() {
           </div>
         </button>
         <button
-          className="group flex items-start gap-4 p-6 rounded-2xl border bg-[#1c1c1c] hover:bg-[#252529] transition-all text-left"
+          className="group flex items-start gap-4 p-6 rounded-md border bg-[#18181b] hover:bg-[#252529] transition-all text-left"
           style={{ borderColor: cardBorder }}
         >
-          <div className="w-12 h-12 rounded-xl bg-blue-500/10 flex items-center justify-center shrink-0 text-blue-400 group-hover:scale-110 transition-transform">
+          <div className="w-12 h-12 rounded-md bg-[#6366f1]/10 flex items-center justify-center shrink-0 text-[#6366f1] group-hover:scale-110 transition-transform">
             <Mail size={22} />
           </div>
           <div>
@@ -584,7 +584,7 @@ export default function SupportPage() {
             </h2>
             <Link
               href="#"
-              className="text-[12px] text-blue-400 hover:underline"
+              className="text-[12px] text-indigo-400 hover:underline"
             >
               View All History
             </Link>
@@ -597,12 +597,12 @@ export default function SupportPage() {
                   setActiveId(t.id);
                   setView('details');
                 }}
-                className="group flex items-center justify-between p-5 rounded-2xl border bg-[#1c1c1c] hover:bg-[#252529] cursor-pointer transition-all active:scale-[0.99]"
+                className="group flex items-center justify-between p-5 rounded-md border bg-[#18181b] hover:bg-[#252529] cursor-pointer transition-all active:scale-[0.99]"
                 style={{ borderColor: cardBorder }}
               >
                 <div className="flex items-center gap-4">
                   <div
-                    className={`w-1.5 h-10 rounded-full ${t.status === 'open' ? 'bg-emerald-500' : t.status === 'pending' ? 'bg-amber-500' : 'bg-blue-500'}`}
+                    className={`w-1.5 h-10 rounded-full ${t.status === 'open' ? 'bg-emerald-500' : t.status === 'pending' ? 'bg-amber-500' : 'bg-indigo-500'}`}
                   />
                   <div>
                     <div className="flex items-center gap-2 mb-0.5">

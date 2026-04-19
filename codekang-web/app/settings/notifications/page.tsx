@@ -91,7 +91,7 @@ function NSection({
 
   return (
     <section
-      className="rounded-2xl border overflow-hidden"
+      className="rounded-md border overflow-hidden"
       style={{ background: cardBg, borderColor: cardBorder }}
     >
       <div
@@ -167,7 +167,7 @@ export default function NotificationsPage() {
   };
 
   return (
-    <div className="space-y-7 animate-in fade-in slide-in-from-bottom-2 duration-400">
+    <div className="max-w-4xl mx-auto space-y-7 animate-in fade-in slide-in-from-bottom-2 duration-500">
       <div>
         <h1
           className="text-[24px] font-bold tracking-tight"
@@ -270,7 +270,7 @@ export default function NotificationsPage() {
 
       {/* Delivery */}
       <section
-        className="rounded-2xl border overflow-hidden"
+        className="rounded-md border overflow-hidden"
         style={{ background: cardBg, borderColor: cardBorder }}
       >
         <div
@@ -399,7 +399,7 @@ export default function NotificationsPage() {
                 placeholder="https://hooks.slack.com/services/…"
                 value={webhookUrl}
                 onChange={(e) => setWebhookUrl(e.target.value)}
-                className="w-full rounded-xl px-4 py-2.5 text-[13px] outline-none transition-all border"
+                className="w-full rounded-md px-4 py-2.5 text-[13px] outline-none transition-all border"
                 style={{
                   background: inputBg,
                   borderColor: inputBorder,
@@ -416,8 +416,8 @@ export default function NotificationsPage() {
         <button
           onClick={handleSave}
           disabled={saving || saved}
-          className="flex items-center gap-2 px-6 py-2.5 rounded-xl text-[13px] font-bold text-white transition-all disabled:opacity-70"
-          style={{ background: saved ? '#10b981' : '#e11d48' }}
+          className="flex items-center gap-2 px-6 py-2.5 rounded-md text-[13px] font-bold text-white transition-all disabled:opacity-70 shadow-sm"
+          style={{ background: saved ? '#10b981' : '#6366f1' }}
         >
           {saving ? (
             <>

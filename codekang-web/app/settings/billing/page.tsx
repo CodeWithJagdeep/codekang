@@ -1516,7 +1516,7 @@ export default function BillingPage() {
   const activeTabBorder = L ? '#e2e4e7' : '#2e2e2e';
 
   return (
-    <div className="space-y-7 animate-in fade-in slide-in-from-bottom-2 duration-400">
+    <div className="max-w-4xl mx-auto space-y-7 animate-in fade-in slide-in-from-bottom-2 duration-400">
       {/* Page title */}
       <div>
         <h1
