@@ -1,8 +1,9 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { useState, useEffect, useRef } from 'react';
+import { getAccessToken } from '@/lib/auth';
 import {
   ChevronLeft,
   Search,
@@ -107,10 +108,25 @@ export default function SettingsLayout({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
+  const router = useRouter();
   const { resolved } = useTheme();
   const isLight = resolved === 'light';
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isVerified, setIsVerified] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const mainRef = useRef<HTMLElement>(null);
+
+  useEffect(() => {
+    const token = getAccessToken();
+    if (!token) {
+      router.replace('/in/login');
+      return;
+    }
+    setTimeout(() => {
+      setIsVerified(true);
+      setIsLoading(false);
+    }, 0);
+  }, [router]);
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -126,6 +142,22 @@ export default function SettingsLayout({
   const textDim = isLight ? '#9aa0a6' : '#6d6d6d';
   const activeItemBg = isLight ? 'rgba(0,0,0,0.05)' : 'rgba(255,255,255,0.06)';
   const inputBg = isLight ? '#f1f3f4' : 'rgba(255,255,255,0.05)';
+
+  if (isLoading) {
+    return (
+      <div
+        className={`min-h-screen flex items-center justify-center ${isLight ? 'bg-[#f4f5f7]' : 'bg-[#1c1c1c]'}`}
+      >
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-8 h-8 border-2 border-[#2a2a2a] border-t-[#f97316] rounded-full animate-spin" />
+        </div>
+      </div>
+    );
+  }
+
+  if (!isVerified) {
+    return null;
+  }
 
   return (
     <div
