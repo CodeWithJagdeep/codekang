@@ -97,7 +97,7 @@ export default function LoginPage() {
       // Hide after 1 second
       timeoutsRef.current[index] = setTimeout(() => {
         setVisibleIndices((prev) => ({ ...prev, [index]: false }));
-      }, 1000);
+      }, 200);
 
       // Auto focus next
       if (index < 5) {
