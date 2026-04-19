@@ -2,7 +2,6 @@
 
 import {
   ShieldCheck,
-  Zap,
   X,
   Check,
   Sparkles,
@@ -10,8 +9,6 @@ import {
   FolderGit2,
   Loader2,
   FileText,
-  Plus,
-  CheckCircle2,
 } from 'lucide-react';
 import { useState } from 'react';
 import { useTheme } from '@/lib/theme';
@@ -294,8 +291,8 @@ function UpgradeModal({
           <button
             onClick={handleUpgrade}
             disabled={loading}
-            className="w-full py-3 rounded-md text-[14px] font-bold text-white transition-all flex items-center justify-center gap-2 disabled:opacity-70"
-            style={{ background: '#6366f1' }}
+            className="w-full py-3 rounded-md text-[14px] font-bold text-white transition-all flex items-center justify-center gap-2 disabled:opacity-70 border"
+            style={{ borderColor: '#f97316', background: 'transparent' }}
           >
             {loading ? (
               <>
@@ -355,12 +352,6 @@ function OverviewTab({
         className="rounded-lg border p-6 relative overflow-hidden"
         style={{ background: cardBg, borderColor: cardBorder }}
       >
-        <div
-          className="absolute inset-0 pointer-events-none"
-          style={{
-            background: `radial-gradient(ellipse at top right, ${activePlan.color}10 0%, transparent 55%)`,
-          }}
-        />
         <div className="relative flex flex-col lg:flex-row lg:items-start gap-6">
           <div className="flex-1 space-y-5">
             <div className="flex items-center gap-3">
@@ -465,12 +456,12 @@ function OverviewTab({
                 Billed monthly · Cancel anytime
               </p>
             </div>
-            <div className="flex gap-2">
+            <div className="flex flex-col items-stretch gap-2 w-full lg:w-[140px]">
               {currentPlan !== 'enterprise' && !localUpgraded && (
                 <button
                   onClick={() => setShowUpgrade(true)}
-                  className="flex items-center gap-1.5 px-4 py-2 rounded-md text-[13px] font-bold text-white transition-all"
-                  style={{ background: '#6366f1' }}
+                  className="flex items-center justify-center px-4 py-2 rounded-md text-[13px] font-bold text-white transition-all border"
+                  style={{ borderColor: '#f97316', background: 'transparent' }}
                 >
                   Upgrade
                 </button>
@@ -594,8 +585,11 @@ function OverviewTab({
                 ) : (
                   <button
                     onClick={() => setShowUpgrade(true)}
-                    className="py-2 rounded-md text-[13px] font-bold text-white transition-all"
-                    style={{ background: plan.color }}
+                    className="py-2 rounded-md text-[13px] font-bold text-white transition-all border"
+                    style={{
+                      borderColor: '#f97316',
+                      background: 'transparent',
+                    }}
                   >
                     Upgrade to {plan.name}
                   </button>
