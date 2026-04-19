@@ -25,6 +25,8 @@ import {
   Layout,
   Settings,
   AtSign,
+  User,
+  Mail,
 } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
 import { useTheme } from '@/lib/theme';
