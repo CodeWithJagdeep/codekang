@@ -7,6 +7,7 @@ import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
 import { User } from '../entities/user.entity';
 import { RefreshTokenBlacklist } from '../entities/refresh-token-blacklist.entity';
+import { Otp } from '../entities/otp.entity';
 import { BlacklistCleanupService } from './blacklist-cleanup.service';
 import { MailModule } from './mail/mail.module';
 
@@ -20,7 +21,7 @@ import { MailModule } from './mail/mail.module';
         signOptions: { expiresIn: config.get('JWT_EXPIRES_IN', '15m') },
       }),
     }),
-    TypeOrmModule.forFeature([User, RefreshTokenBlacklist]),
+    TypeOrmModule.forFeature([User, RefreshTokenBlacklist, Otp]),
     ScheduleModule.forRoot(),
     MailModule,
   ],

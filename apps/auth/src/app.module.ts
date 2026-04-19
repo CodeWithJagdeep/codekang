@@ -4,6 +4,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { AuthModule } from './modules/auth.module';
 import { User } from './entities/user.entity';
 import { RefreshTokenBlacklist } from './entities/refresh-token-blacklist.entity';
+import { Otp } from './entities/otp.entity';
 
 @Module({
   imports: [
@@ -17,7 +18,7 @@ import { RefreshTokenBlacklist } from './entities/refresh-token-blacklist.entity
       useFactory: (config: ConfigService) => ({
         type: 'postgres',
         url: config.getOrThrow('DATABASE_URL'),
-        entities: [User, RefreshTokenBlacklist],
+        entities: [User, RefreshTokenBlacklist, Otp],
         synchronize: config.get('NODE_ENV') !== 'production',
         ssl:
           config.get('NODE_ENV') === 'production'

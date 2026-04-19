@@ -17,6 +17,8 @@ export const MESSAGE_PATTERNS = {
   AUTH_COMPLETE_ONBOARDING: 'auth.complete_onboarding',
   AUTH_LINK_VCS: 'auth.link_vcs',
   AUTH_UPDATE_PLAN: 'auth.update_plan',
+  AUTH_SEND_OTP: 'auth.send_otp',
+  AUTH_VERIFY_OTP: 'auth.verify_otp',
 
   // AI Agent
   AGENT_CREATE_CONVERSATION: 'agent.create_conversation',

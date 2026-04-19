@@ -50,7 +50,9 @@ export class AuthController {
   }
 
   @MessagePattern(MESSAGE_PATTERNS.AUTH_FIREBASE_LOGIN)
-  socialLogin(@Payload() data: { provider: 'google' | 'github'; token: string }) {
+  socialLogin(
+    @Payload() data: { provider: 'google' | 'github'; token: string },
+  ) {
     return this.authService.socialLogin(data.provider, data.token);
   }
 
@@ -60,12 +62,30 @@ export class AuthController {
   }
 
   @MessagePattern(MESSAGE_PATTERNS.AUTH_LINK_VCS)
-  linkVcs(@Payload() data: { userId: string; provider: 'gitlab' | 'bitbucket'; token: string }) {
+  linkVcs(
+    @Payload()
+    data: {
+      userId: string;
+      provider: 'gitlab' | 'bitbucket';
+      token: string;
+    },
+  ) {
     return this.authService.linkVcs(data.userId, data.provider, data.token);
   }
 
   @MessagePattern(MESSAGE_PATTERNS.AUTH_UPDATE_PLAN)
   updatePlan(@Payload() data: { userId: string; plan: string }) {
     return this.authService.updatePlan(data.userId, data.plan as any);
+  }
+
+  @MessagePattern(MESSAGE_PATTERNS.AUTH_SEND_OTP)
+  async sendOtp(@Payload() data: { email: string }) {
+    await this.authService.sendOtp(data.email);
+    return { success: true };
+  }
+
+  @MessagePattern(MESSAGE_PATTERNS.AUTH_VERIFY_OTP)
+  verifyOtp(@Payload() data: { email: string; code: string }) {
+    return this.authService.verifyOtp(data.email, data.code);
   }
 }

@@ -80,6 +80,14 @@ export class MailService {
     });
   }
 
+  sendOtpEmail(email: string, otp: string): Promise<void> {
+    return this.send({
+      to: email,
+      subject: `${otp} is your CodeKang verification code`,
+      html: this.otpActivityHtml(otp),
+    });
+  }
+
   sendLoginEmail(user: { email: string; name: string }): Promise<void> {
     return this.send({
       to: user.email,
@@ -198,6 +206,16 @@ export class MailService {
     );
   }
 
+  private otpActivityHtml(otp: string): string {
+    return this.baseHtml(
+      'Your Verification Code',
+      `<h2>Verification Code</h2>
+<p>Please use the following 6-digit code to sign in to CodeKang:</p>
+<div class="hl" style="text-align: center; font-size: 24px; letter-spacing: 4px; padding: 20px;"><strong>${otp}</strong></div>
+<p style="color: #6b7280; font-size: 13px;">If you didn't request this code, you can safely ignore this email.</p>`,
+    );
+  }
+
   private loginHtml(name: string): string {
     return this.baseHtml(
       'New Sign-In — CodeKang',
@@ -256,7 +274,11 @@ export class MailService {
     );
   }
 
-  private paymentCompleteHtml(name: string, plan: string, price: string): string {
+  private paymentCompleteHtml(
+    name: string,
+    plan: string,
+    price: string,
+  ): string {
     return this.baseHtml(
       'Payment Confirmed — CodeKang',
       `<h2>Payment confirmed ✓</h2>

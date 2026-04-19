@@ -11,7 +11,11 @@ Production-grade GitHub AI automation platform powered by Claude. Autonomously f
 - **AI Agent** (NestJS) - Conversation management, Claude API integration
 - **Repos** (NestJS) - Repository management, GitHub integration
 - **Autonomous Agent** (Express) - Advanced AI worker that analyzes issues, executes browser-based research, and autonomously creates PRs.
-- **Frontend** (Next.js 15) - Professional dashboard for repository management and AI monitoring
+- **Frontend** (Next.js 15) - Professional dashboard featuring a modernized settings platform:
+  - **Support Ticketing**: Full-featured threaded support system with status tracking and ratings.
+  - **Member Management**: Vibrant, high-contrast team controls with role-based permissions.
+  - **Profile Panel**: Dashboard-style user information card with integrated AI controls.
+  - **Unified Layout**: Sticky breadcrumbs and glassmorphism-inspired settings interface.
 
 **Infrastructure:**
 

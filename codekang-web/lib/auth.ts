@@ -102,6 +102,40 @@ export async function signInWithGitHub(): Promise<SocialLoginResult> {
   return exchangeSocialToken('github', credential.accessToken);
 }
 
+// ─── Email OTP sign-in ────────────────────────────────────────────────────────
+
+export async function sendOtp(email: string): Promise<void> {
+  const res = await fetch(`${API_URL}/auth/otp/send`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(
+      (err as { message?: string }).message ?? 'Failed to send OTP',
+    );
+  }
+}
+
+export async function verifyOtp(
+  email: string,
+  code: string,
+): Promise<SocialLoginResult> {
+  const res = await fetch(`${API_URL}/auth/otp/verify`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email, code }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(
+      (err as { message?: string }).message ?? 'Invalid OTP code',
+    );
+  }
+  return res.json() as Promise<SocialLoginResult>;
+}
+
 // ─── Onboarding ───────────────────────────────────────────────────────────────
 
 export async function selectPlan(plan: string): Promise<User> {

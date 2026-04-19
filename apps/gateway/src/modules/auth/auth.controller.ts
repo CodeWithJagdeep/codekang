@@ -11,7 +11,12 @@ import {
 } from '@nestjs/common';
 import { IsString, IsNotEmpty, IsIn } from 'class-validator';
 import { ClientProxy } from '@nestjs/microservices';
-import { ApiTags, ApiBearerAuth, ApiOperation, ApiProperty } from '@nestjs/swagger';
+import {
+  ApiTags,
+  ApiBearerAuth,
+  ApiOperation,
+  ApiProperty,
+} from '@nestjs/swagger';
 import { firstValueFrom } from 'rxjs';
 import {
   SERVICES,
@@ -46,7 +51,9 @@ class LinkVcsDto {
   @IsIn(['gitlab', 'bitbucket'])
   provider: 'gitlab' | 'bitbucket';
 
-  @ApiProperty({ description: 'Personal access token or OAuth token for the VCS provider' })
+  @ApiProperty({
+    description: 'Personal access token or OAuth token for the VCS provider',
+  })
   @IsString()
   @IsNotEmpty()
   token: string;
@@ -56,6 +63,25 @@ class UpdatePlanDto {
   @ApiProperty({ enum: ['free', 'starter', 'pro', 'team', 'enterprise'] })
   @IsIn(['free', 'starter', 'pro', 'team', 'enterprise'])
   plan: string;
+}
+
+class SendOtpDto {
+  @ApiProperty({ description: 'Email address to send OTP to' })
+  @IsString()
+  @IsNotEmpty()
+  email: string;
+}
+
+class VerifyOtpDto {
+  @ApiProperty({ description: 'Email address tied to the OTP' })
+  @IsString()
+  @IsNotEmpty()
+  email: string;
+
+  @ApiProperty({ description: 'The 6-digit verification code' })
+  @IsString()
+  @IsNotEmpty()
+  code: string;
 }
 
 @ApiTags('auth')
@@ -75,7 +101,8 @@ export class AuthProxyController {
 
   @Post('social')
   @ApiOperation({
-    summary: 'Exchange a Google ID token or GitHub access token for a platform JWT',
+    summary:
+      'Exchange a Google ID token or GitHub access token for a platform JWT',
     description:
       'Frontend: after Firebase popup, pass `GoogleAuthProvider.credentialFromResult(result).idToken` (Google) or `GithubAuthProvider.credentialFromResult(result).accessToken` (GitHub).',
   })
@@ -84,6 +111,27 @@ export class AuthProxyController {
       this.authClient.send(MESSAGE_PATTERNS.AUTH_FIREBASE_LOGIN, {
         provider: dto.provider,
         token: dto.token,
+      }),
+    );
+  }
+
+  @Post('otp/send')
+  @ApiOperation({ summary: 'Send a 6-digit OTP code to the provided email' })
+  sendOtp(@Body() dto: SendOtpDto) {
+    return firstValueFrom(
+      this.authClient.send(MESSAGE_PATTERNS.AUTH_SEND_OTP, {
+        email: dto.email,
+      }),
+    );
+  }
+
+  @Post('otp/verify')
+  @ApiOperation({ summary: 'Verify OTP code and authenticate user' })
+  verifyOtp(@Body() dto: VerifyOtpDto) {
+    return firstValueFrom(
+      this.authClient.send(MESSAGE_PATTERNS.AUTH_VERIFY_OTP, {
+        email: dto.email,
+        code: dto.code,
       }),
     );
   }
@@ -124,7 +172,10 @@ export class AuthProxyController {
   @Post('vcs/link')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'Link a VCS provider (GitLab or Bitbucket) using a personal access token' })
+  @ApiOperation({
+    summary:
+      'Link a VCS provider (GitLab or Bitbucket) using a personal access token',
+  })
   linkVcs(@CurrentUser() user: IUser, @Body() dto: LinkVcsDto) {
     return firstValueFrom(
       this.authClient.send(MESSAGE_PATTERNS.AUTH_LINK_VCS, {
@@ -138,7 +189,9 @@ export class AuthProxyController {
   @Patch('plan')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'Update the current user plan (onboarding plan selection)' })
+  @ApiOperation({
+    summary: 'Update the current user plan (onboarding plan selection)',
+  })
   updatePlan(@CurrentUser() user: IUser, @Body() dto: UpdatePlanDto) {
     return firstValueFrom(
       this.authClient.send(MESSAGE_PATTERNS.AUTH_UPDATE_PLAN, {

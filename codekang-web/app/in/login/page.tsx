@@ -2,7 +2,13 @@
 
 import { useRouter } from 'next/navigation';
 import { useState, useRef } from 'react';
-import { signInWithGoogle, signInWithGitHub, saveTokens } from '@/lib/auth';
+import {
+  signInWithGoogle,
+  signInWithGitHub,
+  saveTokens,
+  sendOtp,
+  verifyOtp,
+} from '@/lib/auth';
 import { ArrowRight, Command, ChevronLeft } from 'lucide-react';
 
 type Provider = 'google' | 'github' | 'email';
@@ -53,7 +59,7 @@ export default function LoginPage() {
   }
 
   // ─── Email Link Logic ─────────────────────────────────────────
-  const handleEmailSubmit = (e: React.FormEvent) => {
+  const handleEmailSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email || !email.includes('@')) {
       setError('Please enter a valid email address.');
@@ -62,11 +68,14 @@ export default function LoginPage() {
     setError(null);
     setLoading('email');
 
-    // Simulate sending OTP
-    setTimeout(() => {
-      setLoading(null);
+    try {
+      await sendOtp(email);
       setStep('otp');
-    }, 800);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Failed to send OTP');
+    } finally {
+      setLoading(null);
+    }
   };
 
   // ─── Privacy Helpers ──────────────────────────────────────────
@@ -115,7 +124,7 @@ export default function LoginPage() {
     }
   };
 
-  const handleVerifyOtp = () => {
+  const handleVerifyOtp = async () => {
     const code = otp.join('');
     if (code.length < 6) {
       setError('Please enter the complete 6-digit code.');
@@ -124,12 +133,20 @@ export default function LoginPage() {
     setError(null);
     setLoading('verify');
 
-    // Simulate verifying OTP and logging in
-    setTimeout(() => {
+    try {
+      const result = await verifyOtp(email, code);
+      saveTokens(result.accessToken, result.refreshToken);
+      localStorage.setItem('user', JSON.stringify(result.user));
+
+      if (result.isNewUser || !result.user.onboardingCompleted) {
+        router.replace('/onboarding');
+      } else {
+        router.replace('/dashboard');
+      }
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Invalid code');
       setLoading(null);
-      // Dummy success for now, wait for backend Implementation
-      router.replace('/dashboard');
-    }, 1500);
+    }
   };
 
   return (

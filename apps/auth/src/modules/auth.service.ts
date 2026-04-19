@@ -7,6 +7,7 @@ import { createHash } from 'crypto';
 import { OAuth2Client } from 'google-auth-library';
 import { User } from '../entities/user.entity';
 import { RefreshTokenBlacklist } from '../entities/refresh-token-blacklist.entity';
+import { Otp } from '../entities/otp.entity';
 import { PLANS } from '../common';
 import type {
   IAuthTokens,
@@ -48,13 +49,12 @@ export class AuthService {
     @InjectRepository(User) private readonly userRepo: Repository<User>,
     @InjectRepository(RefreshTokenBlacklist)
     private readonly blacklistRepo: Repository<RefreshTokenBlacklist>,
+    @InjectRepository(Otp) private readonly otpRepo: Repository<Otp>,
     private readonly jwtService: JwtService,
     private readonly config: ConfigService,
     private readonly mailService: MailService,
   ) {
-    this.googleClient = new OAuth2Client(
-      this.config.get('GOOGLE_CLIENT_ID'),
-    );
+    this.googleClient = new OAuth2Client(this.config.get('GOOGLE_CLIENT_ID'));
   }
 
   // ─── Social login (Google + GitHub) ─────────────────────────────────────
@@ -74,7 +74,9 @@ export class AuthService {
   private async verifyGoogleToken(idToken: string): Promise<OAuthProfile> {
     const clientId = this.config.get('GOOGLE_CLIENT_ID');
     if (!clientId) {
-      throw new UnauthorizedException('Google OAuth is not configured on this server');
+      throw new UnauthorizedException(
+        'Google OAuth is not configured on this server',
+      );
     }
 
     try {
@@ -175,17 +177,24 @@ export class AuthService {
       });
       await this.userRepo.save(user);
       // Fire-and-forget: welcome email for brand-new users
-      void this.mailService.sendWelcomeEmail({ email: user.email, name: user.name });
+      void this.mailService.sendWelcomeEmail({
+        email: user.email,
+        name: user.name,
+      });
     } else {
       user.provider = profile.provider;
       user.providerId = profile.providerId;
       user.name = profile.name;
       if (profile.avatar) user.avatar = profile.avatar;
       if (profile.githubUsername) user.githubUsername = profile.githubUsername;
-      if (profile.githubAccessToken) user.githubAccessToken = profile.githubAccessToken;
+      if (profile.githubAccessToken)
+        user.githubAccessToken = profile.githubAccessToken;
       await this.userRepo.save(user);
       // Fire-and-forget: login notification for returning users
-      void this.mailService.sendLoginEmail({ email: user.email, name: user.name });
+      void this.mailService.sendLoginEmail({
+        email: user.email,
+        name: user.name,
+      });
     }
 
     const tokens = this.generateTokens(user);
@@ -198,6 +207,68 @@ export class AuthService {
       where: { id: result.user.id },
     });
     return user!;
+  }
+
+  // ─── Email OTP Authentication ─────────────────────────────────────────────────
+
+  async sendOtp(email: string): Promise<void> {
+    const code = Math.floor(100000 + Math.random() * 900000).toString();
+    const expiresAt = new Date();
+    expiresAt.setMinutes(expiresAt.getMinutes() + 10); // 10 minutes expiry
+
+    let otp = await this.otpRepo.findOne({ where: { email } });
+    if (otp) {
+      otp.code = code;
+      otp.expiresAt = expiresAt;
+    } else {
+      otp = this.otpRepo.create({ email, code, expiresAt });
+    }
+    await this.otpRepo.save(otp);
+
+    await this.mailService.sendOtpEmail(email, code);
+  }
+
+  async verifyOtp(email: string, code: string): Promise<ISocialLoginResponse> {
+    const otp = await this.otpRepo.findOne({ where: { email } });
+    if (!otp) throw new UnauthorizedException('Invalid or expired OTP');
+    if (otp.code !== code) throw new UnauthorizedException('Invalid OTP code');
+    if (otp.expiresAt < new Date())
+      throw new UnauthorizedException('OTP has expired');
+
+    // Remove OTP after successful code entry
+    await this.otpRepo.remove(otp);
+
+    let user = await this.userRepo.findOne({ where: { email } });
+    const isNewUser = !user;
+
+    if (!user) {
+      const nextMonth = new Date();
+      nextMonth.setMonth(nextMonth.getMonth() + 1, 1);
+      user = this.userRepo.create({
+        email,
+        name: email.split('@')[0],
+        provider: 'local',
+        providerId: email,
+        plan: 'free',
+        creditsUsed: 0,
+        creditsReset: nextMonth,
+        isActive: true,
+        onboardingCompleted: false,
+      });
+      await this.userRepo.save(user);
+      void this.mailService.sendWelcomeEmail({
+        email: user.email,
+        name: user.name,
+      });
+    } else {
+      void this.mailService.sendLoginEmail({
+        email: user.email,
+        name: user.name,
+      });
+    }
+
+    const tokens = this.generateTokens(user);
+    return { ...tokens, user: this.toPublicUser(user), isNewUser };
   }
 
   // ─── Token management ─────────────────────────────────────────────────────────
@@ -224,7 +295,8 @@ export class AuthService {
       const user = await this.userRepo.findOne({
         where: { id: payload.sub, isActive: true },
       });
-      if (!user) throw new UnauthorizedException('User not found or deactivated');
+      if (!user)
+        throw new UnauthorizedException('User not found or deactivated');
       return this.toPublicUser(user);
     } catch {
       throw new UnauthorizedException('Invalid or expired token');
@@ -242,8 +314,11 @@ export class AuthService {
     }
 
     const tokenHash = this.hashToken(refreshToken);
-    const blacklisted = await this.blacklistRepo.findOne({ where: { tokenHash } });
-    if (blacklisted) throw new UnauthorizedException('Refresh token has been revoked');
+    const blacklisted = await this.blacklistRepo.findOne({
+      where: { tokenHash },
+    });
+    if (blacklisted)
+      throw new UnauthorizedException('Refresh token has been revoked');
 
     const user = await this.userRepo.findOne({
       where: { id: payload.sub, isActive: true },
@@ -283,7 +358,10 @@ export class AuthService {
     const user = await this.userRepo.findOne({ where: { id: userId } });
     await this.userRepo.update(userId, { refreshToken: '' });
     if (user) {
-      void this.mailService.sendLogoutEmail({ email: user.email, name: user.name });
+      void this.mailService.sendLogoutEmail({
+        email: user.email,
+        name: user.name,
+      });
     }
   }
 
@@ -313,10 +391,12 @@ export class AuthService {
 
   async checkCredits(userId: string, cost: number): Promise<IUsageCheck> {
     const user = await this.userRepo.findOne({ where: { id: userId } });
-    if (!user) return { allowed: false, creditsRemaining: 0, reason: 'User not found' };
+    if (!user)
+      return { allowed: false, creditsRemaining: 0, reason: 'User not found' };
 
     const plan = PLANS[user.plan];
-    if (plan.features.creditsPerMonth === -1) return { allowed: true, creditsRemaining: -1 };
+    if (plan.features.creditsPerMonth === -1)
+      return { allowed: true, creditsRemaining: -1 };
 
     const now = new Date();
     if (!user.creditsReset || user.creditsReset < now) {
@@ -328,10 +408,13 @@ export class AuthService {
     const remaining = plan.features.creditsPerMonth - user.creditsUsed;
     if (remaining < cost) {
       const upgradeTip =
-        user.plan === 'free' ? 'Upgrade to Starter ($15/mo) for 400 credits/month.'
-        : user.plan === 'starter' ? 'Upgrade to Pro ($29/mo) for 1,500 credits/month.'
-        : user.plan === 'pro' ? 'Upgrade to Team ($249/mo) for unlimited credits.'
-        : 'Contact us to increase your limit.';
+        user.plan === 'free'
+          ? 'Upgrade to Starter ($15/mo) for 400 credits/month.'
+          : user.plan === 'starter'
+            ? 'Upgrade to Pro ($29/mo) for 1,500 credits/month.'
+            : user.plan === 'pro'
+              ? 'Upgrade to Team ($249/mo) for unlimited credits.'
+              : 'Contact us to increase your limit.';
       return {
         allowed: false,
         creditsRemaining: Math.max(remaining, 0),
@@ -422,7 +505,13 @@ export class AuthService {
 
       void Promise.all([
         this.mailService.sendPurchaseEmail(recipient, plan, price),
-        this.mailService.sendInvoiceEmail(recipient, plan, price, invoiceId, date),
+        this.mailService.sendInvoiceEmail(
+          recipient,
+          plan,
+          price,
+          invoiceId,
+          date,
+        ),
         this.mailService.sendPaymentCompleteEmail(recipient, plan, price),
       ]);
     }
