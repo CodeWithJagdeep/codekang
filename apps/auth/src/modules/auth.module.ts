@@ -10,6 +10,7 @@ import { RefreshTokenBlacklist } from '../entities/refresh-token-blacklist.entit
 import { Otp } from '../entities/otp.entity';
 import { BlacklistCleanupService } from './blacklist-cleanup.service';
 import { MailModule } from './mail/mail.module';
+import { BillingModule } from './billing/billing.module';
 
 @Module({
   imports: [
@@ -24,6 +25,7 @@ import { MailModule } from './mail/mail.module';
     TypeOrmModule.forFeature([User, RefreshTokenBlacklist, Otp]),
     ScheduleModule.forRoot(),
     MailModule,
+    BillingModule,
   ],
   controllers: [AuthController],
   providers: [AuthService, BlacklistCleanupService],

@@ -1,11 +1,16 @@
 import { Controller } from '@nestjs/common';
 import { MessagePattern, Payload } from '@nestjs/microservices';
 import { AuthService } from './auth.service';
+import { BillingService } from './billing/billing.service';
 import { MESSAGE_PATTERNS } from '../common';
+import type { BillingInterval } from './billing/billing.service';
 
 @Controller('auth')
 export class AuthController {
-  constructor(private readonly authService: AuthService) {}
+  constructor(
+    private readonly authService: AuthService,
+    private readonly billingService: BillingService,
+  ) {}
 
   @MessagePattern(MESSAGE_PATTERNS.AUTH_VALIDATE_TOKEN)
   validateToken(@Payload() data: { token: string }) {
@@ -87,5 +92,55 @@ export class AuthController {
   @MessagePattern(MESSAGE_PATTERNS.AUTH_VERIFY_OTP)
   verifyOtp(@Payload() data: { email: string; code: string }) {
     return this.authService.verifyOtp(data.email, data.code);
+  }
+
+  // ─── Billing ─────────────────────────────────────────────────────────────
+
+  @MessagePattern(MESSAGE_PATTERNS.BILLING_CREATE_CHECKOUT)
+  createCheckoutSession(
+    @Payload()
+    data: {
+      userId: string;
+      planTier: string;
+      interval: BillingInterval;
+      successUrl: string;
+      cancelUrl: string;
+    },
+  ) {
+    return this.billingService.createCheckoutSession(
+      data.userId,
+      data.planTier as any,
+      data.interval,
+      data.successUrl,
+      data.cancelUrl,
+    );
+  }
+
+  @MessagePattern(MESSAGE_PATTERNS.BILLING_CREATE_PORTAL)
+  createPortalSession(@Payload() data: { userId: string; returnUrl: string }) {
+    return this.billingService.createPortalSession(data.userId, data.returnUrl);
+  }
+
+  @MessagePattern(MESSAGE_PATTERNS.BILLING_HANDLE_WEBHOOK)
+  handleWebhook(@Payload() data: { payload: number[]; signature: string }) {
+    return this.billingService.handleWebhook(
+      Buffer.from(data.payload),
+      data.signature,
+    );
+  }
+
+  @MessagePattern(MESSAGE_PATTERNS.BILLING_GET_SUBSCRIPTION)
+  getBillingSubscription(@Payload() data: { userId: string }) {
+    return this.billingService.getSubscriptionInfo(data.userId);
+  }
+
+  @MessagePattern(MESSAGE_PATTERNS.BILLING_GET_INVOICES)
+  getInvoices(@Payload() data: { userId: string }) {
+    return this.billingService.getInvoices(data.userId);
+  }
+
+  @MessagePattern(MESSAGE_PATTERNS.BILLING_CANCEL_SUBSCRIPTION)
+  cancelSubscription(@Payload() data: { userId: string }) {
+    return this.billingService.cancelSubscription(data.userId);
   }
 }

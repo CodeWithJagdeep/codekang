@@ -20,6 +20,14 @@ export const MESSAGE_PATTERNS = {
   AUTH_SEND_OTP: 'auth.send_otp',
   AUTH_VERIFY_OTP: 'auth.verify_otp',
 
+  // Billing
+  BILLING_CREATE_CHECKOUT: 'billing.create_checkout',
+  BILLING_CREATE_PORTAL: 'billing.create_portal',
+  BILLING_HANDLE_WEBHOOK: 'billing.handle_webhook',
+  BILLING_GET_SUBSCRIPTION: 'billing.get_subscription',
+  BILLING_GET_INVOICES: 'billing.get_invoices',
+  BILLING_CANCEL_SUBSCRIPTION: 'billing.cancel_subscription',
+
   // AI Agent
   AGENT_CREATE_CONVERSATION: 'agent.create_conversation',
   AGENT_SEND_MESSAGE: 'agent.send_message',

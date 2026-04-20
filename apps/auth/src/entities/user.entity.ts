@@ -65,6 +65,27 @@ export class User {
   @Column({ name: 'credits_reset', type: 'timestamptz', nullable: true })
   creditsReset: Date;
 
+  // ─── Stripe billing ───────────────────────────────────────────────────────
+  @Column({ name: 'stripe_customer_id', nullable: true })
+  stripeCustomerId: string;
+
+  @Column({ name: 'stripe_subscription_id', nullable: true })
+  stripeSubscriptionId: string;
+
+  @Column({
+    name: 'subscription_status',
+    type: 'varchar',
+    nullable: true,
+    enum: ['trialing', 'active', 'past_due', 'canceled', 'unpaid', 'incomplete'],
+  })
+  subscriptionStatus: 'trialing' | 'active' | 'past_due' | 'canceled' | 'unpaid' | 'incomplete' | null;
+
+  @Column({ name: 'trial_ends_at', type: 'timestamptz', nullable: true })
+  trialEndsAt: Date;
+
+  @Column({ name: 'current_period_end', type: 'timestamptz', nullable: true })
+  currentPeriodEnd: Date;
+
   @Column({ name: 'is_active', default: true })
   isActive: boolean;
 

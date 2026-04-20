@@ -7,6 +7,7 @@ import { RpcExceptionFilter } from './common';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, {
+    rawBody: true, // required for Stripe webhook signature verification
     logger:
       process.env.NODE_ENV === 'production'
         ? ['error', 'warn']
@@ -90,6 +91,7 @@ async function bootstrap() {
       .addTag('repos', 'Repository management & GitHub integration')
       .addTag('agent', 'AI agent conversations & issue fixing')
       .addTag('plans', 'Plan & credit management')
+      .addTag('billing', 'Stripe billing — checkout, portal, invoices, webhook')
       .build();
     const document = SwaggerModule.createDocument(app, config);
     SwaggerModule.setup('api/docs', app, document, {

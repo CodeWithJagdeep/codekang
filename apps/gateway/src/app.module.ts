@@ -7,6 +7,7 @@ import { AuthProxyModule } from './modules/auth/auth.module';
 import { AgentProxyModule } from './modules/agent/agent.module';
 import { ReposProxyModule } from './modules/repos/repos.module';
 import { PlansProxyModule } from './modules/plans/plans.module';
+import { BillingProxyModule } from './modules/billing/billing.module';
 
 @Module({
   imports: [
@@ -30,6 +31,7 @@ import { PlansProxyModule } from './modules/plans/plans.module';
     AgentProxyModule,
     ReposProxyModule,
     PlansProxyModule,
+    BillingProxyModule,
   ],
   providers: [
     {
