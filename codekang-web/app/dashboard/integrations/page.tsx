@@ -25,7 +25,7 @@ import {
   SiBitbucket,
 } from 'react-icons/si';
 import { IconType } from 'react-icons';
-import CodeKangIcon from '@/public/brandlogo/favicon-white.png';
+import CodeKangIcon from '@/public/logo/favi.png';
 
 // ── Types ──
 

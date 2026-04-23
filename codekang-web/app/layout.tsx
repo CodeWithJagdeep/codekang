@@ -65,9 +65,9 @@ export const metadata: Metadata = {
     },
   },
   icons: {
-    icon: '/brandlogo/favicon-white.png',
-    shortcut: '/brandlogo/favicon-white.png',
-    apple: '/brandlogo/favicon-white.png',
+    icon: '/logo/favi.png',
+    shortcut: '/logo/favi.png',
+    apple: '/logo/favi.png',
   },
 };
 

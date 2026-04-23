@@ -19,6 +19,7 @@ export const MESSAGE_PATTERNS = {
   AUTH_UPDATE_PLAN: 'auth.update_plan',
   AUTH_SEND_OTP: 'auth.send_otp',
   AUTH_VERIFY_OTP: 'auth.verify_otp',
+  AUTH_GITHUB_EXCHANGE: 'auth.github_exchange',
 
   // AI Agent
   AGENT_CREATE_CONVERSATION: 'agent.create_conversation',

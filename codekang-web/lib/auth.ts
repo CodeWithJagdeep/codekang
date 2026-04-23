@@ -2,6 +2,7 @@ import {
   signInWithPopup,
   GoogleAuthProvider,
   GithubAuthProvider,
+  OAuthProvider,
   signOut as firebaseSignOut,
 } from 'firebase/auth';
 import { firebaseAuth } from './firebase';
@@ -45,6 +46,39 @@ export interface User {
   githubUsername?: string;
   gitlabUsername?: string;
   bitbucketUsername?: string;
+}
+
+export interface IGitHubRepo {
+  id: number;
+  name: string;
+  full_name: string;
+  description: string | null;
+  private: boolean;
+  default_branch: string;
+  language: string | null;
+  stargazers_count: number;
+  owner: { login: string };
+  html_url: string;
+  updated_at: string;
+}
+
+export interface IRepository {
+  id: string;
+  userId: string;
+  githubId: number;
+  owner: string;
+  name: string;
+  fullName: string;
+  description?: string;
+  private: boolean;
+  defaultBranch: string;
+  language?: string;
+  stargazersCount: number;
+  isInstalled: boolean;
+  webhookId?: number;
+  installationId?: number;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface SocialLoginResult {
@@ -102,6 +136,51 @@ export async function signInWithGitHub(): Promise<SocialLoginResult> {
   return exchangeSocialToken('github', credential.accessToken);
 }
 
+// ─── Direct GitHub OAuth (No Firebase) ────────────────────────────────────────
+
+export function getGithubAuthUrl(
+  mode: 'login' | 'link' = 'login',
+  returnTo = '/dashboard',
+): string {
+  const clientId = process.env.NEXT_PUBLIC_GITHUB_CLIENT_ID;
+  const redirectUri = `${window.location.origin}/auth/callback/github`;
+  const scope = mode === 'login' ? 'read:user user:email' : 'repo read:user';
+  const state = encodeURIComponent(JSON.stringify({ mode, returnTo }));
+
+  return `https://github.com/login/oauth/authorize?client_id=${clientId}&redirect_uri=${encodeURIComponent(
+    redirectUri,
+  )}&scope=${encodeURIComponent(scope)}&state=${state}`;
+}
+
+export async function exchangeGithubCode(code: string): Promise<string> {
+  const redirectUri = `${window.location.origin}/auth/callback/github`;
+  const res = await fetch(`${API_URL}/auth/github/exchange`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ code, redirectUri }),
+  });
+
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(
+      (err as { message?: string }).message ?? 'Failed to exchange GitHub code',
+    );
+  }
+
+  const { accessToken } = (await res.json()) as { accessToken: string };
+  return accessToken;
+}
+
+export async function signInWithGitHubDirect(code: string): Promise<SocialLoginResult> {
+  const accessToken = await exchangeGithubCode(code);
+  return exchangeSocialToken('github', accessToken);
+}
+
+export async function linkWithGitHubDirect(code: string): Promise<User> {
+  const githubAccessToken = await exchangeGithubCode(code);
+  return linkVcs('github', githubAccessToken);
+}
+
 // ─── Email OTP sign-in ────────────────────────────────────────────────────────
 
 export async function sendOtp(email: string): Promise<void> {
@@ -139,13 +218,9 @@ export async function verifyOtp(
 // ─── Onboarding ───────────────────────────────────────────────────────────────
 
 export async function selectPlan(plan: string): Promise<User> {
-  const token = getAccessToken();
-  const res = await fetch(`${API_URL}/auth/plan`, {
+  const res = await fetchWithAuth(`${API_URL}/auth/plan`, {
     method: 'PATCH',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${token}`,
-    },
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ plan }),
   });
   if (!res.ok) throw new Error('Failed to update plan');
@@ -153,16 +228,12 @@ export async function selectPlan(plan: string): Promise<User> {
 }
 
 export async function linkVcs(
-  provider: 'gitlab' | 'bitbucket',
+  provider: 'github' | 'gitlab' | 'bitbucket',
   token: string,
 ): Promise<User> {
-  const accessToken = getAccessToken();
-  const res = await fetch(`${API_URL}/auth/vcs/link`, {
+  const res = await fetchWithAuth(`${API_URL}/auth/vcs/link`, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${accessToken}`,
-    },
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ provider, token }),
   });
   if (!res.ok) {
@@ -174,13 +245,90 @@ export async function linkVcs(
   return res.json() as Promise<User>;
 }
 
+export async function linkWithGitHub(): Promise<User> {
+  const provider = new GithubAuthProvider();
+  provider.addScope('repo');
+  provider.addScope('read:user');
+
+  const result = await signInWithPopup(firebaseAuth, provider);
+  const credential = GithubAuthProvider.credentialFromResult(result);
+  const token = credential?.accessToken;
+
+  if (!token) throw new Error('No GitHub access token returned');
+  return linkVcs('github', token);
+}
+
+export async function linkWithGitLab(): Promise<User> {
+  const provider = new OAuthProvider('gitlab.com');
+  provider.addScope('read_user');
+  provider.addScope('api');
+
+  const result = await signInWithPopup(firebaseAuth, provider);
+  const credential = OAuthProvider.credentialFromResult(result);
+  const token = credential?.accessToken;
+
+  if (!token) throw new Error('No GitLab access token returned');
+  return linkVcs('gitlab', token);
+}
+
+export async function linkWithBitbucket(): Promise<User> {
+  const provider = new OAuthProvider('bitbucket.org');
+  provider.addScope('account');
+  provider.addScope('repository');
+
+  const result = await signInWithPopup(firebaseAuth, provider);
+  const credential = OAuthProvider.credentialFromResult(result);
+  const token = credential?.accessToken;
+
+  if (!token) throw new Error('No Bitbucket access token returned');
+  return linkVcs('bitbucket', token);
+}
+
 export async function completeOnboarding(): Promise<void> {
-  const token = getAccessToken();
-  if (!token) return;
-  await fetch(`${API_URL}/auth/onboarding/complete`, {
+  if (!getAccessToken()) return;
+  await fetchWithAuth(`${API_URL}/auth/onboarding/complete`, {
     method: 'POST',
-    headers: { Authorization: `Bearer ${token}` },
   });
+}
+
+export async function fetchRepos(): Promise<IGitHubRepo[]> {
+  const res = await fetchWithAuth(`${API_URL}/repos`);
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(
+      (err as { message?: string }).message ?? 'Failed to fetch repositories',
+    );
+  }
+  return res.json() as Promise<IGitHubRepo[]>;
+}
+
+export async function fetchConnectedRepos(): Promise<IRepository[]> {
+  const res = await fetchWithAuth(`${API_URL}/repos/connected`);
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(
+      (err as { message?: string }).message ?? 'Failed to fetch connected repositories',
+    );
+  }
+  return res.json() as Promise<IRepository[]>;
+}
+
+export async function connectRepo(
+  owner: string,
+  repoName: string,
+): Promise<IRepository> {
+  const res = await fetchWithAuth(`${API_URL}/repos/connect`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ owner, repoName }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(
+      (err as { message?: string }).message ?? 'Failed to connect repository',
+    );
+  }
+  return res.json() as Promise<IRepository>;
 }
 
 // ─── Token refresh ────────────────────────────────────────────────────────────

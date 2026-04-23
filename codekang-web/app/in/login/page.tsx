@@ -4,12 +4,14 @@ import { useRouter } from 'next/navigation';
 import { useState, useRef } from 'react';
 import {
   signInWithGoogle,
-  signInWithGitHub,
+  getGithubAuthUrl,
   saveTokens,
   sendOtp,
   verifyOtp,
 } from '@/lib/auth';
-import { ArrowRight, Command, ChevronLeft } from 'lucide-react';
+import Image from 'next/image';
+import Favi from '@/public/logo/favi.png';
+import { ArrowRight, ChevronLeft } from 'lucide-react';
 
 type Provider = 'google' | 'github' | 'email';
 type Step = 'login' | 'otp';
@@ -31,13 +33,17 @@ export default function LoginPage() {
 
   // ─── OAuth Login Logic ─────────────────────────────────────────
   async function handleOAuthLogin(provider: 'google' | 'github') {
+    if (provider === 'github') {
+      const url = getGithubAuthUrl('login');
+      console.log('DEBUG: Redirecting to GitHub', { url });
+      window.location.href = url;
+      return;
+    }
+
     setLoading(provider);
     setError(null);
     try {
-      const result =
-        provider === 'google'
-          ? await signInWithGoogle()
-          : await signInWithGitHub();
+      const result = await signInWithGoogle();
 
       saveTokens(result.accessToken, result.refreshToken);
       localStorage.setItem('user', JSON.stringify(result.user));
@@ -158,8 +164,8 @@ export default function LoginPage() {
       <div className="w-full max-w-[400px] p-8 mx-auto z-10 animate-in fade-in slide-in-from-bottom-4 duration-700">
         {/* Header */}
         <div className="flex flex-col items-center mb-10 text-center">
-          <div className="w-12 h-12 bg-white flex items-center justify-center rounded-xl shadow-[0_0_15px_rgba(255,255,255,0.1)] mb-6">
-            <Command size={24} className="text-black" />
+          <div className="mb-6">
+            <Image src={Favi} alt="CodeKang" width={176} height={176} className="object-contain" />
           </div>
 
           {step === 'login' ? (
@@ -202,7 +208,7 @@ export default function LoginPage() {
                 <button
                   onClick={() => handleOAuthLogin('github')}
                   disabled={loading !== null}
-                  className="flex items-center justify-center gap-2 py-2.5 bg-[white] text-black border border-[#27272a]  rounded-lg text-[15px] font-medium transition-all disabled:opacity-50"
+                  className="flex items-center justify-center gap-2 py-2.5 bg-[#18181b] text-white border border-[#27272a] hover:border-[#3f3f46] rounded-lg text-[15px] font-medium transition-all disabled:opacity-50"
                 >
                   {loading === 'github' ? (
                     <span className="w-5 h-5 border-2 border-white/20 border-t-white rounded-full animate-spin" />
@@ -221,7 +227,7 @@ export default function LoginPage() {
                 <button
                   onClick={() => handleOAuthLogin('google')}
                   disabled={loading !== null}
-                  className="flex items-center justify-center gap-2 py-2.5 bg-[white] text-black border border-[#27272a] rounded-lg text-[15px] font-medium transition-all disabled:opacity-50"
+                  className="flex items-center justify-center gap-2 py-2.5 bg-[#18181b] text-white border border-[#27272a] hover:border-[#3f3f46] rounded-lg text-[15px] font-medium transition-all disabled:opacity-50"
                 >
                   {loading === 'google' ? (
                     <span className="w-5 h-5 border-2 border-white/20 border-t-white rounded-full animate-spin" />
@@ -275,7 +281,7 @@ export default function LoginPage() {
                 <button
                   type="submit"
                   disabled={loading !== null || !email}
-                  className="w-full flex items-center justify-center gap-2 py-2.5 bg-white text-black rounded-lg text-[15px]  hover:bg-white/90 transition-all disabled:opacity-50 disabled:cursor-not-allowed group"
+                  className="w-full flex items-center justify-center gap-2 py-2.5 bg-indigo-600 text-white rounded-lg text-[15px] font-medium hover:bg-indigo-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed group shadow-lg shadow-indigo-500/20"
                 >
                   {loading === 'email' ? (
                     <span className="w-5 h-5 border-2 border-black/20 border-t-black rounded-full animate-spin" />
@@ -321,7 +327,7 @@ export default function LoginPage() {
               <button
                 onClick={handleVerifyOtp}
                 disabled={loading === 'verify' || otp.join('').length < 6}
-                className="w-full flex items-center justify-center gap-2 py-2.5 bg-white text-black rounded-lg text-[14px] font-semibold hover:bg-white/90 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full flex items-center justify-center gap-2 py-2.5 bg-indigo-600 text-white rounded-lg text-[14px] font-semibold hover:bg-indigo-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-indigo-500/20"
               >
                 {loading === 'verify' ? (
                   <span className="w-4 h-4 border-2 border-black/20 border-t-black rounded-full animate-spin" />

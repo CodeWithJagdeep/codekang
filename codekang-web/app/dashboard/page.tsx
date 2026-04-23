@@ -1,80 +1,79 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { type Repo } from '@/component/dashboard/sidebar';
 import CenterPanel from '@/component/dashboard/centerPanel';
+import AddRepoDialog from '@/component/dashboard/AddRepoDialog';
+import {
+  fetchConnectedRepos,
+  type IRepository,
+  type User,
+} from '@/lib/auth';
+import type { Repo } from '@/component/dashboard/sidebar';
 
-const INITIAL_REPOS: Repo[] = [
-  {
-    id: 'codekang-platform',
-    name: 'codekang-platform',
-    org: 'CodeWithJagdeep',
-    prs: 3,
-    issues: 8,
-    status: 'active',
-    branch: 'main',
-  },
-  {
-    id: 'codekang-web',
-    name: 'codekang-web',
-    org: 'CodeWithJagdeep',
-    prs: 1,
-    issues: 2,
-    status: 'active',
-    branch: 'main',
-  },
-  {
-    id: 'automous-ai',
-    name: 'automous-ai',
-    org: 'CodeWithJagdeep',
-    prs: 5,
-    issues: 4,
-    status: 'busy',
-    branch: 'main',
-  },
-  {
-    id: 'mentorsland_core',
-    name: 'mentorsland_core',
-    org: 'CodeWithJagdeep',
-    prs: 2,
-    issues: 5,
+function toDisplayRepo(r: IRepository): Repo {
+  return {
+    id: r.id,
+    name: r.name,
+    org: r.owner,
+    prs: 0,
+    issues: 0,
     status: 'idle',
-    branch: 'main',
-  },
-];
+    branch: r.defaultBranch,
+  };
+}
 
 export default function DashboardPage() {
   const router = useRouter();
-  const [repos, setRepos] = useState<Repo[]>(INITIAL_REPOS);
+  const [user, setUser] = useState<User | null>(null);
+  const [connected, setConnected] = useState<IRepository[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [dialogOpen, setDialogOpen] = useState(false);
+
+  useEffect(() => {
+    const raw = localStorage.getItem('user');
+    if (raw) {
+      try { setUser(JSON.parse(raw)); } catch {}
+    }
+
+    fetchConnectedRepos()
+      .then(setConnected)
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, []);
 
   function handleSelectRepo(id: string) {
     router.push(`/dashboard/repositories/${id}`);
   }
 
-  function handleAddRepo() {
-    const name = prompt('Enter GitHub repo name (e.g. my-new-repo):');
-    if (!name) return;
-    const newRepo: Repo = {
-      id: name,
-      name,
-      org: 'CodeWithJagdeep',
-      prs: 0,
-      issues: 0,
-      status: 'idle',
-      branch: 'main',
-    };
-    setRepos((prev) => [...prev, newRepo]);
+  function handleReposAdded(newRepos: IRepository[]) {
+    setConnected((prev) => {
+      const existing = new Set(prev.map((r) => r.id));
+      return [...prev, ...newRepos.filter((r) => !existing.has(r.id))];
+    });
+    setDialogOpen(false);
   }
 
   return (
     <div className="flex h-full w-full">
       <CenterPanel
         activeNav="repos"
-        repos={repos}
-        onAddRepo={handleAddRepo}
+        repos={connected.map(toDisplayRepo)}
+        user={user}
+        loading={loading}
+        onAddRepo={() => setDialogOpen(true)}
         onSelectRepo={handleSelectRepo}
+        onLinkAccount={() => router.push('/onboarding')}
       />
+
+      {dialogOpen && (
+        <AddRepoDialog
+          user={user}
+          connectedRepos={connected}
+          onClose={() => setDialogOpen(false)}
+          onAdded={handleReposAdded}
+        />
+      )}
     </div>
   );
 }

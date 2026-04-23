@@ -1,4 +1,4 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { Injectable, Logger, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -43,6 +43,7 @@ const PLAN_PRICES: Record<string, string> = {
 
 @Injectable()
 export class AuthService {
+  private readonly logger = new Logger(AuthService.name);
   private readonly googleClient: OAuth2Client;
 
   constructor(
@@ -63,17 +64,20 @@ export class AuthService {
     provider: 'google' | 'github',
     token: string,
   ): Promise<ISocialLoginResponse> {
+    this.logger.log(`socialLogin verifying token provider=${provider}`);
     const profile =
       provider === 'google'
         ? await this.verifyGoogleToken(token)
         : await this.verifyGithubToken(token);
 
+    this.logger.log(`socialLogin profile resolved email=${profile.email} provider=${provider}`);
     return this.loginWithProfile(profile);
   }
 
   private async verifyGoogleToken(idToken: string): Promise<OAuthProfile> {
     const clientId = this.config.get('GOOGLE_CLIENT_ID');
     if (!clientId) {
+      this.logger.error('verifyGoogleToken: GOOGLE_CLIENT_ID is not configured');
       throw new UnauthorizedException(
         'Google OAuth is not configured on this server',
       );
@@ -87,6 +91,7 @@ export class AuthService {
       const p = ticket.getPayload();
       if (!p?.email) throw new Error('No email in token');
 
+      this.logger.log(`verifyGoogleToken success email=${p.email}`);
       return {
         provider: 'google',
         providerId: p.sub,
@@ -94,12 +99,14 @@ export class AuthService {
         name: p.name ?? p.email.split('@')[0],
         avatar: p.picture,
       };
-    } catch {
+    } catch (err) {
+      this.logger.error('verifyGoogleToken failed', err instanceof Error ? err.stack : String(err));
       throw new UnauthorizedException('Invalid Google ID token');
     }
   }
 
   private async verifyGithubToken(accessToken: string): Promise<OAuthProfile> {
+    this.logger.log('verifyGithubToken calling GitHub API');
     const [userResp, emailsResp] = await Promise.all([
       fetch('https://api.github.com/user', {
         headers: {
@@ -116,6 +123,7 @@ export class AuthService {
     ]);
 
     if (!userResp.ok) {
+      this.logger.error(`verifyGithubToken failed status=${userResp.status}`);
       throw new UnauthorizedException('Invalid GitHub access token');
     }
 
@@ -140,6 +148,7 @@ export class AuthService {
         `${ghUser.login}@users.noreply.github.com`;
     }
 
+    this.logger.log(`verifyGithubToken success login=${ghUser.login}`);
     return {
       provider: 'github',
       providerId: String(ghUser.id),
@@ -149,6 +158,57 @@ export class AuthService {
       githubUsername: ghUser.login,
       githubAccessToken: accessToken,
     };
+  }
+
+  async exchangeGithubCode(code: string, redirectUri?: string): Promise<string> {
+    this.logger.log(`exchangeGithubCode calling GitHub OAuth endpoint redirectUri=${redirectUri}`);
+    const clientId = this.config.get('GITHUB_CLIENT_ID');
+    const clientSecret = this.config.get('GITHUB_CLIENT_SECRET');
+
+    if (!clientId || !clientSecret) {
+      this.logger.error('exchangeGithubCode: GITHUB_CLIENT_ID or GITHUB_CLIENT_SECRET is not configured');
+      throw new Error('GitHub OAuth is not configured on this server');
+    }
+
+    const body: Record<string, string> = {
+      client_id: clientId,
+      client_secret: clientSecret,
+      code,
+    };
+    if (redirectUri) body.redirect_uri = redirectUri;
+
+    const resp = await fetch('https://github.com/login/oauth/access_token', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+      },
+      body: JSON.stringify(body),
+    });
+
+    if (!resp.ok) {
+      const rawBody = await resp.text().catch(() => '');
+      this.logger.error(`exchangeGithubCode failed status=${resp.status} body=${rawBody}`);
+      throw new UnauthorizedException('Failed to exchange GitHub code');
+    }
+
+    const data = (await resp.json()) as {
+      access_token?: string;
+      error?: string;
+      error_description?: string;
+    };
+
+    if (data.error) {
+      this.logger.error(`exchangeGithubCode error=${data.error} desc=${data.error_description}`);
+      throw new UnauthorizedException(data.error_description || data.error);
+    }
+
+    if (!data.access_token) {
+      this.logger.error('exchangeGithubCode: no access_token in response');
+      throw new UnauthorizedException('No access token returned from GitHub');
+    }
+
+    return data.access_token;
   }
 
   private async loginWithProfile(
@@ -165,6 +225,7 @@ export class AuthService {
     const isNewUser = !user;
 
     if (!user) {
+      this.logger.log(`loginWithProfile new user email=${profile.email} provider=${profile.provider}`);
       const nextMonth = new Date();
       nextMonth.setMonth(nextMonth.getMonth() + 1, 1);
       user = this.userRepo.create({
@@ -176,12 +237,13 @@ export class AuthService {
         onboardingCompleted: false,
       });
       await this.userRepo.save(user);
-      // Fire-and-forget: welcome email for brand-new users
+      this.logger.log(`loginWithProfile user created id=${user.id}`);
       void this.mailService.sendWelcomeEmail({
         email: user.email,
         name: user.name,
       });
     } else {
+      this.logger.log(`loginWithProfile returning user id=${user.id} provider=${profile.provider}`);
       user.provider = profile.provider;
       user.providerId = profile.providerId;
       user.name = profile.name;
@@ -190,7 +252,6 @@ export class AuthService {
       if (profile.githubAccessToken)
         user.githubAccessToken = profile.githubAccessToken;
       await this.userRepo.save(user);
-      // Fire-and-forget: login notification for returning users
       void this.mailService.sendLoginEmail({
         email: user.email,
         name: user.name,
@@ -212,36 +273,50 @@ export class AuthService {
   // ─── Email OTP Authentication ─────────────────────────────────────────────────
 
   async sendOtp(email: string): Promise<void> {
+    this.logger.log(`sendOtp generating code email=${email}`);
     const code = Math.floor(100000 + Math.random() * 900000).toString();
     const expiresAt = new Date();
-    expiresAt.setMinutes(expiresAt.getMinutes() + 10); // 10 minutes expiry
+    expiresAt.setMinutes(expiresAt.getMinutes() + 10);
 
     let otp = await this.otpRepo.findOne({ where: { email } });
     if (otp) {
+      this.logger.log(`sendOtp refreshing existing OTP email=${email}`);
       otp.code = code;
       otp.expiresAt = expiresAt;
     } else {
+      this.logger.log(`sendOtp creating new OTP email=${email}`);
       otp = this.otpRepo.create({ email, code, expiresAt });
     }
     await this.otpRepo.save(otp);
 
     await this.mailService.sendOtpEmail(email, code);
+    this.logger.log(`sendOtp email sent email=${email}`);
   }
 
   async verifyOtp(email: string, code: string): Promise<ISocialLoginResponse> {
+    this.logger.log(`verifyOtp email=${email}`);
     const otp = await this.otpRepo.findOne({ where: { email } });
-    if (!otp) throw new UnauthorizedException('Invalid or expired OTP');
-    if (otp.code !== code) throw new UnauthorizedException('Invalid OTP code');
-    if (otp.expiresAt < new Date())
+    if (!otp) {
+      this.logger.warn(`verifyOtp no OTP record found email=${email}`);
+      throw new UnauthorizedException('Invalid or expired OTP');
+    }
+    if (otp.code !== code) {
+      this.logger.warn(`verifyOtp invalid code email=${email}`);
+      throw new UnauthorizedException('Invalid OTP code');
+    }
+    if (otp.expiresAt < new Date()) {
+      this.logger.warn(`verifyOtp expired OTP email=${email}`);
       throw new UnauthorizedException('OTP has expired');
+    }
 
-    // Remove OTP after successful code entry
     await this.otpRepo.remove(otp);
+    this.logger.log(`verifyOtp code accepted email=${email}`);
 
     let user = await this.userRepo.findOne({ where: { email } });
     const isNewUser = !user;
 
     if (!user) {
+      this.logger.log(`verifyOtp new user email=${email}`);
       const nextMonth = new Date();
       nextMonth.setMonth(nextMonth.getMonth() + 1, 1);
       user = this.userRepo.create({
@@ -256,11 +331,13 @@ export class AuthService {
         onboardingCompleted: false,
       });
       await this.userRepo.save(user);
+      this.logger.log(`verifyOtp user created id=${user.id}`);
       void this.mailService.sendWelcomeEmail({
         email: user.email,
         name: user.name,
       });
     } else {
+      this.logger.log(`verifyOtp returning user id=${user.id}`);
       void this.mailService.sendLoginEmail({
         email: user.email,
         name: user.name,
@@ -295,21 +372,29 @@ export class AuthService {
       const user = await this.userRepo.findOne({
         where: { id: payload.sub, isActive: true },
       });
-      if (!user)
+      if (!user) {
+        this.logger.warn(`validateToken user not found or deactivated userId=${payload.sub}`);
         throw new UnauthorizedException('User not found or deactivated');
+      }
+      this.logger.log(`validateToken success userId=${user.id}`);
       return this.toPublicUser(user);
-    } catch {
+    } catch (err) {
+      if (!(err instanceof UnauthorizedException)) {
+        this.logger.warn(`validateToken invalid token: ${err instanceof Error ? err.message : String(err)}`);
+      }
       throw new UnauthorizedException('Invalid or expired token');
     }
   }
 
   async refreshTokens(refreshToken: string): Promise<IAuthTokens> {
+    this.logger.log('refreshTokens verifying token');
     let payload: { sub: string; email: string; plan: PlanTier };
     try {
       payload = this.jwtService.verify(refreshToken, {
         secret: this.config.getOrThrow('JWT_REFRESH_SECRET'),
       });
-    } catch {
+    } catch (err) {
+      this.logger.warn(`refreshTokens invalid token: ${err instanceof Error ? err.message : String(err)}`);
       throw new UnauthorizedException('Invalid refresh token');
     }
 
@@ -317,13 +402,18 @@ export class AuthService {
     const blacklisted = await this.blacklistRepo.findOne({
       where: { tokenHash },
     });
-    if (blacklisted)
+    if (blacklisted) {
+      this.logger.warn(`refreshTokens revoked token userId=${payload.sub}`);
       throw new UnauthorizedException('Refresh token has been revoked');
+    }
 
     const user = await this.userRepo.findOne({
       where: { id: payload.sub, isActive: true },
     });
-    if (!user) throw new UnauthorizedException('User not found');
+    if (!user) {
+      this.logger.warn(`refreshTokens user not found userId=${payload.sub}`);
+      throw new UnauthorizedException('User not found');
+    }
 
     const decoded = this.jwtService.decode(refreshToken);
     if (decoded?.exp) {
@@ -336,6 +426,7 @@ export class AuthService {
       );
     }
 
+    this.logger.log(`refreshTokens success userId=${user.id}`);
     return this.generateTokens(user);
   }
 
@@ -355,13 +446,17 @@ export class AuthService {
   }
 
   async logout(userId: string): Promise<void> {
+    this.logger.log(`logout userId=${userId}`);
     const user = await this.userRepo.findOne({ where: { id: userId } });
     await this.userRepo.update(userId, { refreshToken: '' });
     if (user) {
+      this.logger.log(`logout session cleared userId=${userId}`);
       void this.mailService.sendLogoutEmail({
         email: user.email,
         name: user.name,
       });
+    } else {
+      this.logger.warn(`logout user not found userId=${userId}`);
     }
   }
 
@@ -455,28 +550,48 @@ export class AuthService {
 
   async linkVcs(
     userId: string,
-    provider: 'gitlab' | 'bitbucket',
+    provider: 'github' | 'gitlab' | 'bitbucket',
     token: string,
   ): Promise<IUser> {
+    this.logger.log(`linkVcs userId=${userId} provider=${provider}`);
     const user = await this.userRepo.findOne({ where: { id: userId } });
-    if (!user) throw new UnauthorizedException('User not found');
+    if (!user) {
+      this.logger.warn(`linkVcs user not found userId=${userId}`);
+      throw new UnauthorizedException('User not found');
+    }
 
-    if (provider === 'gitlab') {
+    if (provider === 'github') {
+      this.logger.log(`linkVcs verifying GitHub token userId=${userId}`);
+      const profile = await this.verifyGithubToken(token);
+      user.githubUsername = profile.githubUsername ?? profile.name;
+      user.githubAccessToken = profile.githubAccessToken ?? token;
+      this.logger.log(`linkVcs GitHub linked userId=${userId} username=${user.githubUsername}`);
+    } else if (provider === 'gitlab') {
+      this.logger.log(`linkVcs verifying GitLab token userId=${userId}`);
       const resp = await fetch('https://gitlab.com/api/v4/user', {
         headers: { Authorization: `Bearer ${token}` },
       });
-      if (!resp.ok) throw new UnauthorizedException('Invalid GitLab token');
+      if (!resp.ok) {
+        this.logger.error(`linkVcs invalid GitLab token userId=${userId} status=${resp.status}`);
+        throw new UnauthorizedException('Invalid GitLab token');
+      }
       const gl = (await resp.json()) as { username: string };
       user.gitlabUsername = gl.username;
       user.gitlabAccessToken = token;
-    } else {
+      this.logger.log(`linkVcs GitLab linked userId=${userId} username=${gl.username}`);
+    } else if (provider === 'bitbucket') {
+      this.logger.log(`linkVcs verifying Bitbucket token userId=${userId}`);
       const resp = await fetch('https://api.bitbucket.org/2.0/user', {
         headers: { Authorization: `Bearer ${token}` },
       });
-      if (!resp.ok) throw new UnauthorizedException('Invalid Bitbucket token');
+      if (!resp.ok) {
+        this.logger.error(`linkVcs invalid Bitbucket token userId=${userId} status=${resp.status}`);
+        throw new UnauthorizedException('Invalid Bitbucket token');
+      }
       const bb = (await resp.json()) as { nickname: string };
       user.bitbucketUsername = bb.nickname;
       user.bitbucketAccessToken = token;
+      this.logger.log(`linkVcs Bitbucket linked userId=${userId} username=${bb.nickname}`);
     }
 
     await this.userRepo.save(user);
@@ -484,10 +599,15 @@ export class AuthService {
   }
 
   async updatePlan(userId: string, plan: PlanTier): Promise<IUser> {
+    this.logger.log(`updatePlan userId=${userId} plan=${plan}`);
     const user = await this.userRepo.findOne({ where: { id: userId } });
-    if (!user) throw new UnauthorizedException('User not found');
+    if (!user) {
+      this.logger.warn(`updatePlan user not found userId=${userId}`);
+      throw new UnauthorizedException('User not found');
+    }
 
     const previousPlan = user.plan;
+    this.logger.log(`updatePlan userId=${userId} previousPlan=${previousPlan} newPlan=${plan}`);
     user.plan = plan;
     // Reset credits on plan change
     const nextMonth = new Date();
@@ -498,6 +618,7 @@ export class AuthService {
 
     // Only send purchase/payment emails when upgrading (not on free plan)
     if (plan !== 'free' && plan !== previousPlan) {
+      this.logger.log(`updatePlan sending billing emails userId=${userId} plan=${plan}`);
       const price = PLAN_PRICES[plan] ?? 'Custom';
       const invoiceId = `INV-${Date.now()}`;
       const date = new Date().toDateString();
@@ -516,14 +637,20 @@ export class AuthService {
       ]);
     }
 
+    this.logger.log(`updatePlan success userId=${userId} plan=${plan}`);
     return this.toPublicUser(user);
   }
 
   async completeOnboarding(userId: string): Promise<IUser> {
+    this.logger.log(`completeOnboarding userId=${userId}`);
     const user = await this.userRepo.findOne({ where: { id: userId } });
-    if (!user) throw new UnauthorizedException('User not found');
+    if (!user) {
+      this.logger.warn(`completeOnboarding user not found userId=${userId}`);
+      throw new UnauthorizedException('User not found');
+    }
     user.onboardingCompleted = true;
     await this.userRepo.save(user);
+    this.logger.log(`completeOnboarding success userId=${userId}`);
     return this.toPublicUser(user);
   }
 
