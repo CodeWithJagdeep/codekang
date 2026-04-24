@@ -62,6 +62,33 @@ export interface IGitHubRepo {
   updated_at: string;
 }
 
+export interface IGitHubPR {
+  id: number;
+  number: number;
+  title: string;
+  state: 'open' | 'closed';
+  head: { ref: string; sha: string };
+  base: { ref: string };
+  user: { login: string; avatar_url: string } | null;
+  created_at: string;
+  updated_at: string;
+  merged_at: string | null;
+  html_url: string;
+  draft: boolean;
+}
+
+export interface IGitHubIssue {
+  id: number;
+  number: number;
+  title: string;
+  state: 'open' | 'closed';
+  labels: { name: string; color: string }[];
+  user: { login: string; avatar_url: string } | null;
+  created_at: string;
+  updated_at: string;
+  html_url: string;
+}
+
 export interface IRepository {
   id: string;
   userId: string;
@@ -313,6 +340,17 @@ export async function fetchConnectedRepos(): Promise<IRepository[]> {
   return res.json() as Promise<IRepository[]>;
 }
 
+export async function fetchConnectedRepo(repoId: string): Promise<IRepository> {
+  const res = await fetchWithAuth(`${API_URL}/repos/${repoId}`);
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(
+      (err as { message?: string }).message ?? 'Repository not found',
+    );
+  }
+  return res.json() as Promise<IRepository>;
+}
+
 export async function connectRepo(
   owner: string,
   repoName: string,
@@ -331,31 +369,118 @@ export async function connectRepo(
   return res.json() as Promise<IRepository>;
 }
 
+export async function disconnectRepo(repoId: string): Promise<void> {
+  const res = await fetchWithAuth(`${API_URL}/repos/${repoId}`, {
+    method: 'DELETE',
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(
+      (err as { message?: string }).message ?? 'Failed to disconnect repository',
+    );
+  }
+}
+
+export async function syncRepo(repoId: string): Promise<IRepository> {
+  const res = await fetchWithAuth(`${API_URL}/repos/${repoId}/sync`, {
+    method: 'POST',
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error((err as { message?: string }).message ?? 'Failed to sync repository');
+  }
+  return res.json() as Promise<IRepository>;
+}
+
+export async function fetchRepoPR(
+  owner: string,
+  repo: string,
+  prNumber: number,
+): Promise<IGitHubPR> {
+  const res = await fetchWithAuth(`${API_URL}/repos/${owner}/${repo}/pulls/${prNumber}`);
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error((err as { message?: string }).message ?? 'Failed to fetch pull request');
+  }
+  return res.json() as Promise<IGitHubPR>;
+}
+
+export async function fetchRepoIssueById(
+  owner: string,
+  repo: string,
+  issueNumber: number,
+): Promise<IGitHubIssue> {
+  const res = await fetchWithAuth(`${API_URL}/repos/${owner}/${repo}/issues/${issueNumber}`);
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error((err as { message?: string }).message ?? 'Failed to fetch issue');
+  }
+  return res.json() as Promise<IGitHubIssue>;
+}
+
+export async function fetchRepoPullRequests(
+  owner: string,
+  repo: string,
+  state: 'open' | 'closed' | 'all' = 'all',
+): Promise<IGitHubPR[]> {
+  const res = await fetchWithAuth(
+    `${API_URL}/repos/${owner}/${repo}/pulls?state=${state}`,
+  );
+  if (!res.ok) return [];
+  return res.json() as Promise<IGitHubPR[]>;
+}
+
+export async function fetchRepoIssues(
+  owner: string,
+  repo: string,
+  state: 'open' | 'closed' | 'all' = 'all',
+): Promise<IGitHubIssue[]> {
+  const res = await fetchWithAuth(
+    `${API_URL}/repos/${owner}/${repo}/issues?state=${state}`,
+  );
+  if (!res.ok) return [];
+  return res.json() as Promise<IGitHubIssue[]>;
+}
+
 // ─── Token refresh ────────────────────────────────────────────────────────────
 
+// Singleton promise — if multiple 401s fire in parallel, only one refresh
+// request is made. All callers await the same promise and get the same token.
+let _refreshPromise: Promise<string | null> | null = null;
+
 export async function refreshAccessToken(): Promise<string | null> {
-  const refreshToken = getRefreshToken();
-  if (!refreshToken) return null;
+  if (_refreshPromise) return _refreshPromise;
+
+  _refreshPromise = (async () => {
+    const refreshToken = getRefreshToken();
+    if (!refreshToken) return null;
+
+    try {
+      const res = await fetch(`${API_URL}/auth/refresh`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ refreshToken }),
+      });
+
+      if (!res.ok) return null;
+
+      const data = (await res.json()) as {
+        accessToken?: string;
+        refreshToken?: string;
+      };
+      if (data.accessToken && data.refreshToken) {
+        saveTokens(data.accessToken, data.refreshToken);
+        return data.accessToken;
+      }
+    } catch {}
+    return null;
+  })();
 
   try {
-    const res = await fetch(`${API_URL}/auth/refresh`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ refreshToken }),
-    });
-
-    if (!res.ok) return null;
-
-    const data = (await res.json()) as {
-      accessToken?: string;
-      refreshToken?: string;
-    };
-    if (data.accessToken && data.refreshToken) {
-      saveTokens(data.accessToken, data.refreshToken);
-      return data.accessToken;
-    }
-  } catch {}
-  return null;
+    return await _refreshPromise;
+  } finally {
+    _refreshPromise = null;
+  }
 }
 
 export async function fetchWithAuth(

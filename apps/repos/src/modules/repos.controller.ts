@@ -18,6 +18,11 @@ export class ReposController {
     return this.reposService.listConnectedRepos(data.userId);
   }
 
+  @MessagePattern(MESSAGE_PATTERNS.REPOS_GET_ONE)
+  getOne(@Payload() data: { userId: string; repoId: string }) {
+    return this.reposService.getConnectedRepo(data.userId, data.repoId);
+  }
+
   @MessagePattern(MESSAGE_PATTERNS.REPOS_CONNECT)
   connectRepo(
     @Payload()

@@ -40,5 +40,6 @@ export const MESSAGE_PATTERNS = {
   REPOS_GET_ISSUE: 'repos.get_issue',
   REPOS_GET_PR: 'repos.get_pr',
   REPOS_LIST_CONNECTED: 'repos.list_connected',
+  REPOS_GET_ONE: 'repos.get_one',
   REPOS_SYNC: 'repos.sync',
 } as const;

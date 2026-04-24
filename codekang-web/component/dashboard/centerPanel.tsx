@@ -10,12 +10,14 @@ import {
   ChevronsLeft,
   ChevronsRight,
   ArrowUpDown,
-  MoreVertical,
+  Trash2,
   ChevronDown,
   GitPullRequest,
   AlertCircle,
   FolderGit2,
   Link2,
+  Loader2,
+  X,
 } from 'lucide-react';
 
 import type { Repo } from './sidebar';
@@ -28,6 +30,7 @@ export default function CenterPanel({
   loading = false,
   onAddRepo,
   onSelectRepo,
+  onRemoveRepo,
   onLinkAccount,
 }: {
   activeNav: string;
@@ -36,9 +39,27 @@ export default function CenterPanel({
   loading?: boolean;
   onAddRepo: () => void;
   onSelectRepo: (id: string) => void;
+  onRemoveRepo?: (id: string) => Promise<void>;
   onLinkAccount?: () => void;
 }) {
   const [searchTerm, setSearchTerm] = useState('');
+  const [confirmRepo, setConfirmRepo] = useState<Repo | null>(null);
+  const [removing, setRemoving] = useState(false);
+  const [removeError, setRemoveError] = useState<string | null>(null);
+
+  async function handleConfirmRemove() {
+    if (!confirmRepo || !onRemoveRepo) return;
+    setRemoving(true);
+    setRemoveError(null);
+    try {
+      await onRemoveRepo(confirmRepo.id);
+      setConfirmRepo(null);
+    } catch (err: unknown) {
+      setRemoveError(err instanceof Error ? err.message : 'Failed to remove repository');
+    } finally {
+      setRemoving(false);
+    }
+  }
   const rowsPerPage = 10;
   const currentPage = 1;
 
@@ -250,6 +271,9 @@ export default function CenterPanel({
                       <th className="px-4 py-3 text-[13px] font-semibold text-[#e8e8e8] whitespace-nowrap text-right">
                         Issues
                       </th>
+                      <th className="px-4 py-3 text-[13px] font-semibold text-[#e8e8e8] whitespace-nowrap text-center hidden md:table-cell">
+                        Kang AI
+                      </th>
                       <th className="px-4 py-3 w-8"></th>
                     </tr>
                   </thead>
@@ -293,11 +317,28 @@ export default function CenterPanel({
                               '—'
                             )}
                           </td>
+                          <td className="px-4 py-4 text-center hidden md:table-cell">
+                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-medium"
+                              style={{ background: 'rgba(249,115,22,0.08)', border: '1px solid rgba(249,115,22,0.2)', color: '#f97316' }}>
+                              <span className="relative flex h-1.5 w-1.5">
+                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full opacity-75" style={{ background: '#f97316' }} />
+                                <span className="relative inline-flex rounded-full h-1.5 w-1.5" style={{ background: '#f97316' }} />
+                              </span>
+                              Monitoring
+                            </span>
+                          </td>
                           <td className="px-4 py-4 text-right">
-                            <MoreVertical
-                              size={16}
-                              className="opacity-0 group-hover:opacity-40 transition-opacity ml-auto"
-                            />
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setConfirmRepo(repo);
+                              }}
+                              className="opacity-0 group-hover:opacity-60 hover:!opacity-100 transition-opacity ml-auto p-1 rounded hover:bg-red-500/10"
+                              style={{ color: '#f87171' }}
+                              title="Remove repository"
+                            >
+                              <Trash2 size={15} />
+                            </button>
                           </td>
                         </tr>
                       ))
@@ -349,6 +390,81 @@ export default function CenterPanel({
               </div>
             </div>
           </>
+        )}
+
+        {/* ── Remove Confirmation Dialog ── */}
+        {confirmRepo && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <div
+              className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+              onClick={() => { setConfirmRepo(null); setRemoveError(null); }}
+            />
+            <div
+              className="relative w-full max-w-[420px] rounded-2xl shadow-2xl"
+              style={{ background: '#18181b', border: '1px solid #27272a' }}
+            >
+              <div className="flex items-center justify-between px-6 pt-5 pb-4" style={{ borderBottom: '1px solid #27272a' }}>
+                <h2 className="text-[15px] font-semibold" style={{ color: '#e8e8e8' }}>
+                  Remove Repository
+                </h2>
+                <button
+                  onClick={() => { setConfirmRepo(null); setRemoveError(null); }}
+                  className="p-1.5 rounded-lg hover:bg-white/5 transition-colors"
+                  style={{ color: '#71717a' }}
+                >
+                  <X size={16} />
+                </button>
+              </div>
+
+              <div className="px-6 py-5">
+                <p className="text-[14px]" style={{ color: '#a1a1aa' }}>
+                  Are you sure you want to remove{' '}
+                  <span className="font-semibold" style={{ color: '#e8e8e8' }}>
+                    {confirmRepo.name}
+                  </span>{' '}
+                  from CodeKang? This will stop all AI reviews for this repository.
+                </p>
+
+                {removeError && (
+                  <div
+                    className="mt-4 p-3 rounded-lg text-[13px]"
+                    style={{ background: '#ef444415', border: '1px solid #ef444430', color: '#f87171' }}
+                  >
+                    {removeError}
+                  </div>
+                )}
+              </div>
+
+              <div className="px-6 pb-5 flex items-center justify-end gap-3">
+                <button
+                  onClick={() => { setConfirmRepo(null); setRemoveError(null); }}
+                  disabled={removing}
+                  className="px-4 py-2 rounded-lg text-[13px] font-medium border transition-colors hover:bg-white/5 disabled:opacity-50"
+                  style={{ borderColor: '#27272a', color: '#a1a1aa' }}
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleConfirmRemove}
+                  disabled={removing}
+                  className="flex items-center gap-2 px-4 py-2 rounded-lg text-[13px] font-semibold transition-opacity hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed"
+                  style={{ background: '#ef4444', color: '#fff' }}
+                >
+                  {removing ? (
+                    <>
+                      <Loader2 size={14} className="animate-spin" />
+                      Removing...
+                    </>
+                  ) : (
+                    <>
+                      <Trash2 size={14} />
+                      Remove
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
         )}
       </section>
     );

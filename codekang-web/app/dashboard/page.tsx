@@ -6,6 +6,7 @@ import CenterPanel from '@/component/dashboard/centerPanel';
 import AddRepoDialog from '@/component/dashboard/AddRepoDialog';
 import {
   fetchConnectedRepos,
+  disconnectRepo,
   type IRepository,
   type User,
 } from '@/lib/auth';
@@ -54,6 +55,11 @@ export default function DashboardPage() {
     setDialogOpen(false);
   }
 
+  async function handleRemoveRepo(id: string) {
+    await disconnectRepo(id);
+    setConnected((prev) => prev.filter((r) => r.id !== id));
+  }
+
   return (
     <div className="flex h-full w-full">
       <CenterPanel
@@ -63,6 +69,7 @@ export default function DashboardPage() {
         loading={loading}
         onAddRepo={() => setDialogOpen(true)}
         onSelectRepo={handleSelectRepo}
+        onRemoveRepo={handleRemoveRepo}
         onLinkAccount={() => router.push('/onboarding')}
       />
 

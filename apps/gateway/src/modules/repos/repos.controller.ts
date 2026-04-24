@@ -108,12 +108,13 @@ export class ReposProxyController {
     @Param('repoId') repoId: string,
   ) {
     const githubToken = await this.getGithubToken(user.id);
-    return firstValueFrom(
+    await firstValueFrom(
       this.reposClient.send(MESSAGE_PATTERNS.REPOS_DISCONNECT, {
         userId: user.id,
         repoId,
         githubToken,
       }),
+      { defaultValue: null },
     );
   }
 
@@ -201,6 +202,17 @@ export class ReposProxyController {
         repoName: repo,
         prNumber: Number(prNumber),
         githubToken,
+      }),
+    );
+  }
+
+  @Get(':repoId')
+  @ApiOperation({ summary: 'Get a single connected repository by ID' })
+  getOne(@CurrentUser() user: IUser, @Param('repoId') repoId: string) {
+    return firstValueFrom(
+      this.reposClient.send(MESSAGE_PATTERNS.REPOS_GET_ONE, {
+        userId: user.id,
+        repoId,
       }),
     );
   }

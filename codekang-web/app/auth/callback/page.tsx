@@ -29,7 +29,7 @@ function CallbackHandler() {
   }, [params, router]);
 
   return (
-    <div className="min-h-screen bg-black flex items-center justify-center">
+    <div className="min-h-screen bg-[#1c1c1c] flex items-center justify-center">
       <div className="flex flex-col items-center gap-4">
         <div className="w-8 h-8 border-2 border-zinc-700 border-t-violet-400 rounded-full animate-spin" />
         <p className="text-sm text-zinc-500">Signing you in…</p>
@@ -42,7 +42,7 @@ export default function AuthCallbackPage() {
   return (
     <Suspense
       fallback={
-        <div className="min-h-screen bg-black flex items-center justify-center">
+        <div className="min-h-screen bg-[#1c1c1c] flex items-center justify-center">
           <div className="w-8 h-8 border-2 border-zinc-700 border-t-violet-400 rounded-full animate-spin" />
         </div>
       }

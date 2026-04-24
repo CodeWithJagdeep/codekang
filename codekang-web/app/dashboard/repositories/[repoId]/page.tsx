@@ -1,22 +1,18 @@
 import { Metadata } from 'next';
 import ClientPage from './client-page';
 
-export async function generateMetadata({
-  params,
-}: {
-  params: { repoId: string };
-}): Promise<Metadata> {
-  const repoId = params.repoId;
+export async function generateMetadata(): Promise<Metadata> {
   return {
-    title: `${repoId} — CodeKang`,
-    description: `Review pull requests, issues, and AI insights for the repository ${repoId} on CodeKang.`,
+    title: 'Repository — CodeKang',
+    description: 'Review pull requests, issues, and AI insights for this repository on CodeKang.',
   };
 }
 
-export default function RepositoryPage({
+export default async function RepositoryPage({
   params,
 }: {
-  params: { repoId: string };
+  params: Promise<{ repoId: string }>;
 }) {
-  return <ClientPage params={params} />;
+  const { repoId } = await params;
+  return <ClientPage params={{ repoId }} />;
 }

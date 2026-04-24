@@ -15,9 +15,15 @@ import {
   Settings,
   X,
   LogOut,
+  Loader2,
 } from 'lucide-react';
 import { useTheme } from '@/lib/theme';
-import { signOut } from '@/lib/auth';
+import {
+  signOut,
+  fetchConnectedRepos,
+  fetchRepoPullRequests,
+  type IGitHubPR,
+} from '@/lib/auth';
 
 export type Repo = {
   id: string;
@@ -34,15 +40,6 @@ const NAV_ITEMS = [
   { icon: GitPullRequest, label: 'Reviews', id: 'reviews' },
   { icon: Blocks, label: 'Integrations', id: 'integrations' },
   { icon: BarChart2, label: 'Reports', id: 'reports' },
-];
-
-const INVOLVED_PRS = [
-  {
-    title: 'fix: complete OAuth flow in LoginMo...',
-    branch: 'codekang-ai-integration',
-    time: '5 days ago',
-    active: true,
-  },
 ];
 
 export default function Sidebar({
@@ -75,6 +72,33 @@ export default function Sidebar({
   const [isHovered, setIsHovered] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+
+  const [openPRs, setOpenPRs] = useState<(IGitHubPR & { repoName: string; repoOwner: string })[]>([]);
+  const [prsLoading, setPrsLoading] = useState(true);
+
+  useEffect(() => {
+    async function loadPRs() {
+      try {
+        const repos = await fetchConnectedRepos();
+        const results = await Promise.all(
+          repos.map(async (repo) => {
+            const prs = await fetchRepoPullRequests(repo.owner, repo.name, 'open');
+            return prs.map((pr) => ({ ...pr, repoName: repo.name, repoOwner: repo.owner }));
+          }),
+        );
+        const all = results
+          .flat()
+          .sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime())
+          .slice(0, 8);
+        setOpenPRs(all);
+      } catch {
+        // non-blocking
+      } finally {
+        setPrsLoading(false);
+      }
+    }
+    loadPRs();
+  }, []);
 
   const handleLogout = async () => {
     setIsLoggingOut(true);
@@ -300,57 +324,55 @@ export default function Sidebar({
       >
         <div className="px-4 mb-2">
           <div
-            className="text-[13px] font-medium mb-1 whitespace-nowrap"
-            style={{ color: textDim }}
-          >
-            Created PRs
-          </div>
-          <div
-            className="text-[13px] whitespace-nowrap"
-            style={{ color: L ? '#b0b3b8' : '#444' }}
-          >
-            No pull requests
-          </div>
-        </div>
-
-        <div className="px-4 mt-6 mb-2">
-          <div
             className="text-[13px] font-medium mb-2 whitespace-nowrap"
             style={{ color: textDim }}
           >
-            Latest PRs
+            Open Pull Requests
           </div>
-          <div className="space-y-1">
-            {INVOLVED_PRS.map((pr, i) => (
-              <button
-                key={i}
-                className="w-full text-left p-1 rounded-md transition-colors hover:bg-white/5 group/pr"
-              >
-                <div className="flex items-start gap-2.5 min-w-0">
+
+          {prsLoading ? (
+            <div className="flex items-center gap-2 py-1">
+              <Loader2 size={13} className="animate-spin" style={{ color: textDim }} />
+              <span className="text-[12px]" style={{ color: textDim }}>Loading…</span>
+            </div>
+          ) : openPRs.length === 0 ? (
+            <div className="text-[13px] whitespace-nowrap" style={{ color: L ? '#b0b3b8' : '#444' }}>
+              No open pull requests
+            </div>
+          ) : (
+            <div className="space-y-1">
+              {openPRs.map((pr) => (
+                <a
+                  key={pr.id}
+                  href={pr.html_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-full text-left p-1 rounded-md transition-colors hover:bg-white/5 group/pr flex items-start gap-2.5 min-w-0"
+                >
                   <GitPullRequest
-                    size={16}
+                    size={14}
                     strokeWidth={2}
                     className="shrink-0 mt-0.5 opacity-70 group-hover/pr:opacity-100 transition-opacity"
                     style={{ color: '#00cc66' }}
                   />
                   <div className="flex-1 min-w-0">
                     <div
-                      className="text-[13.5px] font-medium truncate"
+                      className="text-[13px] font-medium truncate"
                       style={{ color: textPrimary }}
                     >
                       {pr.title}
                     </div>
                     <div
-                      className="text-[12px] mt-0.5 truncate"
+                      className="text-[11px] mt-0.5 truncate"
                       style={{ color: textMuted }}
                     >
-                      {pr.time} · {pr.branch}
+                      {pr.repoName} · #{pr.number}
                     </div>
                   </div>
-                </div>
-              </button>
-            ))}
-          </div>
+                </a>
+              ))}
+            </div>
+          )}
         </div>
       </div>
 

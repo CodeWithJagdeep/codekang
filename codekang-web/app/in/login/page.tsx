@@ -156,10 +156,7 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#09090b] flex items-center justify-center font-sans tracking-tight relative overflow-hidden">
-      {/* Subtle Background Glows */}
-      <div className="absolute top-1/4 left-1/4 w-[400px] h-[400px] bg-indigo-500/10 blur-[120px] rounded-full pointer-events-none" />
-      <div className="absolute bottom-1/4 right-1/4 w-[400px] h-[400px] bg-emerald-500/5 blur-[120px] rounded-full pointer-events-none" />
+    <div className="min-h-screen bg-[#1c1c1c] flex items-center justify-center font-sans tracking-tight relative overflow-hidden">
 
       <div className="w-full max-w-[400px] p-8 mx-auto z-10 animate-in fade-in slide-in-from-bottom-4 duration-700">
         {/* Header */}
@@ -200,7 +197,7 @@ export default function LoginPage() {
         )}
 
         {/* Main Card */}
-        <div className="rounded-2xl shadow-2xl">
+        <div className="rounded-2xl">
           {/* Step 1: Login Options */}
           {step === 'login' && (
             <div className="space-y-4">
@@ -208,7 +205,7 @@ export default function LoginPage() {
                 <button
                   onClick={() => handleOAuthLogin('github')}
                   disabled={loading !== null}
-                  className="flex items-center justify-center gap-2 py-2.5 bg-[#18181b] text-white border border-[#27272a] hover:border-[#3f3f46] rounded-lg text-[15px] font-medium transition-all disabled:opacity-50"
+                  className="flex items-center justify-center gap-2 py-2.5 bg-black text-white border border-[#27272a] hover:border-[#3f3f46] rounded-lg text-[15px] font-medium transition-all disabled:opacity-50"
                 >
                   {loading === 'github' ? (
                     <span className="w-5 h-5 border-2 border-white/20 border-t-white rounded-full animate-spin" />
@@ -227,7 +224,7 @@ export default function LoginPage() {
                 <button
                   onClick={() => handleOAuthLogin('google')}
                   disabled={loading !== null}
-                  className="flex items-center justify-center gap-2 py-2.5 bg-[#18181b] text-white border border-[#27272a] hover:border-[#3f3f46] rounded-lg text-[15px] font-medium transition-all disabled:opacity-50"
+                  className="flex items-center justify-center gap-2 py-2.5 bg-black text-white border border-[#27272a] hover:border-[#3f3f46] rounded-lg text-[15px] font-medium transition-all disabled:opacity-50"
                 >
                   {loading === 'google' ? (
                     <span className="w-5 h-5 border-2 border-white/20 border-t-white rounded-full animate-spin" />
@@ -275,13 +272,13 @@ export default function LoginPage() {
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder="name@company.com"
-                    className="w-full bg-[#09090b] border border-[#27272a] rounded-lg px-4 py-2.5 text-[14px] text-white placeholder:text-[#52525b] outline-none focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/50 transition-all"
+                    className="w-full bg-[#1c1c1c] border border-white/40 rounded-lg px-4 py-2.5 text-[14px] text-white placeholder:text-[#52525b] outline-none focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/50 transition-all"
                   />
                 </div>
                 <button
                   type="submit"
                   disabled={loading !== null || !email}
-                  className="w-full flex items-center justify-center gap-2 py-2.5 bg-indigo-600 text-white rounded-lg text-[15px] font-medium hover:bg-indigo-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed group shadow-lg shadow-indigo-500/20"
+                  className="w-full flex items-center justify-center gap-2 py-2.5 bg-[#f8423d] text-white rounded-lg text-[15px] font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed group shadow-lg shadow-indigo-500/20"
                 >
                   {loading === 'email' ? (
                     <span className="w-5 h-5 border-2 border-black/20 border-t-black rounded-full animate-spin" />
@@ -318,7 +315,7 @@ export default function LoginPage() {
                         handleOtpChange(i, char);
                       }}
                       onKeyDown={(e) => handleOtpKeyDown(i, e)}
-                      className="w-10 h-12 bg-[#09090b] border border-[#27272a] rounded-lg text-center text-lg font-medium text-white outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all"
+                      className="w-10 h-12 bg-[#1c1c1c] border border-[#27272a] rounded-lg text-center text-lg font-medium text-white outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all"
                     />
                   </div>
                 ))}

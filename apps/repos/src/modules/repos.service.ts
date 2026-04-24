@@ -53,10 +53,16 @@ export class ReposService {
 
   async listConnectedRepos(userId: string): Promise<IRepository[]> {
     const repos = await this.repoRepo.find({
-      where: { userId },
+      where: { userId, isInstalled: true },
       order: { updatedAt: 'DESC' },
     });
     return repos as unknown as IRepository[];
+  }
+
+  async getConnectedRepo(userId: string, repoId: string): Promise<IRepository> {
+    const repo = await this.repoRepo.findOne({ where: { id: repoId, userId } });
+    if (!repo) throw new NotFoundException('Repository not found');
+    return repo as unknown as IRepository;
   }
 
   async connectRepo(

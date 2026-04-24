@@ -359,7 +359,7 @@ export class AuthService {
       secret: this.config.getOrThrow('JWT_REFRESH_SECRET'),
       expiresIn: this.config.get('JWT_REFRESH_EXPIRES_IN', '7d'),
     });
-    return { accessToken, refreshToken, expiresIn: 900 };
+    return { accessToken, refreshToken, expiresIn: 3600 };
   }
 
   async validateToken(token: string): Promise<IUser> {
