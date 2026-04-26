@@ -20,15 +20,21 @@ import {
   ExternalLink,
   RefreshCcw,
   ChevronRight,
+  X,
 } from 'lucide-react';
+import { AgentActivityFeed } from '@/component/AgentActivityFeed';
 import {
   fetchConnectedRepo,
   fetchRepoPullRequests,
   fetchRepoIssues,
   syncRepo,
+  fetchRepoSettings,
+  updateRepoSettings,
   type IRepository,
   type IGitHubPR,
   type IGitHubIssue,
+  type IRepoSettings,
+  DEFAULT_REPO_SETTINGS,
 } from '@/lib/auth';
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
@@ -77,10 +83,10 @@ function KangBotBadge({ status, type = 'pr' }: { status: PRStatus | 'open' | 'cl
   if (status === 'open' || status === 'draft') {
     return (
       <span className="inline-flex items-center gap-1.5 px-2.5 py-1 text-[11px] font-bold rounded-full border"
-        style={{ background: 'rgba(249,115,22,0.12)', borderColor: 'rgba(249,115,22,0.25)', color: '#f97316' }}>
+        style={{ background: 'rgba(249,115,22,0.12)', borderColor: 'rgba(249,115,22,0.25)', color: '#f8423b' }}>
         <span className="relative flex h-1.5 w-1.5">
-          <span className="animate-ping absolute inline-flex h-full w-full rounded-full opacity-75" style={{ background: '#f97316' }} />
-          <span className="relative inline-flex rounded-full h-1.5 w-1.5" style={{ background: '#f97316' }} />
+          <span className="animate-ping absolute inline-flex h-full w-full rounded-full opacity-75" style={{ background: '#f8423b' }} />
+          <span className="relative inline-flex rounded-full h-1.5 w-1.5" style={{ background: '#f8423b' }} />
         </span>
         {status === 'draft' ? 'Kang AI Waiting' : type === 'issue' ? 'Kang AI Analyzing' : 'Kang AI Reviewing'}
       </span>
@@ -116,6 +122,12 @@ export default function RepositoryDetailsPage({ params }: { params: { repoId: st
   const [searchPR, setSearchPR] = useState('');
   const [searchIssue, setSearchIssue] = useState('');
 
+  const [settings, setSettings] = useState<IRepoSettings>(DEFAULT_REPO_SETTINGS);
+  const [settingsSaving, setSettingsSaving] = useState(false);
+  const [settingsSaved, setSettingsSaved] = useState(false);
+  const [settingsError, setSettingsError] = useState<string | null>(null);
+  const [branchInput, setBranchInput] = useState('');
+
   useEffect(() => {
     async function load() {
       setLoading(true);
@@ -123,12 +135,14 @@ export default function RepositoryDetailsPage({ params }: { params: { repoId: st
       try {
         const found = await fetchConnectedRepo(params.repoId);
         setRepo(found);
-        const [repoPRs, repoIssues] = await Promise.all([
+        const [repoPRs, repoIssues, repoSettings] = await Promise.all([
           fetchRepoPullRequests(found.owner, found.name, 'all'),
           fetchRepoIssues(found.owner, found.name, 'all'),
+          fetchRepoSettings(params.repoId),
         ]);
         setPrs(repoPRs);
         setIssues(repoIssues);
+        setSettings(repoSettings);
       } catch (err: unknown) {
         setError(err instanceof Error ? err.message : 'Failed to load repository');
       } finally {
@@ -137,6 +151,22 @@ export default function RepositoryDetailsPage({ params }: { params: { repoId: st
     }
     load();
   }, [params.repoId]);
+
+  async function handleSaveSettings() {
+    setSettingsSaving(true);
+    setSettingsError(null);
+    setSettingsSaved(false);
+    try {
+      const saved = await updateRepoSettings(params.repoId, settings);
+      setSettings(saved as IRepoSettings);
+      setSettingsSaved(true);
+      setTimeout(() => setSettingsSaved(false), 2500);
+    } catch (err) {
+      setSettingsError(err instanceof Error ? err.message : 'Failed to save settings');
+    } finally {
+      setSettingsSaving(false);
+    }
+  }
 
   async function handleSync() {
     if (!repo || syncing) return;
@@ -200,10 +230,10 @@ export default function RepositoryDetailsPage({ params }: { params: { repoId: st
               </h1>
               <div className="flex items-center gap-2">
                 <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full border text-[11px] font-medium"
-                  style={{ background: 'rgba(249,115,22,0.08)', borderColor: 'rgba(249,115,22,0.2)', color: '#f97316' }}>
+                  style={{ background: 'rgba(249,115,22,0.08)', borderColor: 'rgba(249,115,22,0.2)', color: '#f8423b' }}>
                   <span className="relative flex h-1.5 w-1.5 mr-0.5">
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full opacity-75" style={{ background: '#f97316' }} />
-                    <span className="relative inline-flex rounded-full h-1.5 w-1.5" style={{ background: '#f97316' }} />
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full opacity-75" style={{ background: '#f8423b' }} />
+                    <span className="relative inline-flex rounded-full h-1.5 w-1.5" style={{ background: '#f8423b' }} />
                   </span>
                   Kang AI Active
                 </span>
@@ -244,8 +274,8 @@ export default function RepositoryDetailsPage({ params }: { params: { repoId: st
             return (
               <button key={tab.id} onClick={() => setActiveTab(tab.id)}
                 className="flex items-center gap-2 pb-3 border-b-2 transition-colors whitespace-nowrap shrink-0"
-                style={{ borderColor: isActive ? '#f97316' : 'transparent', color: isActive ? '#e8e8e8' : '#a1a1aa' }}>
-                <tab.icon size={15} className={isActive ? 'text-[#f97316]' : 'opacity-70'} />
+                style={{ borderColor: isActive ? '#f8423b' : 'transparent', color: isActive ? '#e8e8e8' : '#a1a1aa' }}>
+                <tab.icon size={15} className={isActive ? 'text-[#f8423b]' : 'opacity-70'} />
                 <span className="text-[13px] md:text-[14px] font-medium">{tab.label}</span>
                 {'count' in tab && tab.count !== undefined && (
                   <span className="px-1.5 min-w-[20px] h-5 rounded-full text-[11px] font-bold bg-white/10 text-[#e8e8e8] flex items-center justify-center">
@@ -282,7 +312,7 @@ export default function RepositoryDetailsPage({ params }: { params: { repoId: st
                 <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#6d6d6d]" />
                 <input type="text" placeholder="Search pull requests…" value={searchPR}
                   onChange={(e) => setSearchPR(e.target.value)}
-                  className="bg-[#1c1c1c] border border-[#2a2a2a] rounded-md pl-9 pr-4 py-2 text-[13px] text-[#e8e8e8] placeholder-[#6d6d6d] focus:outline-none focus:border-[#f97316] transition-colors w-64" />
+                  className="bg-[#1c1c1c] border border-[#2a2a2a] rounded-md pl-9 pr-4 py-2 text-[13px] text-[#e8e8e8] placeholder-[#6d6d6d] focus:outline-none focus:border-[#f8423b] transition-colors w-64" />
               </div>
               <span className="text-[12px] text-[#52525b]">
                 {filteredPRs.length} pull request{filteredPRs.length !== 1 ? 's' : ''} · {openPRs.length} open
@@ -313,7 +343,7 @@ export default function RepositoryDetailsPage({ params }: { params: { repoId: st
                         </div>
                         <div className="min-w-0">
                           <a href={pr.html_url} target="_blank" rel="noopener noreferrer"
-                            className="text-[14px] md:text-[15px] font-bold text-[#e8e8e8] hover:text-[#f97316] transition-colors leading-snug line-clamp-2 block">
+                            className="text-[14px] md:text-[15px] font-bold text-[#e8e8e8] hover:text-[#f8423b] transition-colors leading-snug line-clamp-2 block">
                             {pr.title}
                           </a>
                           <div className="text-[12px] text-[#6d6d6d] mt-1.5 flex items-center gap-1.5 flex-wrap">
@@ -345,13 +375,13 @@ export default function RepositoryDetailsPage({ params }: { params: { repoId: st
                     className="border-t border-white/5 bg-[#161618] px-5 py-3 flex items-center justify-between hover:bg-white/[0.03] transition-colors group"
                   >
                     <div className="flex items-center gap-2.5">
-                      <div className={`w-6 h-6 rounded-full flex items-center justify-center shrink-0 ${status === 'draft' ? 'bg-[#333]' : 'bg-[#f97316]'}`}>
+                      <div className={`w-6 h-6 rounded-full flex items-center justify-center shrink-0 ${status === 'draft' ? 'bg-[#333]' : 'bg-[#f8423b]'}`}>
                         <span className={`text-[10px] font-black ${status === 'draft' ? 'text-[#6d6d6d]' : 'text-white'}`}>K</span>
                       </div>
                       <span className={`text-[13px] font-bold ${status === 'draft' ? 'text-[#6d6d6d]' : 'text-[#e8e8e8]'}`}>KangBot</span>
                       <KangBotBadge status={status} />
                     </div>
-                    <div className="flex items-center gap-1.5 text-[12px] text-[#52525b] group-hover:text-[#f97316] transition-colors">
+                    <div className="flex items-center gap-1.5 text-[12px] text-[#52525b] group-hover:text-[#f8423b] transition-colors">
                       View AI Analysis <ChevronRight size={13} />
                     </div>
                   </Link>
@@ -364,12 +394,19 @@ export default function RepositoryDetailsPage({ params }: { params: { repoId: st
         {/* ── Issues ── */}
         {!loading && !error && activeTab === 'issues' && (
           <div className="flex flex-col gap-4">
+            {repo && (
+              <AgentActivityFeed
+                repo={`${repo.owner}/${repo.name}`}
+                limit={3}
+                className="mb-2"
+              />
+            )}
             <div className="flex items-center justify-between flex-wrap gap-3 mb-2">
               <div className="relative">
                 <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#6d6d6d]" />
                 <input type="text" placeholder="Search issues…" value={searchIssue}
                   onChange={(e) => setSearchIssue(e.target.value)}
-                  className="bg-[#1c1c1c] border border-[#2a2a2a] rounded-md pl-9 pr-4 py-2 text-[13px] text-[#e8e8e8] placeholder-[#6d6d6d] focus:outline-none focus:border-[#f97316] transition-colors w-64" />
+                  className="bg-[#1c1c1c] border border-[#2a2a2a] rounded-md pl-9 pr-4 py-2 text-[13px] text-[#e8e8e8] placeholder-[#6d6d6d] focus:outline-none focus:border-[#f8423b] transition-colors w-64" />
               </div>
               <span className="text-[12px] text-[#52525b]">
                 {filteredIssues.length} issue{filteredIssues.length !== 1 ? 's' : ''} · {openIssues.length} open
@@ -396,7 +433,7 @@ export default function RepositoryDetailsPage({ params }: { params: { repoId: st
                           <CircleDot size={17} className={isOpen ? 'text-emerald-400' : 'text-[#71717a]'} />
                         </div>
                         <div className="min-w-0">
-                          <h3 className="text-[14px] md:text-[15px] font-bold text-[#e8e8e8] group-hover:text-[#f97316] transition-colors leading-snug line-clamp-2">
+                          <h3 className="text-[14px] md:text-[15px] font-bold text-[#e8e8e8] group-hover:text-[#f8423b] transition-colors leading-snug line-clamp-2">
                             {issue.title}
                           </h3>
                           <div className="text-[12px] text-[#6d6d6d] mt-1.5 flex items-center gap-1.5 flex-wrap">
@@ -430,13 +467,13 @@ export default function RepositoryDetailsPage({ params }: { params: { repoId: st
                     className="border-t border-white/5 bg-[#161618] px-5 py-3 flex items-center justify-between hover:bg-white/[0.03] transition-colors group"
                   >
                     <div className="flex items-center gap-2.5">
-                      <div className={`w-6 h-6 rounded-full flex items-center justify-center shrink-0 ${isOpen ? 'bg-[#f97316]' : 'bg-[#333]'}`}>
+                      <div className={`w-6 h-6 rounded-full flex items-center justify-center shrink-0 ${isOpen ? 'bg-[#f8423b]' : 'bg-[#333]'}`}>
                         <span className={`text-[10px] font-black ${isOpen ? 'text-white' : 'text-[#6d6d6d]'}`}>K</span>
                       </div>
                       <span className={`text-[13px] font-bold ${isOpen ? 'text-[#e8e8e8]' : 'text-[#6d6d6d]'}`}>KangBot</span>
                       <KangBotBadge status={isOpen ? 'open' : 'closed'} type="issue" />
                     </div>
-                    <div className="flex items-center gap-1.5 text-[12px] text-[#52525b] group-hover:text-[#f97316] transition-colors">
+                    <div className="flex items-center gap-1.5 text-[12px] text-[#52525b] group-hover:text-[#f8423b] transition-colors">
                       View AI Analysis <ChevronRight size={13} />
                     </div>
                   </Link>
@@ -448,14 +485,236 @@ export default function RepositoryDetailsPage({ params }: { params: { repoId: st
 
         {/* ── Settings ── */}
         {!loading && !error && activeTab === 'settings' && (
-          <div className="flex flex-col items-center justify-center h-64 text-center border border-dashed border-[#2a2a2a] rounded-xl bg-[#1c1c1c]/50">
-            <div className="w-12 h-12 bg-white/5 rounded-full flex items-center justify-center text-[#6d6d6d] mb-4">
-              <Settings size={24} />
+          <div className="max-w-2xl space-y-6">
+
+            {/* AI Review Triggers */}
+            <section className="rounded-xl border border-white/[0.07] bg-[#1c1c1c] overflow-hidden">
+              <div className="px-5 py-4 border-b border-white/[0.07]">
+                <h3 className="text-[14px] font-semibold text-[#e8e8e8]">AI Review Triggers</h3>
+                <p className="text-[12px] text-[#71717a] mt-0.5">When should Kang AI automatically start reviewing?</p>
+              </div>
+              <div className="divide-y divide-white/[0.05]">
+                {([
+                  { key: 'onPROpen', label: 'When a pull request is opened', desc: 'Trigger review as soon as a PR is created' },
+                  { key: 'onPush',   label: 'When commits are pushed to a PR', desc: 'Re-review on every new push to an open PR' },
+                  { key: 'onDraft',  label: 'Include draft pull requests', desc: 'Also review PRs marked as draft' },
+                ] as { key: keyof IRepoSettings['triggers']; label: string; desc: string }[]).map(({ key, label, desc }) => (
+                  <label key={key} className="flex items-center justify-between px-5 py-3.5 cursor-pointer group hover:bg-white/[0.02]">
+                    <div>
+                      <div className="text-[13px] font-medium text-[#e8e8e8]">{label}</div>
+                      <div className="text-[11px] text-[#52525b] mt-0.5">{desc}</div>
+                    </div>
+                    <button
+                      role="switch"
+                      aria-checked={settings.triggers[key]}
+                      onClick={() => setSettings((s) => ({ ...s, triggers: { ...s.triggers, [key]: !s.triggers[key] } }))}
+                      className={`relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors ${settings.triggers[key] ? 'bg-[#f8423b]' : 'bg-[#3f3f46]'}`}
+                    >
+                      <span className={`inline-block h-3.5 w-3.5 rounded-full bg-white shadow transition-transform ${settings.triggers[key] ? 'translate-x-[18px]' : 'translate-x-[3px]'}`} />
+                    </button>
+                  </label>
+                ))}
+              </div>
+            </section>
+
+            {/* Issue Detection */}
+            <section className="rounded-xl border border-white/[0.07] bg-[#1c1c1c] overflow-hidden">
+              <div className="px-5 py-4 border-b border-white/[0.07]">
+                <h3 className="text-[14px] font-semibold text-[#e8e8e8]">Issue Detection</h3>
+                <p className="text-[12px] text-[#71717a] mt-0.5">Choose what types of issues Kang AI should look for</p>
+              </div>
+              <div className="px-5 py-4 grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                {([
+                  { key: 'bugs',          label: 'Bugs & Logic Errors',    color: '#f87171' },
+                  { key: 'security',      label: 'Security Vulnerabilities', color: '#fb923c' },
+                  { key: 'performance',   label: 'Performance Issues',      color: '#a78bfa' },
+                  { key: 'style',         label: 'Code Style & Formatting', color: '#60a5fa' },
+                  { key: 'documentation', label: 'Missing Documentation',   color: '#34d399' },
+                ] as { key: keyof IRepoSettings['issueTypes']; label: string; color: string }[]).map(({ key, label, color }) => {
+                  const checked = settings.issueTypes[key];
+                  return (
+                    <label
+                      key={key}
+                      className="flex items-center gap-3 px-3.5 py-2.5 rounded-lg border cursor-pointer transition-all"
+                      style={{
+                        borderColor: checked ? `${color}35` : '#27272a',
+                        background: checked ? `${color}08` : 'transparent',
+                      }}
+                    >
+                      <div
+                        className={`w-4 h-4 rounded flex items-center justify-center shrink-0 transition-colors ${checked ? '' : 'border border-[#3f3f46]'}`}
+                        style={checked ? { background: color } : {}}
+                        onClick={() => setSettings((s) => ({ ...s, issueTypes: { ...s.issueTypes, [key]: !s.issueTypes[key] } }))}
+                      >
+                        {checked && (
+                          <svg className="w-2.5 h-2.5" viewBox="0 0 10 8" fill="none">
+                            <path d="M1 4l3 3 5-6" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                          </svg>
+                        )}
+                      </div>
+                      <span
+                        className="text-[13px] font-medium flex-1"
+                        onClick={() => setSettings((s) => ({ ...s, issueTypes: { ...s.issueTypes, [key]: !s.issueTypes[key] } }))}
+                        style={{ color: checked ? '#e8e8e8' : '#71717a' }}
+                      >
+                        {label}
+                      </span>
+                    </label>
+                  );
+                })}
+              </div>
+            </section>
+
+            {/* Review Depth */}
+            <section className="rounded-xl border border-white/[0.07] bg-[#1c1c1c] overflow-hidden">
+              <div className="px-5 py-4 border-b border-white/[0.07]">
+                <h3 className="text-[14px] font-semibold text-[#e8e8e8]">Review Depth</h3>
+                <p className="text-[12px] text-[#71717a] mt-0.5">Balance between speed and thoroughness</p>
+              </div>
+              <div className="px-5 py-4 grid grid-cols-3 gap-2.5">
+                {([
+                  { value: 'quick',     label: 'Quick',     desc: 'Fast, surface-level scan', credits: '1×' },
+                  { value: 'standard',  label: 'Standard',  desc: 'Balanced review',          credits: '2×' },
+                  { value: 'thorough',  label: 'Thorough',  desc: 'Deep analysis',            credits: '4×' },
+                ] as { value: IRepoSettings['reviewDepth']; label: string; desc: string; credits: string }[]).map(({ value, label, desc, credits }) => {
+                  const active = settings.reviewDepth === value;
+                  return (
+                    <button
+                      key={value}
+                      onClick={() => setSettings((s) => ({ ...s, reviewDepth: value }))}
+                      className="flex flex-col items-start p-3.5 rounded-lg border text-left transition-all"
+                      style={{
+                        borderColor: active ? 'rgba(249,115,22,0.4)' : '#27272a',
+                        background: active ? 'rgba(249,115,22,0.06)' : 'transparent',
+                      }}
+                    >
+                      <div className="flex items-center justify-between w-full mb-1">
+                        <span className={`text-[13px] font-semibold ${active ? 'text-[#f8423b]' : 'text-[#e8e8e8]'}`}>{label}</span>
+                        <span className="text-[10px] px-1.5 py-0.5 rounded font-mono" style={{ background: '#27272a', color: '#71717a' }}>{credits}</span>
+                      </div>
+                      <span className="text-[11px] text-[#52525b]">{desc}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </section>
+
+            {/* Branch Configuration */}
+            <section className="rounded-xl border border-white/[0.07] bg-[#1c1c1c] overflow-hidden">
+              <div className="px-5 py-4 border-b border-white/[0.07]">
+                <h3 className="text-[14px] font-semibold text-[#e8e8e8]">Branch Configuration</h3>
+                <p className="text-[12px] text-[#71717a] mt-0.5">
+                  Restrict AI reviews to specific target branches. Leave empty to review all branches.
+                </p>
+              </div>
+              <div className="px-5 py-4 space-y-3">
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    placeholder={`e.g. ${repo?.defaultBranch ?? 'main'}`}
+                    value={branchInput}
+                    onChange={(e) => setBranchInput(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' && branchInput.trim()) {
+                        const b = branchInput.trim();
+                        if (!settings.watchedBranches.includes(b)) {
+                          setSettings((s) => ({ ...s, watchedBranches: [...s.watchedBranches, b] }));
+                        }
+                        setBranchInput('');
+                      }
+                    }}
+                    className="flex-1 px-3 py-2 rounded-lg border text-[13px] bg-[#121214] text-[#e8e8e8] placeholder-[#52525b] outline-none transition-colors"
+                    style={{ borderColor: '#27272a' }}
+                    onFocus={(e) => (e.currentTarget.style.borderColor = '#f8423b')}
+                    onBlur={(e) => (e.currentTarget.style.borderColor = '#27272a')}
+                  />
+                  <button
+                    onClick={() => {
+                      const b = branchInput.trim();
+                      if (b && !settings.watchedBranches.includes(b)) {
+                        setSettings((s) => ({ ...s, watchedBranches: [...s.watchedBranches, b] }));
+                      }
+                      setBranchInput('');
+                    }}
+                    className="px-4 py-2 rounded-lg text-[13px] font-medium transition-colors"
+                    style={{ background: '#27272a', color: '#a1a1aa' }}
+                  >
+                    Add
+                  </button>
+                </div>
+                {settings.watchedBranches.length > 0 ? (
+                  <div className="flex flex-wrap gap-2">
+                    {settings.watchedBranches.map((branch) => (
+                      <span
+                        key={branch}
+                        className="inline-flex items-center gap-1.5 pl-2.5 pr-1.5 py-1 rounded-full text-[12px] font-mono font-medium"
+                        style={{ background: '#27272a', color: '#a1a1aa', border: '1px solid #3f3f46' }}
+                      >
+                        {branch}
+                        <button
+                          onClick={() => setSettings((s) => ({ ...s, watchedBranches: s.watchedBranches.filter((b) => b !== branch) }))}
+                          className="rounded-full p-0.5 hover:bg-white/10 transition-colors"
+                          style={{ color: '#6d6d6d' }}
+                        >
+                          <X size={10} />
+                        </button>
+                      </span>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-[12px]" style={{ color: '#52525b' }}>No branch filter — reviewing all branches</p>
+                )}
+              </div>
+            </section>
+
+            {/* Output Settings */}
+            <section className="rounded-xl border border-white/[0.07] bg-[#1c1c1c] overflow-hidden">
+              <div className="px-5 py-4 border-b border-white/[0.07]">
+                <h3 className="text-[14px] font-semibold text-[#e8e8e8]">Output & Notifications</h3>
+                <p className="text-[12px] text-[#71717a] mt-0.5">Control how and when you receive review results</p>
+              </div>
+              <div className="divide-y divide-white/[0.05]">
+                {([
+                  { key: 'autoComment',      label: 'Post review as GitHub comment', desc: 'Automatically comment AI findings on the PR or issue' },
+                  { key: 'notifyOnComplete', label: 'Notify when review completes',  desc: 'Receive an in-app notification when Kang AI finishes' },
+                ] as { key: 'autoComment' | 'notifyOnComplete'; label: string; desc: string }[]).map(({ key, label, desc }) => (
+                  <label key={key} className="flex items-center justify-between px-5 py-3.5 cursor-pointer hover:bg-white/[0.02]">
+                    <div>
+                      <div className="text-[13px] font-medium text-[#e8e8e8]">{label}</div>
+                      <div className="text-[11px] text-[#52525b] mt-0.5">{desc}</div>
+                    </div>
+                    <button
+                      role="switch"
+                      aria-checked={settings[key]}
+                      onClick={() => setSettings((s) => ({ ...s, [key]: !s[key] }))}
+                      className={`relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors ${settings[key] ? 'bg-[#f8423b]' : 'bg-[#3f3f46]'}`}
+                    >
+                      <span className={`inline-block h-3.5 w-3.5 rounded-full bg-white shadow transition-transform ${settings[key] ? 'translate-x-[18px]' : 'translate-x-[3px]'}`} />
+                    </button>
+                  </label>
+                ))}
+              </div>
+            </section>
+
+            {/* Save bar */}
+            <div className="flex items-center justify-between py-2">
+              {settingsError && (
+                <p className="text-[13px] text-red-400">{settingsError}</p>
+              )}
+              {settingsSaved && !settingsError && (
+                <p className="text-[13px] text-emerald-400">Settings saved</p>
+              )}
+              {!settingsSaved && !settingsError && <span />}
+              <button
+                onClick={handleSaveSettings}
+                disabled={settingsSaving}
+                className="flex items-center gap-2 px-5 py-2 rounded-lg text-[13px] font-bold transition-opacity hover:opacity-90 disabled:opacity-50"
+                style={{ background: '#f8423b', color: '#fff' }}
+              >
+                {settingsSaving ? <Loader2 size={14} className="animate-spin" /> : null}
+                {settingsSaving ? 'Saving…' : 'Save Settings'}
+              </button>
             </div>
-            <h3 className="text-[16px] font-bold text-[#e8e8e8] mb-1">Settings</h3>
-            <p className="text-[13px] text-[#a1a1aa] max-w-[300px]">
-              Repository-level review configuration is coming soon.
-            </p>
           </div>
         )}
       </div>

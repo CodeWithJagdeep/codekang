@@ -8,8 +8,10 @@ import { AuthService } from './auth.service';
 import { User } from '../entities/user.entity';
 import { RefreshTokenBlacklist } from '../entities/refresh-token-blacklist.entity';
 import { Otp } from '../entities/otp.entity';
+import { UserSession } from '../entities/user-session.entity';
 import { BlacklistCleanupService } from './blacklist-cleanup.service';
 import { MailModule } from './mail/mail.module';
+import { RazorpayService } from './razorpay.service';
 
 @Module({
   imports: [
@@ -26,7 +28,7 @@ import { MailModule } from './mail/mail.module';
     MailModule,
   ],
   controllers: [AuthController],
-  providers: [AuthService, BlacklistCleanupService],
+  providers: [AuthService, BlacklistCleanupService, RazorpayService],
   exports: [AuthService],
 })
 export class AuthModule {}

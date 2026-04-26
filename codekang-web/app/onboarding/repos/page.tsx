@@ -160,7 +160,7 @@ export default function OnboardingReposPage() {
         {/* Step indicator */}
         <div className="flex items-center justify-center gap-3 mb-8">
           <StepDot index={1} label="Connect accounts" active={false} done />
-          <div className="h-px w-8 bg-[#f97316]/40" />
+          <div className="h-px w-8 bg-[#f8423b]/40" />
           <StepDot index={2} label="Select repos" active />
         </div>
 
@@ -242,7 +242,7 @@ export default function OnboardingReposPage() {
             onClick={handleFinish}
             disabled={submitting}
             className="w-full py-3 flex items-center justify-center gap-2 rounded-xl font-semibold text-[14px] transition-opacity hover:opacity-90 disabled:opacity-50"
-            style={{ background: '#f97316', color: '#fff' }}
+            style={{ background: '#f8423b', color: '#fff' }}
           >
             {submitting ? (
               <Loader2 size={16} className="animate-spin" />
@@ -297,7 +297,7 @@ function StepDot({
       <div
         className="w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-bold"
         style={{
-          background: active ? '#f97316' : done ? '#166534' : '#27272a',
+          background: active ? '#f8423b' : done ? '#166534' : '#27272a',
           color: active || done ? '#fff' : '#52525b',
         }}
       >
@@ -341,7 +341,7 @@ function PlanBar({
         <div className="h-1.5 rounded-full overflow-hidden" style={{ background: '#27272a' }}>
           <div
             className="h-full rounded-full transition-all"
-            style={{ width: `${pct}%`, background: atLimit ? '#ef4444' : '#f97316' }}
+            style={{ width: `${pct}%`, background: atLimit ? '#ef4444' : '#f8423b' }}
           />
         </div>
       )}
@@ -464,8 +464,8 @@ function GitHubRepoList({
             <div
               className="w-5 h-5 rounded border flex items-center justify-center shrink-0 mr-3 transition-all"
               style={{
-                borderColor: isSelected ? '#f97316' : '#3f3f46',
-                background: isSelected ? '#f97316' : 'transparent',
+                borderColor: isSelected ? '#f8423b' : '#3f3f46',
+                background: isSelected ? '#f8423b' : 'transparent',
               }}
             >
               {isSelected && <Check size={12} strokeWidth={3} className="text-white" />}

@@ -10,12 +10,12 @@ import {
   Loader2,
   FileText,
 } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useTheme } from '@/lib/theme';
+import { fetchSubscription, fetchPlans, fetchConnectedRepos, cancelRazorpaySubscription, type ISubscription, type IPlanCatalogItem } from '@/lib/auth';
 
 // ── Types ──
 
-type Plan = 'free' | 'pro' | 'enterprise';
 type BillingTab = 'overview' | 'invoices' | 'payment';
 type PayProvider = 'card' | 'paypal' | 'upi';
 
@@ -37,6 +37,30 @@ interface PaymentMethod {
   isDefault: boolean;
 }
 
+function getPlanColor(tier: string) {
+  if (tier === 'free') return '#71717a';
+  if (tier === 'starter') return '#6366f1';
+  if (tier === 'team') return '#10b981';
+  return '#8b5cf6'; // enterprise
+}
+
+function extractFeatures(p: IPlanCatalogItem): string[] {
+  const f: string[] = [];
+  if (p.features.repos.privateRepos === 'unlimited') f.push('Unlimited Private Repositories');
+  else f.push(`${p.features.repos.privateRepos} Private Repositories`);
+  if (p.features.ai.creditsPerMonth === 'unlimited') f.push('Unlimited Credits');
+  if (p.features.reviews.prReviews) f.push('PR Reviews & Inline Comments');
+  if (p.features.reviews.linterSast) f.push('Linter / SAST Support');
+  if (p.features.ai.autonomousFix) f.push('Autonomous Bug Fix PRs');
+  if (p.features.ai.unitTestGeneration) f.push('Unit Test Generation');
+  if (p.features.ai.docstringGeneration) f.push('Docstring Generation');
+  if (p.features.team.rbac) f.push('Team RBAC & Audit Logs');
+  if (p.features.team.analytics) f.push('Analytics Reports');
+  if (p.features.team.sso) f.push('SSO / SAML & RBAC');
+  if (p.features.team.selfHosting) f.push('On-premise deployment');
+  return f;
+}
+
 // ── Data ──
 
 const INVOICES: Invoice[] = [
@@ -55,94 +79,6 @@ const INVOICES: Invoice[] = [
     status: 'paid',
     amount: '$29.00',
     plan: 'Pro',
-  },
-  {
-    id: 'INV-2025-07',
-    period: 'Jul 2025',
-    date: 'Jul 12, 2025',
-    status: 'paid',
-    amount: '$29.00',
-    plan: 'Pro',
-  },
-  {
-    id: 'INV-2025-06',
-    period: 'Jun 2025',
-    date: 'Jun 12, 2025',
-    status: 'paid',
-    amount: '$19.00',
-    plan: 'Basic',
-  },
-  {
-    id: 'INV-2025-05',
-    period: 'May 2025',
-    date: 'May 12, 2025',
-    status: 'paid',
-    amount: '$19.00',
-    plan: 'Basic',
-  },
-  {
-    id: 'INV-2025-04',
-    period: 'Apr 2025',
-    date: 'Apr 12, 2025',
-    status: 'paid',
-    amount: '$19.00',
-    plan: 'Basic',
-  },
-];
-
-const PLANS = [
-  {
-    id: 'free' as Plan,
-    name: 'Free',
-    price: '$0',
-    period: '/month',
-    description: 'For solo devs exploring AI-powered review.',
-    color: '#71717a',
-    features: [
-      '50 AI reviews / month',
-      '3 repositories',
-      '1 AI agent (KangBot only)',
-      'Basic bug detection',
-      'Community support',
-    ],
-    limits: { reviews: 50, repos: 3, agents: 1 },
-  },
-  {
-    id: 'pro' as Plan,
-    name: 'Pro',
-    price: '$29',
-    period: '/month',
-    description: 'For growing teams that ship fast.',
-    color: '#6366f1',
-    popular: true,
-    features: [
-      '500 AI reviews / month',
-      'Unlimited repositories',
-      'All 5 AI agents',
-      'Auto-patch critical bugs',
-      'Security scanner (nightly)',
-      'Slack & Discord webhooks',
-      'Priority support',
-    ],
-    limits: { reviews: 500, repos: -1, agents: 5 },
-  },
-  {
-    id: 'enterprise' as Plan,
-    name: 'Enterprise',
-    price: 'Custom',
-    period: '',
-    description: 'For large orgs with advanced compliance needs.',
-    color: '#8b5cf6',
-    features: [
-      'Unlimited AI reviews',
-      'Unlimited repositories',
-      'Custom agent pipelines',
-      'SSO / SAML & RBAC',
-      'On-premise deployment',
-      'SLA & dedicated support',
-      'Audit logs & compliance',
-    ],
-    limits: { reviews: -1, repos: -1, agents: -1 },
   },
 ];
 
@@ -292,7 +228,7 @@ function UpgradeModal({
             onClick={handleUpgrade}
             disabled={loading}
             className="w-full py-3.5 rounded-md text-[15px] font-bold text-white transition-all flex items-center justify-center gap-2 disabled:opacity-70 border"
-            style={{ borderColor: '#f97316', background: 'transparent' }}
+            style={{ borderColor: '#f8423b', background: 'transparent' }}
           >
             {loading ? (
               <>
@@ -319,13 +255,17 @@ function UpgradeModal({
 // ── Tab: Overview ──
 
 function OverviewTab({
-  upgraded,
-  currentPlan,
-  onUpgrade,
+  subscription,
+  plans,
+  connectedReposCount,
+  onCancelPlan,
+  cancelling,
 }: {
-  upgraded: boolean;
-  currentPlan: Plan;
-  onUpgrade: () => void;
+  subscription: ISubscription | null;
+  plans: IPlanCatalogItem[];
+  connectedReposCount: number;
+  onCancelPlan: () => void;
+  cancelling: boolean;
 }) {
   const { resolved } = useTheme();
   const L = resolved === 'light';
@@ -336,14 +276,22 @@ function OverviewTab({
   const textDim = L ? '#9aa0a6' : '#555';
   const innerBg = L ? '#f8f9fa' : '#111113';
 
-  const [showUpgrade, setShowUpgrade] = useState(false);
-  const [localUpgraded, setLocalUpgraded] = useState(upgraded);
+  const currentTier = subscription?.plan.tier || 'free';
+  const activePlan = plans.find((p) => p.tier === currentTier) || plans[0];
+  
+  if (!activePlan) return <div className="p-8"><Loader2 className="animate-spin mx-auto text-[#f8423b]" /></div>;
 
-  const activePlan = PLANS.find(
-    (p) => p.id === (localUpgraded ? 'enterprise' : currentPlan),
-  )!;
-  const usage = { reviews: 312, repos: 5, agents: 3 };
-  const limits = activePlan.limits;
+  const usage = {
+    reviews: subscription?.creditsUsed || 0,
+    repos: connectedReposCount,
+    agents: 0,
+  };
+  
+  const limits = {
+    reviews: activePlan.features.ai.creditsPerMonth === 'unlimited' ? -1 : activePlan.features.ai.creditsPerMonth as number,
+    repos: activePlan.features.repos.privateRepos === 'unlimited' ? -1 : activePlan.features.repos.privateRepos as number,
+    agents: -1,
+  };
 
   return (
     <>
@@ -364,18 +312,18 @@ function OverviewTab({
                     {activePlan.name} Plan
                   </h2>
                   <span
-                    className="px-2 py-0.5 rounded-full text-[10px] font-bold border"
+                    className="px-2 py-0.5 rounded-full text-[10px] font-bold border capitalize"
                     style={{
-                      background: `${activePlan.color}10`,
-                      color: activePlan.color,
-                      borderColor: `${activePlan.color}25`,
+                      background: `${getPlanColor(activePlan.tier)}10`,
+                      color: getPlanColor(activePlan.tier),
+                      borderColor: `${getPlanColor(activePlan.tier)}25`,
                     }}
                   >
                     ACTIVE
                   </span>
                 </div>
                 <p className="text-[13px] mt-0.5" style={{ color: textMuted }}>
-                  Active since Aug 12, 2024 · Next billing Sep 12, 2025
+                  Active since {subscription?.creditsReset ? new Date(subscription.creditsReset).toLocaleDateString() : 'N/A'}
                 </p>
               </div>
             </div>
@@ -439,16 +387,16 @@ function OverviewTab({
           <div className="flex flex-col items-start lg:items-end gap-4 shrink-0">
             <div className="lg:text-right">
               <div
-                className="text-[30px] font-black"
+                className="text-[30px] font-black uppercase"
                 style={{ color: textPrimary }}
               >
-                {activePlan.price}
-                {activePlan.period && (
+                ${activePlan.pricing.monthly === 'custom' ? 'Custom' : activePlan.pricing.monthly}
+                {activePlan.pricing.monthly !== 'custom' && (
                   <span
-                    className="text-[13px] font-normal ml-1"
+                    className="text-[13px] font-normal ml-1 lowercase"
                     style={{ color: textMuted }}
                   >
-                    {activePlan.period}
+                    /mo
                   </span>
                 )}
               </div>
@@ -457,25 +405,30 @@ function OverviewTab({
               </p>
             </div>
             <div className="flex flex-col items-stretch gap-2 w-full lg:w-[140px]">
-              {currentPlan !== 'enterprise' && !localUpgraded && (
+              {currentTier === 'free' && (
                 <button
-                  onClick={() => setShowUpgrade(true)}
+                  onClick={() => window.location.href = '/dashboard/billing'}
                   className="flex items-center justify-center px-6 py-2.5 rounded-md text-[14px] font-bold text-white transition-all border"
-                  style={{ borderColor: '#f97316', background: 'transparent' }}
+                  style={{ borderColor: '#f8423b', background: 'transparent' }}
                 >
                   Upgrade
                 </button>
               )}
-              <button
-                className="px-6 py-2.5 rounded-md border text-[14px] font-medium transition-all"
-                style={{
-                  borderColor: cardBorder,
-                  color: textMuted,
-                  background: 'transparent',
-                }}
-              >
-                Cancel plan
-              </button>
+              {currentTier !== 'free' && (
+                <button
+                  onClick={onCancelPlan}
+                  disabled={cancelling}
+                  className="px-6 py-2.5 rounded-md border text-[14px] font-medium transition-all flex items-center gap-2 disabled:opacity-60"
+                  style={{
+                    borderColor: cardBorder,
+                    color: textMuted,
+                    background: 'transparent',
+                  }}
+                >
+                  {cancelling && <Loader2 size={13} className="animate-spin" />}
+                  {cancelling ? 'Cancelling…' : 'Cancel plan'}
+                </button>
+              )}
             </div>
           </div>
         </div>
@@ -493,63 +446,65 @@ function OverviewTab({
           </h2>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-          {PLANS.map((plan) => {
-            const isActive =
-              plan.id === (localUpgraded ? 'enterprise' : currentPlan);
+          {plans.filter(p => p.tier !== 'pro').map((plan) => {
+            const isActive = plan.tier === currentTier;
+            const pColor = getPlanColor(plan.tier);
+            const featuresList = extractFeatures(plan);
+            
             return (
               <div
-                key={plan.id}
+                key={plan.tier}
                 className="rounded-lg border p-5 flex flex-col relative transition-all"
                 style={{
-                  background: isActive ? `${plan.color}05` : cardBg,
-                  borderColor: isActive ? `${plan.color}35` : cardBorder,
+                  background: isActive ? `${pColor}05` : cardBg,
+                  borderColor: isActive ? `${pColor}35` : cardBorder,
                 }}
               >
                 {isActive && (
                   <div
                     className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-0.5 rounded-full text-[10px] font-bold"
-                    style={{ background: plan.color, color: '#fff' }}
+                    style={{ background: pColor, color: '#fff' }}
                   >
                     CURRENT
                   </div>
                 )}
-                {plan.popular && !isActive && (
+                {plan.tier === 'starter' && !isActive && (
                   <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-0.5 rounded-full text-[10px] font-bold bg-[#27272a] text-[#a1a1aa]">
                     POPULAR
                   </div>
                 )}
                 <div className="mb-4">
                   <p
-                    className="text-[15px] font-bold"
+                    className="text-[15px] font-bold capitalize"
                     style={{ color: textPrimary }}
                   >
                     {plan.name}
                   </p>
                   <p
-                    className="text-[12.5px] mt-0.5"
+                    className="text-[12.5px] mt-0.5 min-h-[40px]"
                     style={{ color: textMuted }}
                   >
-                    {plan.description}
+                    {plan.tagline}
                   </p>
                 </div>
                 <div className="mb-5">
                   <span
-                    className="text-[26px] font-black"
+                    className="text-[26px] font-black uppercase"
                     style={{ color: textPrimary }}
                   >
-                    {plan.price}
+                    ${plan.pricing.monthly === 'custom' ? 'Custom' : plan.pricing.monthly}
                   </span>
-                  {plan.period && (
+                  {plan.pricing.monthly !== 'custom' && (
                     <span
-                      className="text-[13px] ml-0.5"
+                      className="text-[13px] ml-0.5 lowercase"
                       style={{ color: textDim }}
                     >
-                      {plan.period}
+                      /mo
                     </span>
                   )}
                 </div>
                 <div className="space-y-2.5 flex-1 mb-5">
-                  {plan.features.map((f) => (
+                  {featuresList.map((f) => (
                     <div
                       key={f}
                       className="flex items-start gap-2.5 text-[13px]"
@@ -558,7 +513,7 @@ function OverviewTab({
                       <Check
                         size={13}
                         className="shrink-0 mt-0.5"
-                        style={{ color: plan.color }}
+                        style={{ color: pColor }}
                       />
                       {f}
                     </div>
@@ -568,30 +523,24 @@ function OverviewTab({
                   <div
                     className="py-2.5 rounded-md text-center text-[14px] font-semibold border"
                     style={{
-                      color: plan.color,
-                      borderColor: `${plan.color}28`,
-                      background: `${plan.color}06`,
+                      color: pColor,
+                      borderColor: `${pColor}28`,
+                      background: `${pColor}06`,
                     }}
                   >
                     Current plan
                   </div>
-                ) : plan.id === 'enterprise' ? (
-                  <button
-                    className="py-2.5 rounded-md border text-[14px] font-medium transition-all flex items-center justify-center gap-1.5"
-                    style={{ borderColor: cardBorder, color: textMuted }}
-                  >
-                    Contact sales
-                  </button>
                 ) : (
                   <button
-                    onClick={() => setShowUpgrade(true)}
+                    onClick={() => window.location.href = '/dashboard/billing'}
                     className="py-2.5 rounded-md text-[14px] font-bold text-white transition-all border"
                     style={{
-                      borderColor: '#f97316',
+                      borderColor: plan.tier === 'enterprise' ? cardBorder : '#f8423b',
                       background: 'transparent',
+                      color: plan.tier === 'enterprise' ? textMuted : 'white',
                     }}
                   >
-                    Upgrade to {plan.name}
+                    {plan.tier === 'enterprise' ? 'Contact sales' : `Upgrade to ${plan.name}`}
                   </button>
                 )}
               </div>
@@ -600,15 +549,7 @@ function OverviewTab({
         </div>
       </section>
 
-      {showUpgrade && (
-        <UpgradeModal
-          onClose={() => setShowUpgrade(false)}
-          onUpgrade={() => {
-            setLocalUpgraded(true);
-            onUpgrade();
-          }}
-        />
-      )}
+
     </>
   );
 }
@@ -1506,8 +1447,46 @@ export default function BillingPage() {
   const L = resolved === 'light';
 
   const [activeTab, setActiveTab] = useState<BillingTab>('overview');
-  const [upgraded, setUpgraded] = useState(false);
-  const currentPlan: Plan = 'pro';
+  const [subscription, setSubscription] = useState<ISubscription | null>(null);
+  const [plans, setPlans] = useState<IPlanCatalogItem[]>([]);
+  const [connectedReposCount, setConnectedReposCount] = useState(0);
+  const [loading, setLoading] = useState(true);
+  const [cancelling, setCancelling] = useState(false);
+
+  const handleCancelPlan = async () => {
+    if (!confirm('Are you sure you want to cancel your subscription? You will be downgraded to the free plan.')) return;
+    setCancelling(true);
+    try {
+      await cancelRazorpaySubscription();
+      const [sub, ps, repos] = await Promise.all([
+        fetchSubscription(),
+        fetchPlans(),
+        fetchConnectedRepos().catch(() => []),
+      ]);
+      setSubscription(sub);
+      setPlans(ps);
+      setConnectedReposCount(Array.isArray(repos) ? repos.length : 0);
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Failed to cancel subscription');
+    } finally {
+      setCancelling(false);
+    }
+  };
+
+  useEffect(() => {
+    Promise.all([
+      fetchSubscription(),
+      fetchPlans(),
+      fetchConnectedRepos().catch(() => []),
+    ])
+      .then(([sub, ps, repos]) => {
+        setSubscription(sub);
+        setPlans(ps);
+        setConnectedReposCount(Array.isArray(repos) ? repos.length : 0);
+        setLoading(false);
+      })
+      .catch(() => setLoading(false));
+  }, []);
 
   const textPrimary = L ? '#111' : '#ffffff';
   const textMuted = L ? '#5f6368' : '#909090';
@@ -1561,15 +1540,25 @@ export default function BillingPage() {
       </div>
 
       {/* Tab content */}
-      {activeTab === 'overview' && (
-        <OverviewTab
-          upgraded={upgraded}
-          currentPlan={currentPlan}
-          onUpgrade={() => setUpgraded(true)}
-        />
+      {loading ? (
+        <div className="flex items-center justify-center py-20">
+          <Loader2 className="animate-spin text-[#f8423b]" />
+        </div>
+      ) : (
+        <>
+          {activeTab === 'overview' && (
+            <OverviewTab
+              subscription={subscription}
+              plans={plans}
+              connectedReposCount={connectedReposCount}
+              onCancelPlan={handleCancelPlan}
+              cancelling={cancelling}
+            />
+          )}
+          {activeTab === 'invoices' && <InvoicesTab />}
+          {activeTab === 'payment' && <PaymentTab />}
+        </>
       )}
-      {activeTab === 'invoices' && <InvoicesTab />}
-      {activeTab === 'payment' && <PaymentTab />}
     </div>
   );
 }

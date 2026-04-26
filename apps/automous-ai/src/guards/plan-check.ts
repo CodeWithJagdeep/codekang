@@ -47,6 +47,35 @@ const PLAN_LIMITS: Record<
 const FIX_CREDIT_COST = 10;
 const REVIEW_CREDIT_COST = 5;
 
+// Mirrors the shape of the `settings` JSONB column on `repositories`
+export interface RepoReviewSettings {
+  triggers: {
+    onPROpen: boolean;
+    onPush: boolean;
+    onDraft: boolean;
+  };
+  issueTypes: {
+    bugs: boolean;
+    security: boolean;
+    performance: boolean;
+    style: boolean;
+    documentation: boolean;
+  };
+  reviewDepth: 'quick' | 'standard' | 'thorough';
+  watchedBranches: string[];
+  autoComment: boolean;
+  notifyOnComplete: boolean;
+}
+
+const DEFAULT_SETTINGS: RepoReviewSettings = {
+  triggers: { onPROpen: true, onPush: true, onDraft: false },
+  issueTypes: { bugs: true, security: true, performance: true, style: true, documentation: false },
+  reviewDepth: 'standard',
+  watchedBranches: [],
+  autoComment: true,
+  notifyOnComplete: true,
+};
+
 interface UserPlanInfo {
   userId: string;
   plan: string;
@@ -54,6 +83,7 @@ interface UserPlanInfo {
   creditsReset: Date | null;
   isActive: boolean;
   isConnected: boolean;
+  settings: RepoReviewSettings;
 }
 
 // ─── Lookup ───────────────────────────────────────────────────────────────────
@@ -69,9 +99,11 @@ async function getUserPlanForRepo(
     credits_used: number;
     credits_reset: Date | null;
     is_active: boolean;
+    settings: RepoReviewSettings | null;
   }>(
     `SELECT r.user_id, r.is_installed,
-            u.plan, u.credits_used, u.credits_reset, u.is_active
+            u.plan, u.credits_used, u.credits_reset, u.is_active,
+            r.settings
      FROM repositories r
      JOIN users u ON u.id = r.user_id
      WHERE r.owner = $1 AND r.name = $2
@@ -82,6 +114,16 @@ async function getUserPlanForRepo(
   if (!rows[0]) return null;
 
   const row = rows[0];
+  const raw = row.settings ?? {};
+  const settings: RepoReviewSettings = {
+    triggers: { ...DEFAULT_SETTINGS.triggers, ...((raw as any).triggers ?? {}) },
+    issueTypes: { ...DEFAULT_SETTINGS.issueTypes, ...((raw as any).issueTypes ?? {}) },
+    reviewDepth: (raw as any).reviewDepth ?? DEFAULT_SETTINGS.reviewDepth,
+    watchedBranches: (raw as any).watchedBranches ?? [],
+    autoComment: (raw as any).autoComment ?? DEFAULT_SETTINGS.autoComment,
+    notifyOnComplete: (raw as any).notifyOnComplete ?? DEFAULT_SETTINGS.notifyOnComplete,
+  };
+
   return {
     userId: row.user_id,
     plan: row.plan ?? 'free',
@@ -89,6 +131,7 @@ async function getUserPlanForRepo(
     creditsReset: row.credits_reset,
     isActive: row.is_active ?? true,
     isConnected: row.is_installed,
+    settings,
   };
 }
 
@@ -116,10 +159,21 @@ async function consumeCredits(userId: string, cost: number): Promise<void> {
 
 // ─── Public API ───────────────────────────────────────────────────────────────
 
+export interface PRReviewContext {
+  /** The GitHub webhook action that triggered this review */
+  webhookAction: 'opened' | 'synchronize' | 'reopened' | 'manual';
+  /** Whether the PR is a draft */
+  isDraft: boolean;
+  /** The branch the PR is targeting (base branch) */
+  targetBranch: string;
+}
+
 export interface PlanCheckResult {
   allowed: boolean;
   reason?: string;
   userId?: string;
+  /** Repo review settings — only populated when allowed=true for PR reviews */
+  settings?: RepoReviewSettings;
 }
 
 export async function checkAutonomousFix(
@@ -220,6 +274,11 @@ export async function checkAutonomousFix(
 export async function checkPRReview(
   owner: string,
   repo: string,
+  context: PRReviewContext = {
+    webhookAction: 'opened',
+    isDraft: false,
+    targetBranch: 'main',
+  },
 ): Promise<PlanCheckResult> {
   try {
     const info = await getUserPlanForRepo(owner, repo);
@@ -228,13 +287,47 @@ export async function checkPRReview(
       return { allowed: false, reason: 'repo_not_connected' };
     }
 
+    // ── Repo settings checks ─────────────────────────────────────────────────
+
+    const { triggers, watchedBranches } = info.settings;
+
+    // Draft PR gate
+    if (context.isDraft && !triggers.onDraft) {
+      logger.info('PR review skipped: draft PRs disabled in repo settings', {
+        owner, repo,
+      });
+      return { allowed: false, reason: 'draft_disabled' };
+    }
+
+    // Trigger gate — only fire on actions the user has enabled
+    if (context.webhookAction === 'opened' && !triggers.onPROpen) {
+      logger.info('PR review skipped: onPROpen disabled in repo settings', {
+        owner, repo,
+      });
+      return { allowed: false, reason: 'trigger_disabled' };
+    }
+    if (context.webhookAction === 'synchronize' && !triggers.onPush) {
+      logger.info('PR review skipped: onPush (synchronize) disabled in repo settings', {
+        owner, repo,
+      });
+      return { allowed: false, reason: 'trigger_disabled' };
+    }
+
+    // Watched branches gate — if list is non-empty, only review PRs targeting those branches
+    if (watchedBranches.length > 0 && !watchedBranches.includes(context.targetBranch)) {
+      logger.info('PR review skipped: target branch not in watchedBranches', {
+        owner, repo, targetBranch: context.targetBranch, watchedBranches,
+      });
+      return { allowed: false, reason: 'branch_not_watched' };
+    }
+
+    // ── Plan checks ──────────────────────────────────────────────────────────
+
     const limits = PLAN_LIMITS[info.plan] ?? PLAN_LIMITS.free;
 
     if (!limits.prReviewEnabled) {
       logger.info('Plan does not allow PR reviews', {
-        owner,
-        repo,
-        plan: info.plan,
+        owner, repo, plan: info.plan,
       });
       return { allowed: false, reason: 'plan_limit', userId: info.userId };
     }
@@ -244,21 +337,16 @@ export async function checkPRReview(
       const remaining = limits.creditsPerMonth - currentCredits;
       if (remaining < REVIEW_CREDIT_COST) {
         logger.info('Insufficient credits for PR review', {
-          owner,
-          repo,
-          plan: info.plan,
-          remaining,
+          owner, repo, plan: info.plan, remaining,
         });
         return { allowed: false, reason: 'no_credits', userId: info.userId };
       }
     }
 
-    return { allowed: true, userId: info.userId };
+    return { allowed: true, userId: info.userId, settings: info.settings };
   } catch (err) {
     logger.error('PR review plan check failed', {
-      owner,
-      repo,
-      error: (err as Error).message,
+      owner, repo, error: (err as Error).message,
     });
     return { allowed: false, reason: 'check_error' };
   }

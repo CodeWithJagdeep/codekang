@@ -173,6 +173,37 @@ export async function ensureSchema(): Promise<void> {
     ON fix_history (category, strategy)
   `);
 
+  // ── pr_reviews ─────────────────────────────────────────────────────────────
+  // Stores the AI review result for each PR so the UI can display findings and
+  // so the fix-pr service can load them when the user approves a fix.
+  await db.query(`
+    CREATE TABLE IF NOT EXISTS pr_reviews (
+      id              BIGSERIAL PRIMARY KEY,
+      owner           TEXT NOT NULL,
+      repo            TEXT NOT NULL,
+      pr_number       INTEGER NOT NULL,
+      pr_title        TEXT,
+      head_sha        TEXT,
+      head_branch     TEXT,
+      summary         TEXT NOT NULL,
+      verdict         TEXT NOT NULL CHECK (verdict IN ('APPROVE','REQUEST_CHANGES','COMMENT')),
+      comments        JSONB NOT NULL DEFAULT '[]',
+      fix_status      TEXT NOT NULL DEFAULT 'none'
+                        CHECK (fix_status IN ('none','pending','running','done','failed')),
+      fix_pr_url      TEXT,
+      fix_branch      TEXT,
+      installation_id INTEGER,
+      created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      updated_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      UNIQUE (owner, repo, pr_number)
+    )
+  `);
+
+  await db.query(`
+    CREATE INDEX IF NOT EXISTS pr_reviews_repo_idx
+    ON pr_reviews (owner, repo)
+  `);
+
   logger.info('Schema ready', { embeddingDim: EMBEDDING_DIM });
 }
 

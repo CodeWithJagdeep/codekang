@@ -149,7 +149,7 @@ export default function SettingsLayout({
         className={`min-h-screen flex items-center justify-center ${isLight ? 'bg-[#f4f5f7]' : 'bg-[#1c1c1c]'}`}
       >
         <div className="flex flex-col items-center gap-4">
-          <div className="w-8 h-8 border-2 border-[#2a2a2a] border-t-[#f97316] rounded-full animate-spin" />
+          <div className="w-8 h-8 border-2 border-[#2a2a2a] border-t-[#f8423b] rounded-full animate-spin" />
         </div>
       </div>
     );

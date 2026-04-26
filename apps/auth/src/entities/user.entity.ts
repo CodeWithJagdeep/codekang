@@ -59,6 +59,9 @@ export class User {
   @Column({ type: 'varchar', default: 'free', enum: ['free', 'starter', 'pro', 'team', 'enterprise'] })
   plan: PlanTier;
 
+  @Column({ name: 'razorpay_subscription_id', nullable: true, type: 'varchar' })
+  razorpaySubscriptionId: string | null;
+
   @Column({ name: 'credits_used', type: 'int', default: 0 })
   creditsUsed: number;
 

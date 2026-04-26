@@ -1,7 +1,24 @@
-import { Controller, Get, UseGuards, Inject } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Headers,
+  Req,
+  UseGuards,
+  Inject,
+  HttpCode,
+  HttpStatus,
+  BadRequestException,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { ClientProxy } from '@nestjs/microservices';
+import { ConfigService } from '@nestjs/config';
 import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
+import { IsEnum, IsOptional } from 'class-validator';
 import { firstValueFrom } from 'rxjs';
+import { createHmac } from 'crypto';
+import type { Request } from 'express';
 import {
   SERVICES,
   MESSAGE_PATTERNS,
@@ -11,11 +28,21 @@ import {
 } from '../../common';
 import type { IUser } from '../../common';
 
+class CreateSubscriptionDto {
+  @IsEnum(['starter', 'team'])
+  planTier: 'starter' | 'team';
+
+  @IsOptional()
+  @IsEnum(['monthly', 'annual'])
+  billingPeriod?: 'monthly' | 'annual';
+}
+
 @ApiTags('plans')
 @Controller('plans')
 export class PlansProxyController {
   constructor(
     @Inject(SERVICES.AUTH) private readonly authClient: ClientProxy,
+    private readonly config: ConfigService,
   ) {}
 
   @Get()
@@ -135,5 +162,110 @@ export class PlansProxyController {
         userId: user.id,
       }),
     );
+  }
+
+  // ── Razorpay subscription management ─────────────────────────────────────
+
+  @Post('subscription/create')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Create a Razorpay subscription for plan upgrade' })
+  async createSubscription(
+    @CurrentUser() user: IUser,
+    @Body() body: CreateSubscriptionDto,
+  ) {
+    return firstValueFrom(
+      this.authClient.send(MESSAGE_PATTERNS.AUTH_CREATE_SUBSCRIPTION, {
+        userId: user.id,
+        planTier: body.planTier,
+        billingPeriod: body.billingPeriod ?? 'monthly',
+      }),
+    );
+  }
+
+  @Post('subscription/cancel')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Cancel active Razorpay subscription' })
+  async cancelSubscription(@CurrentUser() user: IUser) {
+    return firstValueFrom(
+      this.authClient.send(MESSAGE_PATTERNS.AUTH_CANCEL_SUBSCRIPTION, {
+        userId: user.id,
+      }),
+    );
+  }
+
+  // ── Razorpay webhook (public — no JWT) ───────────────────────────────────
+
+  @Post('webhook/razorpay')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Razorpay webhook receiver (do not call directly)' })
+  async razorpayWebhook(
+    @Req() req: Request,
+    @Headers('x-razorpay-signature') signature: string,
+  ) {
+    const rawBody: string =
+      (req as any).rawBody instanceof Buffer
+        ? (req as any).rawBody.toString('utf-8')
+        : JSON.stringify(req.body);
+
+    const secret = this.config.get('RAZORPAY_WEBHOOK_SECRET', '');
+    if (secret) {
+      const expected = createHmac('sha256', secret).update(rawBody).digest('hex');
+      if (expected !== signature) {
+        throw new UnauthorizedException('Invalid Razorpay webhook signature');
+      }
+    }
+
+    const payload = req.body as {
+      event?: string;
+      payload?: {
+        subscription?: {
+          entity?: {
+            id?: string;
+            plan_id?: string;
+            status?: string;
+            notes?: { userId?: string; planTier?: string };
+          };
+        };
+      };
+    };
+
+    const event = payload.event;
+    const sub = payload.payload?.subscription?.entity;
+    const userId = sub?.notes?.userId;
+    const planTier = (sub?.notes?.planTier ?? 'starter') as
+      | 'starter'
+      | 'pro'
+      | 'team';
+
+    if (
+      event === 'subscription.activated' ||
+      event === 'subscription.charged'
+    ) {
+      if (!userId) {
+        throw new BadRequestException('userId missing from subscription notes');
+      }
+      await firstValueFrom(
+        this.authClient.send(MESSAGE_PATTERNS.AUTH_UPDATE_PLAN, {
+          userId,
+          plan: planTier,
+        }),
+      );
+    }
+
+    if (event === 'subscription.cancelled' || event === 'subscription.halted') {
+      if (userId) {
+        await firstValueFrom(
+          this.authClient.send(MESSAGE_PATTERNS.AUTH_CANCEL_SUBSCRIPTION, {
+            userId,
+          }),
+        );
+      }
+    }
+
+    return { received: true };
   }
 }

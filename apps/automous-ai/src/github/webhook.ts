@@ -75,7 +75,26 @@ const APPROVAL_PATTERNS = [
 export function isApprovalComment(payload: GitHubWebhookPayload): boolean {
   if (payload.action !== 'created') return false;
   if (!payload.comment || !payload.issue) return false;
+  // Exclude comments on PRs — those are handled by isPRApprovalComment
+  if (payload.issue.pull_request) return false;
   // Ignore the bot's own comments to prevent self-triggering
+  const commenter = payload.comment.user.login;
+  if (
+    commenter.endsWith('[bot]') ||
+    commenter.toLowerCase().includes('codekang')
+  )
+    return false;
+  const body = payload.comment.body.trim();
+  return APPROVAL_PATTERNS.some((p) => p.test(body));
+}
+
+// Detects "@codekang fix" comments posted on a pull request (not a plain issue).
+export function isPRApprovalComment(payload: GitHubWebhookPayload): boolean {
+  if (payload.action !== 'created') return false;
+  if (!payload.comment || !payload.issue) return false;
+  // Must be a comment on a PR
+  if (!payload.issue.pull_request) return false;
+  // Ignore bot's own comments
   const commenter = payload.comment.user.login;
   if (
     commenter.endsWith('[bot]') ||

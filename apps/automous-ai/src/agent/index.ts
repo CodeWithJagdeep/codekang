@@ -1,10 +1,12 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { env } from '../config/env';
 import { logger } from '../utils/logger';
-import { AGENT_TOOLS, executeTool, closeBrowserSession } from './tools';
+import { getActiveTools, executeTool, closeBrowserSession } from './tools';
 import type { ToolContext } from './tools';
 import type { AgentResult, AgentStep, FixContext } from '../types/agent';
 import { getCostStats, resetFixCost } from '../config/ai/index';
+import { createAgentTrace } from '../config/observability';
+import { notifyGateway } from '../utils/notify';
 
 // ─── System prompt ────────────────────────────────────────────────────────────
 
@@ -110,7 +112,7 @@ Do NOT modify source files in this mode.`;
         ? `\nThis is attempt ${attempt}. Previous strategies failed. Think creatively — question your assumptions about where the bug is.\n`
         : '';
 
-    return `You are CodeKang, a fully autonomous software engineer. You own this issue end-to-end — no human will review or approve your steps.
+    return `You are CodeKang, a fully autonomous software engineer. You own this issue end-to-end.
 
 Repository: ${ctx.repoOwner}/${ctx.repoName}
 Issue #${ctx.issueNumber}: ${ctx.issueTitle}
@@ -119,43 +121,58 @@ ${ctx.issueBody}
 ${priorPart}${attemptNote}
 YOUR MISSION: Fix this issue and open a PR. Every decision is yours to make.
 
-TOOLS — pick whatever makes sense, in whatever order:
+━━━ PROGRESSIVE TOOLING — START LIGHTWEIGHT, ESCALATE ONLY WHEN NEEDED ━━━
 
-  get_file_tree       — understand the repo layout
-  get_package_info    — check dependencies and scripts
-  read_file           — read any file with line numbers
-  list_directory      — list a folder
-  search_files        — grep-like search across files (pattern, glob filter)
-  vector_search       — semantic search — use when you know WHAT it does but not WHERE it is
-  search_by_symbol    — find a function/class/variable by name across all files
+You start with lightweight GitHub API tools. Use them first.
+Only escalate if you genuinely need it.
 
-  run_command         — run any shell command (only if Docker sandbox is available)
-  write_and_run       — write a temp script and run it immediately (reproduce bugs, test hypotheses)
-  run_tests           — run the full test suite (only if Docker sandbox is available)
+TIER 0 — Always available (no clone, instant):
+  gh_tree             — get full repo file tree via API (start here)
+  gh_read_file        — read any file via API (path, optional ref)
+  gh_list_dir         — list a directory via API
+  gh_search           — search code across the repo via GitHub search API
+  gh_commit_files     — commit file changes directly via API (no clone needed!)
+  gh_open_pr          — open a pull request via API
 
-  write_file          — write or overwrite any file (apply your fix here)
+  → For simple fixes (typo, config, single-file logic): use ONLY tier 0.
+    gh_read_file → gh_commit_files → gh_open_pr → finish()  (done in ~5 steps, no clone)
 
-  post_comment        — post one short update on the issue if it will take a while
-  open_pr             — commit + push + open PR (call this when you're done)
-  finish              — always call last, with a summary
+TIER 1 — After request_clone (local clone + vector index, ~30-60s):
+  read_file, write_file, list_directory, get_file_tree
+  search_files, vector_search, search_by_symbol, search_by_file
+  get_package_info, open_pr
 
-HOW TO THINK:
+  → Escalate with: request_clone(reason="...")
+  → Use when: issue spans many files, need semantic search, need to write multiple files
 
-1. Read the issue. Understand what's broken and where.
-2. Decide your approach:
-   - Simple code change? → read relevant files → write_file → open_pr
-   - Need to find something? → search_files or vector_search or search_by_symbol
-   - Need to reproduce? → write_and_run or run_command
-   - Need to verify? → run_tests (if sandbox available), or read the changed code carefully
-3. Apply the minimal correct fix with write_file.
-4. If tests are available and sandbox is running → run_tests before open_pr.
-5. Call open_pr, then finish().
+TIER 2 — After request_sandbox (Docker, ~60-90s):
+  run_command, run_file, write_and_run, run_tests
+
+  → Escalate with: request_sandbox(reason="...")
+  → Use when: runtime bug needs reproduction, tests must pass before merge
+
+━━━ DECISION GUIDE ━━━
+
+Ask yourself BEFORE cloning:
+  "Can I find and fix this by reading 1-2 files via API?"
+  → YES → use gh_read_file + gh_commit_files + gh_open_pr (no clone)
+  → NO  → request_clone, then use local tools
+
+Ask yourself BEFORE starting sandbox:
+  "Do I need to run code to confirm the fix works?"
+  → YES → request_sandbox, run_tests
+  → NO  → skip it, open_pr with a clear description
+
+━━━ ALWAYS-AVAILABLE ━━━
+  post_comment  — update the issue if taking > 3 steps
+  think         — reason before a big decision (escalation, change in strategy)
+  finish        — call last, always
 
 RULES:
-- Do NOT ask for permission or confirmation. Decide and act.
-- Do NOT over-explore. Stop reading files once you understand the problem.
-- Do NOT run tests if no Docker sandbox is available — just open the PR with a clear description.
-- Do NOT open a PR if your fix is incomplete or wrong.
+- Do NOT clone just to explore. gh_tree + gh_read_file is enough for most issues.
+- Do NOT start Docker unless you need to run code.
+- Do NOT ask for permission. Decide and act.
+- Do NOT open a PR if your fix is incomplete.
 - If after ${Math.ceil(env.AGENT_MAX_STEPS * 0.7)} steps you haven't fixed it, think() and change strategy.`;
   }
 
@@ -210,6 +227,8 @@ Principles:
 // Temperature scales up with each retry attempt to encourage divergent thinking.
 const ATTEMPT_TEMPERATURES: Record<number, number> = { 1: 0.3, 2: 0.6, 3: 0.9 };
 
+const STEP_TIMEOUT_MS = 5 * 60 * 1000; // 5 minutes per Claude API call
+
 export async function runAgent(
   fixContext: FixContext,
   toolContext: ToolContext,
@@ -246,6 +265,28 @@ export async function runAgent(
     maxSteps: env.AGENT_MAX_STEPS,
   });
 
+  if (fixContext.userId) {
+    notifyGateway(fixContext.userId, 'agent:job', {
+      jobId: fixContext.jobId ?? 'unknown',
+      phase: mode === 'autonomous' ? 'execute' : mode === 'analyze' ? 'propose' : 'execute',
+      status: 'started',
+      repo: `${fixContext.repoOwner}/${fixContext.repoName}`,
+      issueNumber: fixContext.issueNumber,
+      issueTitle: fixContext.issueTitle,
+      ts: Date.now(),
+    }).catch(() => {});
+  }
+
+  // ── Langfuse trace ──────────────────────────────────────────────────────
+  const trace = createAgentTrace({
+    mode,
+    issueNumber: fixContext.issueNumber,
+    issueTitle: fixContext.issueTitle,
+    repo: `${fixContext.repoOwner}/${fixContext.repoName}`,
+    attempt,
+  });
+  // ────────────────────────────────────────────────────────────────────────
+
   const modelBeingUsed = env.ANTHROPIC_MODEL_AGENT;
   const temperature =
     mode === 'autonomous'
@@ -273,26 +314,50 @@ export async function runAgent(
 
     let response: Anthropic.Message;
     try {
-      response = (await client.messages.create({
-        model: env.ANTHROPIC_MODEL_AGENT,
-        max_tokens: env.AGENT_MAX_TOKENS,
-        temperature,
-        system: [
-          {
-            type: 'text',
-            text: system,
-            // Cache the static system prompt — saves ~90% on repeat steps
-            cache_control: { type: 'ephemeral' },
-          },
-        ],
-        tools: AGENT_TOOLS as unknown as Anthropic.Tool[],
-        messages,
-      } as Parameters<typeof client.messages.create>[0])) as Anthropic.Message;
+      // ── Langfuse generation span ──────────────────────────────────────────
+      const generation = trace.startGeneration({
+        name: `step-${stepCount}`,
+        model: modelBeingUsed,
+        input: messages,
+        modelParameters: { temperature, max_tokens: env.AGENT_MAX_TOKENS },
+      });
+
+      const stepTimeout = new Promise<never>((_, reject) =>
+        setTimeout(
+          () => reject(new Error(`Claude API step timed out after ${STEP_TIMEOUT_MS / 1000}s`)),
+          STEP_TIMEOUT_MS,
+        ),
+      );
+      response = (await Promise.race([
+        client.messages.create({
+          model: env.ANTHROPIC_MODEL_AGENT,
+          max_tokens: env.AGENT_MAX_TOKENS,
+          temperature,
+          system: [
+            {
+              type: 'text',
+              text: system,
+              cache_control: { type: 'ephemeral' },
+            },
+          ],
+          tools: getActiveTools(toolContext) as unknown as Anthropic.Tool[],
+          messages,
+        } as Parameters<typeof client.messages.create>[0]),
+        stepTimeout,
+      ])) as Anthropic.Message;
+
+      generation.end({
+        output: response.content,
+        inputTokens: response.usage.input_tokens,
+        outputTokens: response.usage.output_tokens,
+        totalCostUsd: getCostStats().totalCostUsd,
+      });
     } catch (err: unknown) {
       const e = err as { message: string };
       logger.error('Claude API error', { step: stepCount, error: e.message });
 
       await closeBrowserSession(toolContext);
+      await trace.flush();
       return {
         success: false,
         steps,
@@ -347,12 +412,19 @@ export async function runAgent(
       });
 
       logger.info(`⏳ Executing ${block.name}...`);
+
+      // ── Langfuse tool span ────────────────────────────────────────────────
+      const toolSpan = trace.startSpan(`tool:${block.name}`, input);
+
       const { result, step } = await executeTool(
         block.name,
         input,
         toolContext,
       );
       steps.push(step);
+
+      toolSpan.end(result.output, step.error);
+      // ──────────────────────────────────────────────────────────────────────
 
       // Track modified files
       if (block.name === 'write_file' && !step.error) {
@@ -379,6 +451,20 @@ export async function runAgent(
             : result.output,
         hasError: !!step.error,
       });
+
+      if (fixContext.userId) {
+        notifyGateway(fixContext.userId, 'agent:step', {
+          jobId: fixContext.jobId ?? 'unknown',
+          repo: `${fixContext.repoOwner}/${fixContext.repoName}`,
+          issueNumber: fixContext.issueNumber,
+          step: stepCount,
+          toolName: block.name,
+          status: step.error ? 'error' : 'done',
+          outputPreview: result.output.slice(0, 200),
+          durationMs: step.durationMs,
+          ts: Date.now(),
+        }).catch(() => {});
+      }
     }
 
     if (toolResults.length > 0) {
@@ -394,6 +480,21 @@ export async function runAgent(
   // Always clean up browser
   await closeBrowserSession(toolContext);
 
+  const agentSucceeded = !steps.some((s) => s.error && s.type !== 'think');
+  if (fixContext.userId) {
+    notifyGateway(fixContext.userId, 'agent:job', {
+      jobId: fixContext.jobId ?? 'unknown',
+      phase: mode === 'autonomous' ? 'execute' : mode === 'analyze' ? 'propose' : 'execute',
+      status: agentSucceeded ? 'completed' : 'failed',
+      repo: `${fixContext.repoOwner}/${fixContext.repoName}`,
+      issueNumber: fixContext.issueNumber,
+      issueTitle: fixContext.issueTitle,
+      prUrl: toolContext.createdPrUrl,
+      message: summary.slice(0, 300),
+      ts: Date.now(),
+    }).catch(() => {});
+  }
+
   const cost = getCostStats();
   logger.info('Agent loop done', {
     mode,
@@ -402,6 +503,16 @@ export async function runAgent(
     costUsd: cost.totalCostUsd.toFixed(5),
     durationMs: Date.now() - t0,
   });
+
+  // Finalise Langfuse trace with summary + cost
+  trace.setOutput(summary);
+  trace.setMetadata({
+    steps: stepCount,
+    filesModified: filesModified.length,
+    costUsd: cost.totalCostUsd,
+    durationMs: Date.now() - t0,
+  });
+  await trace.flush();
 
   return {
     success: !steps.some((s) => s.error && s.type !== 'think'),

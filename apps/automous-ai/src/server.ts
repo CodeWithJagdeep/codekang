@@ -3,9 +3,12 @@ import './config/env';
 import { createApp } from './app';
 import { env } from './config/env';
 import { logger } from './utils/logger';
+import { initSentry, Sentry } from './config/sentry';
 import { ensureSchema } from './vector/schema';
 import { cleanupAllContainers } from './repo/manager';
 import { shutdownEmbedder } from './vector/embeddings';
+
+initSentry();
 
 const app = createApp();
 
@@ -39,6 +42,7 @@ start()
 
 async function shutdown(signal: string) {
   logger.info(`${signal} received — cleaning up`);
+  await Promise.all([cleanupAllContainers(), shutdownEmbedder()]).catch(() => {});
   if (server) {
     server.close(() => {
       logger.info('Server closed');
@@ -63,9 +67,11 @@ process.on('unhandledRejection', (reason) => {
   logger.error('Unhandled rejection', {
     reason: reason instanceof Error ? reason.message : String(reason),
   });
+  Sentry.captureException(reason instanceof Error ? reason : new Error(String(reason)));
 });
 
 process.on('uncaughtException', (err) => {
   logger.error('Uncaught exception', { error: err.message });
-  // Promise.all([cleanupAllContainers(), shutdownEmbedder()]).finally(() => process.exit(1));
+  Sentry.captureException(err);
+  Promise.all([cleanupAllContainers(), shutdownEmbedder()]).finally(() => process.exit(1));
 });

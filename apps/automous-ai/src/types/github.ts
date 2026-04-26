@@ -12,6 +12,8 @@ export interface GitHubIssue {
   html_url: string;
   created_at: string;
   updated_at: string;
+  // Defined when this issue is actually a pull request (issue_comment webhook events)
+  pull_request?: { url: string; html_url: string };
 }
 
 export interface GitHubLabel {

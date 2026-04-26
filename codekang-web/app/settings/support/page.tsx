@@ -19,6 +19,8 @@ import { SiGithub, SiX } from 'react-icons/si';
 import { useState, useRef, useEffect } from 'react';
 import { useTheme } from '@/lib/theme';
 import Link from 'next/link';
+import { fetchSupportTickets, createSupportTicket, type ISupportTicket } from '@/lib/auth';
+import { formatDistanceToNow } from 'date-fns';
 
 // ── Types ──
 
@@ -44,61 +46,23 @@ interface Ticket {
   feedback?: string;
 }
 
-// ── Mock Data ──
-
-const INITIAL_TICKETS: Ticket[] = [
-  {
-    id: 'T-1001',
-    subject: 'Issue with GitHub Action trigger',
-    category: 'Integrations',
-    status: 'pending',
-    priority: 'high',
-    createdAt: '2 hours ago',
-    updatedAt: '30 mins ago',
-    messages: [
-      {
-        id: 'm1',
-        author: 'user',
-        content:
-          'My PRs are not triggering the scan automatically since yesterday.',
-        timestamp: '2 hours ago',
-      },
-      {
-        id: 'm2',
-        author: 'agent',
-        content:
-          'Hi Jagdeep! I checked your logs. It seems the webhook secret was rotated. Could you please verify the token in your GitHub settings?',
-        timestamp: '30 mins ago',
-      },
-    ],
-  },
-  {
-    id: 'T-982',
-    subject: 'Billing question regarding Professional plan',
-    category: 'Billing',
-    status: 'resolved',
-    priority: 'medium',
-    createdAt: '3 days ago',
-    updatedAt: '2 days ago',
-    messages: [
-      {
-        id: 'm3',
-        author: 'user',
-        content: 'I was double charged for this month. Can you check?',
-        timestamp: '3 days ago',
-      },
-      {
-        id: 'm4',
-        author: 'agent',
-        content:
-          'Apologies for the inconvenience. I have issued a refund for the duplicate charge. It should reflect in 3-5 days.',
-        timestamp: '2 days ago',
-      },
-    ],
-    rating: 5,
-    feedback: 'Very fast response, thank you!',
-  },
-];
+function mapBackendTicket(t: ISupportTicket): Ticket {
+  return {
+    id: t.id,
+    subject: t.subject,
+    category: t.category,
+    status: t.status as TicketStatus,
+    priority: t.priority as 'low' | 'medium' | 'high',
+    createdAt: formatDistanceToNow(new Date(t.createdAt), { addSuffix: true }),
+    updatedAt: formatDistanceToNow(new Date(t.updatedAt), { addSuffix: true }),
+    messages: t.messages.map(m => ({
+      id: m.id,
+      author: m.author,
+      content: m.content,
+      timestamp: formatDistanceToNow(new Date(m.createdAt), { addSuffix: true }),
+    })),
+  };
+}
 
 // ── Page ──
 
@@ -115,11 +79,17 @@ export default function SupportPage() {
   const [view, setView] = useState<'landing' | 'list' | 'details' | 'create'>(
     'landing',
   );
-  const [tickets, setTickets] = useState<Ticket[]>(INITIAL_TICKETS);
+  const [tickets, setTickets] = useState<Ticket[]>([]);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [reply, setReply] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    fetchSupportTickets().then((res) => {
+      setTickets(res.map(mapBackendTicket));
+    }).catch(() => {});
+  }, []);
 
   const activeTicket = tickets.find((t) => t.id === activeId);
 
@@ -129,7 +99,7 @@ export default function SupportPage() {
     }
   }, [activeTicket?.messages]);
 
-  const handleCreateTicket = (e: React.FormEvent) => {
+  const handleCreateTicket = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
     const form = e.target as HTMLFormElement;
@@ -137,32 +107,22 @@ export default function SupportPage() {
       .value;
     const category = (form.elements.namedItem('category') as HTMLSelectElement)
       .value;
+    const priority = (form.elements.namedItem('priority') as HTMLSelectElement)
+      .value.toLowerCase();
     const message = (form.elements.namedItem('message') as HTMLTextAreaElement)
       .value;
 
-    setTimeout(() => {
-      const newTicket: Ticket = {
-        id: `T-${Math.floor(1000 + Math.random() * 9000).toString()}`,
-        subject,
-        category,
-        status: 'open',
-        priority: 'medium',
-        createdAt: 'Just now',
-        updatedAt: 'Just now',
-        messages: [
-          {
-            id: Date.now().toString(),
-            author: 'user',
-            content: message,
-            timestamp: 'Just now',
-          },
-        ],
-      };
+    try {
+      const created = await createSupportTicket({ subject, category, priority, message });
+      const newTicket = mapBackendTicket(created);
       setTickets([newTicket, ...tickets]);
-      setIsSubmitting(false);
       setActiveId(newTicket.id);
       setView('details');
-    }, 1000);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleSendReply = () => {

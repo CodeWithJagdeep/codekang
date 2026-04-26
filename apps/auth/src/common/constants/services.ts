@@ -20,6 +20,10 @@ export const MESSAGE_PATTERNS = {
   AUTH_SEND_OTP: 'auth.send_otp',
   AUTH_VERIFY_OTP: 'auth.verify_otp',
   AUTH_GITHUB_EXCHANGE: 'auth.github_exchange',
+  AUTH_CREATE_SUBSCRIPTION: 'auth.create_subscription',
+  AUTH_CANCEL_SUBSCRIPTION: 'auth.cancel_subscription',
+  AUTH_GET_SESSIONS: 'auth.get_sessions',
+  AUTH_REVOKE_SESSION: 'auth.revoke_session',
 
   // AI Agent
   AGENT_CREATE_CONVERSATION: 'agent.create_conversation',
@@ -41,4 +45,28 @@ export const MESSAGE_PATTERNS = {
   REPOS_GET_PR: 'repos.get_pr',
   REPOS_LIST_CONNECTED: 'repos.list_connected',
   REPOS_SYNC: 'repos.sync',
+  ORG_ENSURE_DEFAULT: 'org.ensure_default',
+  ORG_LIST_MEMBERS: 'org.list_members',
+  ORG_INVITE_MEMBER: 'org.invite_member',
+  ORG_REMOVE_MEMBER: 'org.remove_member',
+  ORG_UPDATE_MEMBER_ROLE: 'org.update_member_role',
+
+  // Integrations
+  INTEGRATION_LIST: 'integration.list',
+  INTEGRATION_CONNECT: 'integration.connect',
+  INTEGRATION_DISCONNECT: 'integration.disconnect',
+  INTEGRATION_UPDATE_STATUS: 'integration.update_status',
+  INTEGRATION_UPDATE_CONFIG: 'integration.update_config',
+
+  // Notifications
+  NOTIF_LIST: 'notif.list',
+  NOTIF_READ: 'notif.read',
+  NOTIF_UNREAD_COUNT: 'notif.unread_count',
+
+  // Support
+  SUPPORT_CREATE: 'support.create',
+  SUPPORT_LIST: 'support.list',
+
+  // Audit
+  AUDIT_LIST: 'audit.list',
 } as const;

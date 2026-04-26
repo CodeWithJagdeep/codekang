@@ -102,6 +102,15 @@ const envSchema = z.object({
   // WEBHOOK
   WEBHOOK_PATH: z.string(),
   WEBHOOK_TIMEOUT: z.coerce.number(),
+
+  // OBSERVABILITY (optional — Langfuse)
+  LANGFUSE_PUBLIC_KEY: z.string().optional(),
+  LANGFUSE_SECRET_KEY: z.string().optional(),
+  LANGFUSE_BASE_URL: z.string().url().optional(),
+
+  // REALTIME (optional — gateway event bridge)
+  GATEWAY_INTERNAL_URL: z.string().url().optional(),
+  INTERNAL_SECRET: z.string().optional(),
 });
 
 // Validate

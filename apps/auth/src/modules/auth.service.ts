@@ -8,6 +8,7 @@ import { OAuth2Client } from 'google-auth-library';
 import { User } from '../entities/user.entity';
 import { RefreshTokenBlacklist } from '../entities/refresh-token-blacklist.entity';
 import { Otp } from '../entities/otp.entity';
+import { UserSession } from '../entities/user-session.entity';
 import { PLANS } from '../common';
 import type {
   IAuthTokens,
@@ -18,6 +19,8 @@ import type {
   ISocialLoginResponse,
 } from '../common';
 import { MailService } from './mail/mail.service';
+import { RazorpayService, type RazorpaySubscriptionResult } from './razorpay.service';
+import * as UAParser from 'ua-parser-js';
 
 interface OAuthProfile {
   provider: 'google' | 'github';
@@ -51,9 +54,11 @@ export class AuthService {
     @InjectRepository(RefreshTokenBlacklist)
     private readonly blacklistRepo: Repository<RefreshTokenBlacklist>,
     @InjectRepository(Otp) private readonly otpRepo: Repository<Otp>,
+    @InjectRepository(UserSession) private readonly sessionRepo: Repository<UserSession>,
     private readonly jwtService: JwtService,
     private readonly config: ConfigService,
     private readonly mailService: MailService,
+    private readonly razorpayService: RazorpayService,
   ) {
     this.googleClient = new OAuth2Client(this.config.get('GOOGLE_CLIENT_ID'));
   }
@@ -63,6 +68,8 @@ export class AuthService {
   async socialLogin(
     provider: 'google' | 'github',
     token: string,
+    ip?: string,
+    userAgent?: string,
   ): Promise<ISocialLoginResponse> {
     this.logger.log(`socialLogin verifying token provider=${provider}`);
     const profile =
@@ -71,7 +78,7 @@ export class AuthService {
         : await this.verifyGithubToken(token);
 
     this.logger.log(`socialLogin profile resolved email=${profile.email} provider=${provider}`);
-    return this.loginWithProfile(profile);
+    return this.loginWithProfile(profile, ip, userAgent);
   }
 
   private async verifyGoogleToken(idToken: string): Promise<OAuthProfile> {
@@ -213,6 +220,8 @@ export class AuthService {
 
   private async loginWithProfile(
     profile: OAuthProfile,
+    ip?: string,
+    userAgent?: string,
   ): Promise<ISocialLoginResponse> {
     let user = await this.userRepo.findOne({
       where: { provider: profile.provider, providerId: profile.providerId },
@@ -259,11 +268,14 @@ export class AuthService {
     }
 
     const tokens = this.generateTokens(user);
+    if (ip && userAgent) {
+      await this.trackSession(user.id, ip, userAgent);
+    }
     return { ...tokens, user: this.toPublicUser(user), isNewUser };
   }
 
   async findOrCreateUser(profile: OAuthProfile): Promise<User> {
-    const result = await this.loginWithProfile(profile);
+    const result = await this.loginWithProfile(profile, '', '');
     const user = await this.userRepo.findOne({
       where: { id: result.user.id },
     });
@@ -293,7 +305,7 @@ export class AuthService {
     this.logger.log(`sendOtp email sent email=${email}`);
   }
 
-  async verifyOtp(email: string, code: string): Promise<ISocialLoginResponse> {
+  async verifyOtp(email: string, code: string, ip?: string, userAgent?: string): Promise<ISocialLoginResponse> {
     this.logger.log(`verifyOtp email=${email}`);
     const otp = await this.otpRepo.findOne({ where: { email } });
     if (!otp) {
@@ -345,6 +357,9 @@ export class AuthService {
     }
 
     const tokens = this.generateTokens(user);
+    if (ip && userAgent) {
+      await this.trackSession(user.id, ip, userAgent);
+    }
     return { ...tokens, user: this.toPublicUser(user), isNewUser };
   }
 
@@ -641,6 +656,54 @@ export class AuthService {
     return this.toPublicUser(user);
   }
 
+  async createRazorpaySubscription(
+    userId: string,
+    planTier: 'starter' | 'team',
+    billingPeriod: 'monthly' | 'annual' = 'monthly',
+  ): Promise<RazorpaySubscriptionResult> {
+    this.logger.log(`createRazorpaySubscription userId=${userId} planTier=${planTier} billingPeriod=${billingPeriod}`);
+    const user = await this.userRepo.findOne({ where: { id: userId } });
+    if (!user) throw new UnauthorizedException('User not found');
+
+    // Cancel existing subscription if there is one
+    if (user.razorpaySubscriptionId) {
+      await this.razorpayService
+        .cancelSubscription(user.razorpaySubscriptionId)
+        .catch((err) => this.logger.warn(`Failed to cancel old subscription: ${(err as Error).message}`));
+    }
+
+    const result = await this.razorpayService.createSubscription(userId, planTier, billingPeriod);
+
+    // Persist the new subscription ID
+    await this.userRepo.update(userId, { razorpaySubscriptionId: result.subscriptionId });
+    this.logger.log(`createRazorpaySubscription saved subscriptionId=${result.subscriptionId}`);
+
+    return result;
+  }
+
+  async cancelRazorpaySubscription(userId: string): Promise<IUser> {
+    this.logger.log(`cancelRazorpaySubscription userId=${userId}`);
+    const user = await this.userRepo.findOne({ where: { id: userId } });
+    if (!user) throw new UnauthorizedException('User not found');
+
+    if (user.razorpaySubscriptionId) {
+      await this.razorpayService
+        .cancelSubscription(user.razorpaySubscriptionId)
+        .catch((err) => this.logger.warn(`Razorpay cancel error: ${(err as Error).message}`));
+    }
+
+    user.plan = 'free';
+    user.razorpaySubscriptionId = null;
+    user.creditsUsed = 0;
+    const nextMonth = new Date();
+    nextMonth.setMonth(nextMonth.getMonth() + 1, 1);
+    user.creditsReset = nextMonth;
+    await this.userRepo.save(user);
+
+    this.logger.log(`cancelRazorpaySubscription plan reset to free userId=${userId}`);
+    return this.toPublicUser(user);
+  }
+
   async completeOnboarding(userId: string): Promise<IUser> {
     this.logger.log(`completeOnboarding userId=${userId}`);
     const user = await this.userRepo.findOne({ where: { id: userId } });
@@ -674,5 +737,47 @@ export class AuthService {
       createdAt: user.createdAt,
       updatedAt: user.updatedAt,
     };
+  }
+
+  // ─── Session Management ───────────────────────────────────────────────────────
+
+  private async trackSession(userId: string, ip: string, userAgent: string) {
+    const parser = new UAParser(userAgent);
+    const browser = parser.getBrowser();
+    const os = parser.getOS();
+
+    const deviceStr = browser.name ? `${browser.name} on ${os.name || 'Unknown'}` : 'Unknown Device';
+    const osStr = os.name || 'Unknown';
+
+    // Basic heuristic: check if session already exists for this IP and UA to avoid spamming
+    const existing = await this.sessionRepo.findOne({
+      where: { userId, ip, device: deviceStr, isValid: true }
+    });
+
+    if (existing) {
+      existing.lastActive = new Date();
+      await this.sessionRepo.save(existing);
+    } else {
+      const session = this.sessionRepo.create({
+        userId,
+        ip,
+        device: deviceStr,
+        os: osStr,
+        location: 'Unknown', // Could use geo-ip later
+        lastActive: new Date(),
+      });
+      await this.sessionRepo.save(session);
+    }
+  }
+
+  async getSessions(userId: string) {
+    return this.sessionRepo.find({
+      where: { userId, isValid: true },
+      order: { lastActive: 'DESC' },
+    });
+  }
+
+  async revokeSession(userId: string, sessionId: string) {
+    await this.sessionRepo.update({ id: sessionId, userId }, { isValid: false });
   }
 }

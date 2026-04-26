@@ -12,61 +12,12 @@ import {
   Loader2,
   AlertTriangle,
 } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useTheme } from '@/lib/theme';
+import { fetchSessions, revokeSession, type ISession } from '@/lib/auth';
+import { formatDistanceToNow } from 'date-fns';
 
-// ── Types ──
 
-interface Session {
-  id: string;
-  device: string;
-  os: string;
-  location: string;
-  ip: string;
-  lastActive: string;
-  isCurrent: boolean;
-}
-
-// ── Data ──
-
-const SESSIONS: Session[] = [
-  {
-    id: 's1',
-    device: 'Chrome on Linux',
-    os: 'Linux',
-    location: 'Bangalore, IN',
-    ip: '103.21.45.67',
-    lastActive: 'Now',
-    isCurrent: true,
-  },
-  {
-    id: 's2',
-    device: 'Safari on iPhone',
-    os: 'iOS',
-    location: 'Bangalore, IN',
-    ip: '103.21.45.68',
-    lastActive: '2 hours ago',
-    isCurrent: false,
-  },
-  {
-    id: 's3',
-    device: 'Chrome on Windows',
-    os: 'Win',
-    location: 'Mumbai, IN',
-    ip: '49.205.18.211',
-    lastActive: '3 days ago',
-    isCurrent: false,
-  },
-  {
-    id: 's4',
-    device: 'VS Code Extension',
-    os: 'Linux',
-    location: 'Bangalore, IN',
-    ip: '103.21.45.69',
-    lastActive: '5 days ago',
-    isCurrent: false,
-  },
-];
 
 // ── Section wrapper ──
 
@@ -167,9 +118,28 @@ export default function SecurityPage() {
   const [twoFAEnabled, setTwoFAEnabled] = useState(false);
   const [loginAlerts, setLoginAlerts] = useState(true);
   const [showQR, setShowQR] = useState(false);
-  const [sessions, setSessions] = useState(SESSIONS);
+  const [sessions, setSessions] = useState<ISession[]>([]);
+  const [sessionsLoading, setSessionsLoading] = useState(true);
   const [revokingId, setRevokingId] = useState<string | null>(null);
   const [revokeAll, setRevokeAll] = useState(false);
+
+  useEffect(() => {
+    let mounted = true;
+    const load = async () => {
+      try {
+        const data = await fetchSessions();
+        if (mounted) setSessions(data);
+      } catch (e) {}
+      if (mounted) setSessionsLoading(false);
+    };
+
+    load();
+    const interval = setInterval(load, 10000); // Poll every 10s
+    return () => {
+      mounted = false;
+      clearInterval(interval);
+    };
+  }, []);
 
   const [pwForm, setPwForm] = useState({ current: '', next: '', confirm: '' });
   const [showPw, setShowPw] = useState({
@@ -181,20 +151,23 @@ export default function SecurityPage() {
   const [savedPw, setSavedPw] = useState(false);
   const [pwError, setPwError] = useState('');
 
-  const handleRevokeSession = (id: string) => {
+  const handleRevokeSession = async (id: string) => {
     setRevokingId(id);
-    setTimeout(() => {
+    try {
+      await revokeSession(id);
       setSessions((prev) => prev.filter((s) => s.id !== id));
-      setRevokingId(null);
-    }, 900);
+    } catch (e) {}
+    setRevokingId(null);
   };
 
-  const handleRevokeAll = () => {
+  const handleRevokeAll = async () => {
     setRevokeAll(true);
-    setTimeout(() => {
-      setSessions((prev) => prev.filter((s) => s.isCurrent));
-      setRevokeAll(false);
-    }, 1200);
+    try {
+      const others = sessions.slice(1);
+      await Promise.all(others.map((s) => revokeSession(s.id)));
+      setSessions((prev) => [prev[0]].filter(Boolean));
+    } catch (e) {}
+    setRevokeAll(false);
   };
 
   const handlePwSave = () => {
@@ -494,7 +467,17 @@ export default function SecurityPage() {
       >
         <div className="space-y-4">
           <div className="space-y-2">
-            {sessions.map((s) => (
+            {sessionsLoading ? (
+              <div className="flex items-center gap-2 text-[13px] text-[#a1a1aa] p-4">
+                <Loader2 size={14} className="animate-spin" /> Loading sessions...
+              </div>
+            ) : sessions.length === 0 ? (
+              <div className="text-[13px] text-[#a1a1aa] p-4 border rounded-md" style={{ background: inputBg, borderColor: inputBorder }}>
+                No active sessions found.
+              </div>
+            ) : sessions.map((s, i) => {
+              const isCurrent = i === 0;
+              return (
               <div
                 key={s.id}
                 className="flex items-center gap-4 p-4 rounded-md border transition-all"
@@ -522,7 +505,7 @@ export default function SecurityPage() {
                     >
                       {s.device}
                     </p>
-                    {s.isCurrent && (
+                    {isCurrent && (
                       <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 shrink-0">
                         This device
                       </span>
@@ -539,11 +522,11 @@ export default function SecurityPage() {
                       · {s.ip}
                     </span>
                     <span className="text-[12px]" style={{ color: textDim }}>
-                      · {s.lastActive}
+                      · {isCurrent ? 'Now' : formatDistanceToNow(new Date(s.lastActive), { addSuffix: true })}
                     </span>
                   </div>
                 </div>
-                {!s.isCurrent && (
+                {!isCurrent && (
                   <button
                     onClick={() => handleRevokeSession(s.id)}
                     disabled={revokingId === s.id}
@@ -559,10 +542,11 @@ export default function SecurityPage() {
                   </button>
                 )}
               </div>
-            ))}
+              );
+            })}
           </div>
 
-          {sessions.filter((s) => !s.isCurrent).length > 0 && (
+          {!sessionsLoading && sessions.length > 1 && (
             <button
               onClick={handleRevokeAll}
               disabled={revokeAll}

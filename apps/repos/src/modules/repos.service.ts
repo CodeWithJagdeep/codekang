@@ -7,6 +7,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository as TypeOrmRepository } from 'typeorm';
 import { Octokit } from '@octokit/rest';
 import { Repository } from '../entities/repository.entity';
+import { Organization, OrgRepository } from '../entities/organization.entity';
 import { PLANS } from '../common';
 import type {
   IRepository,
@@ -21,6 +22,10 @@ export class ReposService {
   constructor(
     @InjectRepository(Repository)
     private readonly repoRepo: TypeOrmRepository<Repository>,
+    @InjectRepository(Organization)
+    private readonly orgRepo: TypeOrmRepository<Organization>,
+    @InjectRepository(OrgRepository)
+    private readonly orgRepoRepo: TypeOrmRepository<OrgRepository>,
   ) {}
 
   private getOctokit(token: string): Octokit {
@@ -140,6 +145,25 @@ export class ReposService {
 
     repo.isInstalled = true;
     await this.repoRepo.save(repo);
+
+    // Auto-add to user's personal org if it exists
+    const personalOrg = await this.orgRepo.findOne({
+      where: { ownerId: userId, isPersonal: true },
+    });
+    if (personalOrg) {
+      const exists = await this.orgRepoRepo.findOne({
+        where: { orgId: personalOrg.id, repoId: repo.id },
+      });
+      if (!exists) {
+        const link = this.orgRepoRepo.create({
+          orgId: personalOrg.id,
+          repoId: repo.id,
+          addedBy: userId,
+        });
+        await this.orgRepoRepo.save(link).catch(() => {});
+      }
+    }
+
     return repo as unknown as IRepository;
   }
 
@@ -262,5 +286,23 @@ export class ReposService {
     repo.githubUpdatedAt = new Date(ghRepo.updated_at);
     await this.repoRepo.save(repo);
     return repo as unknown as IRepository;
+  }
+
+  async getRepoSettings(userId: string, repoId: string): Promise<Record<string, unknown>> {
+    const repo = await this.repoRepo.findOne({ where: { id: repoId, userId } });
+    if (!repo) throw new NotFoundException('Repository not found');
+    return repo.settings ?? {};
+  }
+
+  async updateRepoSettings(
+    userId: string,
+    repoId: string,
+    settings: Record<string, unknown>,
+  ): Promise<Record<string, unknown>> {
+    const repo = await this.repoRepo.findOne({ where: { id: repoId, userId } });
+    if (!repo) throw new NotFoundException('Repository not found');
+    repo.settings = settings;
+    await this.repoRepo.save(repo);
+    return repo.settings;
   }
 }

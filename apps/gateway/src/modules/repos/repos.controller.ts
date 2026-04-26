@@ -2,6 +2,7 @@ import {
   Controller,
   Get,
   Post,
+  Patch,
   Delete,
   Param,
   Query,
@@ -19,7 +20,7 @@ import {
   ApiOperation,
   ApiQuery,
 } from '@nestjs/swagger';
-import { IsString, IsNotEmpty } from 'class-validator';
+import { IsString, IsNotEmpty, IsObject, IsOptional } from 'class-validator';
 import { firstValueFrom } from 'rxjs';
 import {
   SERVICES,
@@ -37,6 +38,12 @@ class ConnectRepoDto {
   @IsString()
   @IsNotEmpty()
   repoName: string;
+}
+
+class UpdateRepoSettingsDto {
+  @IsObject()
+  @IsOptional()
+  settings: Record<string, unknown>;
 }
 
 @ApiTags('repos')
@@ -226,6 +233,33 @@ export class ReposProxyController {
         userId: user.id,
         repoId,
         githubToken,
+      }),
+    );
+  }
+
+  @Get(':repoId/settings')
+  @ApiOperation({ summary: 'Get repository review settings' })
+  getSettings(@CurrentUser() user: IUser, @Param('repoId') repoId: string) {
+    return firstValueFrom(
+      this.reposClient.send(MESSAGE_PATTERNS.REPOS_GET_SETTINGS, {
+        userId: user.id,
+        repoId,
+      }),
+    );
+  }
+
+  @Patch(':repoId/settings')
+  @ApiOperation({ summary: 'Update repository review settings' })
+  updateSettings(
+    @CurrentUser() user: IUser,
+    @Param('repoId') repoId: string,
+    @Body() dto: UpdateRepoSettingsDto,
+  ) {
+    return firstValueFrom(
+      this.reposClient.send(MESSAGE_PATTERNS.REPOS_UPDATE_SETTINGS, {
+        userId: user.id,
+        repoId,
+        settings: dto.settings,
       }),
     );
   }

@@ -1,18 +1,29 @@
 import { Router, type Request, type Response } from 'express';
+import rateLimit from 'express-rate-limit';
 import {
   parseWebhookPayload,
   isActionableIssueEvent,
   extractIssueContext,
   isApprovalComment,
+  isPRApprovalComment,
   extractCommentContext,
 } from '../github/webhook';
-import { indexQueue, fixQueue, executeFixQueue } from '../queue/index';
+import { indexQueue, fixQueue, executeFixQueue, fixPRQueue } from '../queue/index';
 import { reviewPullRequest } from '../services/review-service';
 import { logger } from '../utils/logger';
+import { env } from '../config/env';
+
+const webhookLimiter = rateLimit({
+  windowMs: env.RATE_LIMIT_WINDOW_MS,
+  max: env.RATE_LIMIT_MAX_REQUESTS,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many requests, please try again later' },
+});
 
 const router = Router();
 
-router.post('/', async (req: Request, res: Response): Promise<void> => {
+router.post('/', webhookLimiter, async (req: Request, res: Response): Promise<void> => {
   const signature = req.headers['x-hub-signature-256'] as string | undefined;
   const event = req.headers['x-github-event'] as string | undefined;
 
@@ -101,6 +112,27 @@ router.post('/', async (req: Request, res: Response): Promise<void> => {
     });
   }
 
+  // ── PR comment with approval → fix the review issues ────────────────────
+  if (event === 'issue_comment' && isPRApprovalComment(payload)) {
+    const ctx = extractCommentContext(payload);
+
+    logger.info('PR approval comment — queuing fix-PR job', {
+      owner: ctx.owner,
+      repo: ctx.repo,
+      prNumber: ctx.issueNumber,
+      approvedBy: ctx.commenterLogin,
+    });
+
+    await fixPRQueue.add('fix-pr', {
+      owner: ctx.owner,
+      repo: ctx.repo,
+      prNumber: ctx.issueNumber,
+      approvedBy: ctx.commenterLogin,
+      installationId: ctx.installationId,
+      triggeredAt: new Date().toISOString(),
+    });
+  }
+
   // ── PR opened/reopened/synchronized → review with inline comments ─────────
   if (
     event === 'pull_request' &&
@@ -121,10 +153,16 @@ router.post('/', async (req: Request, res: Response): Promise<void> => {
       repo,
       prNumber,
       action: payload.action,
+      draft: pr.draft,
+      base: pr.base.ref,
     });
 
     // Fire-and-forget; don't block the webhook response
-    reviewPullRequest(owner, repo, prNumber, installationId).catch(
+    reviewPullRequest(owner, repo, prNumber, installationId, {
+      webhookAction: payload.action as 'opened' | 'synchronize' | 'reopened',
+      isDraft: pr.draft,
+      targetBranch: pr.base.ref,
+    }).catch(
       (err: unknown) => {
         const e = err as { message: string };
         logger.error('PR review failed', {

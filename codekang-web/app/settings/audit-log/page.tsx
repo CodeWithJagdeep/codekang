@@ -6,8 +6,10 @@ import {
   CreditCard, ShieldCheck, FolderGit2, Loader2, ChevronDown,
   type LucideIcon,
 } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useTheme } from '@/lib/theme';
+import { fetchAuditLogs, type IAuditLog } from '@/lib/auth';
+import { format } from 'date-fns';
 
 // ── Types ──
 
@@ -26,22 +28,20 @@ interface AuditEvent {
   severity: 'info' | 'warning' | 'critical';
 }
 
-// ── Data ──
-
-const EVENTS: AuditEvent[] = [
-  { id: 'e1',  category: 'auth',     action: 'Login',                  description: 'Signed in from Chrome on Linux',                    actor: 'jagdeepsnh57@gmail.com', ip: '103.21.45.67', location: 'Bangalore, IN', time: '10:42 AM', date: 'Today',     severity: 'info' },
-  { id: 'e2',  category: 'review',   action: 'Review triggered',       description: 'KangBot started review on PR #42 — fix/auth-flow',   actor: 'KangBot',               ip: '—',           location: '—',             time: '10:38 AM', date: 'Today',     severity: 'info' },
-  { id: 'e3',  category: 'agent',    action: 'Agent run completed',    description: 'PatchAgent patched 2 issues in codekang-platform',   actor: 'PatchAgent',            ip: '—',           location: '—',             time: '09:15 AM', date: 'Today',     severity: 'info' },
-  { id: 'e4',  category: 'settings', action: 'API key created',        description: 'Created key "CI/CD Pipeline" with 3 scopes',        actor: 'jagdeepsnh57@gmail.com', ip: '103.21.45.67', location: 'Bangalore, IN', time: '8:52 AM',  date: 'Today',     severity: 'info' },
-  { id: 'e5',  category: 'repo',     action: 'Repository connected',   description: 'Connected codekang-web to workspace',               actor: 'jagdeepsnh57@gmail.com', ip: '103.21.45.67', location: 'Bangalore, IN', time: '5:33 PM',  date: 'Yesterday', severity: 'info' },
-  { id: 'e6',  category: 'billing',  action: 'Plan upgraded',          description: 'Upgraded from Basic to Pro — $29/month',            actor: 'jagdeepsnh57@gmail.com', ip: '103.21.45.67', location: 'Bangalore, IN', time: '4:10 PM',  date: 'Yesterday', severity: 'info' },
-  { id: 'e7',  category: 'auth',     action: 'Session revoked',        description: 'Revoked session from Chrome on Windows (Mumbai)',    actor: 'jagdeepsnh57@gmail.com', ip: '103.21.45.67', location: 'Bangalore, IN', time: '3:47 PM',  date: 'Yesterday', severity: 'warning' },
-  { id: 'e8',  category: 'agent',    action: 'Agent error',            description: 'SecurityAgent failed — rate limit hit on GitHub API', actor: 'SecurityAgent',         ip: '—',           location: '—',             time: '2:00 PM',  date: 'Yesterday', severity: 'warning' },
-  { id: 'e9',  category: 'review',   action: 'Critical issue flagged', description: 'SQL injection risk found in api/auth/login.ts',      actor: 'KangBot',               ip: '—',           location: '—',             time: '1:14 PM',  date: 'Yesterday', severity: 'critical' },
-  { id: 'e10', category: 'settings', action: 'Integration connected',  description: 'Connected GitHub integration as @CodeWithJagdeep',   actor: 'jagdeepsnh57@gmail.com', ip: '103.21.45.67', location: 'Bangalore, IN', time: '11:20 AM', date: 'Yesterday', severity: 'info' },
-  { id: 'e11', category: 'repo',     action: 'Repository disconnected','description': 'Removed test-project from workspace',             actor: 'jagdeepsnh57@gmail.com', ip: '49.205.18.11', location: 'Mumbai, IN',    time: '10:05 AM', date: 'Apr 17',    severity: 'warning' },
-  { id: 'e12', category: 'auth',     action: 'Login',                  description: 'Signed in from VS Code Extension',                  actor: 'jagdeepsnh57@gmail.com', ip: '103.21.45.69', location: 'Bangalore, IN', time: '9:00 AM',  date: 'Apr 17',    severity: 'info' },
-];
+function mapBackendAuditLog(log: IAuditLog): AuditEvent {
+  return {
+    id: log.id,
+    category: 'settings', // Default fallback
+    action: log.action,
+    description: log.resource ? `Resource: ${log.resource}` : 'System action',
+    actor: 'System/User', // Need to resolve actor if available
+    ip: log.ipAddress || '—',
+    location: '—',
+    time: format(new Date(log.createdAt), 'h:mm a'),
+    date: format(new Date(log.createdAt), 'MMM d, yyyy'),
+    severity: 'info',
+  };
+}
 
 const CATEGORY_CFG: Record<EventCategory, { label: string; icon: LucideIcon; color: string }> = {
   all:      { label: 'All',      icon: ClipboardList, color: '#909090' },
@@ -78,8 +78,19 @@ export default function AuditLogPage() {
   const [category, setCategory] = useState<EventCategory>('all');
   const [exporting, setExporting] = useState(false);
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [events, setEvents] = useState<AuditEvent[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const filtered = EVENTS.filter(e =>
+  useEffect(() => {
+    fetchAuditLogs().then((logs) => {
+      setEvents(logs.map(mapBackendAuditLog));
+      setIsLoading(false);
+    }).catch(() => {
+      setIsLoading(false);
+    });
+  }, []);
+
+  const filtered = events.filter(e =>
     (category === 'all' || e.category === category) &&
     (search === '' || e.action.toLowerCase().includes(search.toLowerCase()) || e.description.toLowerCase().includes(search.toLowerCase()))
   );
@@ -156,9 +167,9 @@ export default function AuditLogPage() {
       {/* Stats row */}
       <div className="grid grid-cols-3 gap-3">
         {[
-          { label: 'Total events', value: EVENTS.length },
-          { label: 'Warnings',     value: EVENTS.filter(e => e.severity === 'warning').length },
-          { label: 'Critical',     value: EVENTS.filter(e => e.severity === 'critical').length },
+          { label: 'Total events', value: events.length },
+          { label: 'Warnings',     value: events.filter(e => e.severity === 'warning').length },
+          { label: 'Critical',     value: events.filter(e => e.severity === 'critical').length },
         ].map(({ label, value }) => (
           <div key={label} className="rounded-xl border p-4" style={{ background: cardBg, borderColor: cardBorder }}>
             <p className="text-[22px] font-black" style={{ color: textPrimary }}>{value}</p>

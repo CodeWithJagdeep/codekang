@@ -268,11 +268,11 @@ export default function ReviewsPage() {
                 <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg"
                   style={{ background: 'rgba(249,115,22,0.06)', border: '1px solid rgba(249,115,22,0.15)' }}>
                   <span className="relative flex h-1.5 w-1.5">
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full opacity-75" style={{ background: '#f97316' }} />
-                    <span className="relative inline-flex rounded-full h-1.5 w-1.5" style={{ background: '#f97316' }} />
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full opacity-75" style={{ background: '#f8423b' }} />
+                    <span className="relative inline-flex rounded-full h-1.5 w-1.5" style={{ background: '#f8423b' }} />
                   </span>
-                  <Sparkles size={11} style={{ color: '#f97316' }} />
-                  <span className="text-[11px] font-medium" style={{ color: '#f97316' }}>
+                  <Sparkles size={11} style={{ color: '#f8423b' }} />
+                  <span className="text-[11px] font-medium" style={{ color: '#f8423b' }}>
                     Kang AI monitoring {repos.length} repo{repos.length !== 1 ? 's' : ''}
                   </span>
                 </div>
@@ -495,10 +495,10 @@ export default function ReviewsPage() {
                         <div className="ml-auto">
                           {status === 'open' || status === 'draft' ? (
                             <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-medium"
-                              style={{ background: 'rgba(249,115,22,0.08)', border: '1px solid rgba(249,115,22,0.15)', color: '#f97316' }}>
+                              style={{ background: 'rgba(249,115,22,0.08)', border: '1px solid rgba(249,115,22,0.15)', color: '#f8423b' }}>
                               <span className="relative flex h-1.5 w-1.5">
-                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full opacity-75" style={{ background: '#f97316' }} />
-                                <span className="relative inline-flex rounded-full h-1.5 w-1.5" style={{ background: '#f97316' }} />
+                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full opacity-75" style={{ background: '#f8423b' }} />
+                                <span className="relative inline-flex rounded-full h-1.5 w-1.5" style={{ background: '#f8423b' }} />
                               </span>
                               Kang AI reviewing
                             </span>
@@ -590,10 +590,10 @@ export default function ReviewsPage() {
                         <div className="ml-auto">
                           {issue.state === 'open' ? (
                             <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-medium"
-                              style={{ background: 'rgba(249,115,22,0.08)', border: '1px solid rgba(249,115,22,0.15)', color: '#f97316' }}>
+                              style={{ background: 'rgba(249,115,22,0.08)', border: '1px solid rgba(249,115,22,0.15)', color: '#f8423b' }}>
                               <span className="relative flex h-1.5 w-1.5">
-                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full opacity-75" style={{ background: '#f97316' }} />
-                                <span className="relative inline-flex rounded-full h-1.5 w-1.5" style={{ background: '#f97316' }} />
+                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full opacity-75" style={{ background: '#f8423b' }} />
+                                <span className="relative inline-flex rounded-full h-1.5 w-1.5" style={{ background: '#f8423b' }} />
                               </span>
                               Kang AI watching
                             </span>

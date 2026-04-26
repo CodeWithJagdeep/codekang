@@ -145,7 +145,7 @@ export default function CenterPanel({
             <button
               onClick={onAddRepo}
               className="flex-1 md:flex-none flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-[13px] font-bold transition-opacity hover:opacity-90 whitespace-nowrap"
-              style={{ background: '#f97316', color: '#fff' }}
+              style={{ background: '#f8423b', color: '#fff' }}
             >
               <Plus size={18} strokeWidth={2.5} />
               Add Repositories
@@ -191,7 +191,7 @@ export default function CenterPanel({
             <button
               onClick={onLinkAccount}
               className="flex items-center gap-2 px-5 py-2.5 rounded-lg text-[13px] font-bold transition-opacity hover:opacity-90"
-              style={{ background: '#f97316', color: '#fff' }}
+              style={{ background: '#f8423b', color: '#fff' }}
             >
               Link Account
             </button>
@@ -223,7 +223,7 @@ export default function CenterPanel({
             <button
               onClick={onAddRepo}
               className="flex items-center gap-2 px-5 py-2.5 rounded-lg text-[13px] font-bold transition-opacity hover:opacity-90"
-              style={{ background: '#f97316', color: '#fff' }}
+              style={{ background: '#f8423b', color: '#fff' }}
             >
               <Plus size={16} strokeWidth={2.5} />
               Add Repositories
@@ -310,7 +310,7 @@ export default function CenterPanel({
                             style={{ color: '#a1a1aa' }}
                           >
                             {repo.issues > 0 ? (
-                              <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-[#f97316]/10 text-[#f97316]">
+                              <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-[#f8423b]/10 text-[#f8423b]">
                                 <AlertCircle size={14} /> {repo.issues}
                               </span>
                             ) : (
@@ -319,10 +319,10 @@ export default function CenterPanel({
                           </td>
                           <td className="px-4 py-4 text-center hidden md:table-cell">
                             <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-medium"
-                              style={{ background: 'rgba(249,115,22,0.08)', border: '1px solid rgba(249,115,22,0.2)', color: '#f97316' }}>
+                              style={{ background: 'rgba(249,115,22,0.08)', border: '1px solid rgba(249,115,22,0.2)', color: '#f8423b' }}>
                               <span className="relative flex h-1.5 w-1.5">
-                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full opacity-75" style={{ background: '#f97316' }} />
-                                <span className="relative inline-flex rounded-full h-1.5 w-1.5" style={{ background: '#f97316' }} />
+                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full opacity-75" style={{ background: '#f8423b' }} />
+                                <span className="relative inline-flex rounded-full h-1.5 w-1.5" style={{ background: '#f8423b' }} />
                               </span>
                               Monitoring
                             </span>
@@ -354,6 +354,7 @@ export default function CenterPanel({
                       </tr>
                     )}
                   </tbody>
+
                 </table>
               </div>
             </div>
@@ -473,7 +474,7 @@ export default function CenterPanel({
   return (
     <section
       className="flex-1 flex flex-col items-center justify-center h-screen"
-      style={{ background: '#121214' }}
+      style={{ background: '#1c1c1c' }}
     >
       <div className="text-center px-6">
         <h2 className="text-[20px] font-bold mb-2" style={{ color: '#e8e8e8' }}>

@@ -7,6 +7,7 @@ import { env } from '../config/env';
 export const INDEX_QUEUE = 'index-repo';
 export const FIX_QUEUE = 'fix-issue';
 export const EXECUTE_FIX_QUEUE = 'execute-fix';
+export const FIX_PR_QUEUE = 'fix-pr';
 
 // ─── Shared job options ───────────────────────────────────────────────────────
 
@@ -38,6 +39,13 @@ export function createFixQueue(): Queue {
 
 export function createExecuteFixQueue(): Queue {
   return new Queue(EXECUTE_FIX_QUEUE, {
+    connection: redis,
+    defaultJobOptions,
+  });
+}
+
+export function createFixPRQueue(): Queue {
+  return new Queue(FIX_PR_QUEUE, {
     connection: redis,
     defaultJobOptions,
   });

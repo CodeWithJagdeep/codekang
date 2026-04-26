@@ -2,12 +2,14 @@ import express, { Express, Request, Response, NextFunction } from 'express';
 import { randomUUID } from 'crypto';
 import { env } from './config/env';
 import { logger } from './utils/logger';
+import { Sentry } from './config/sentry';
 import healthRouter from './routes/health';
 import webhookRouter from './routes/webhook';
 import queueRouter from './routes/queue';
 import statusRouter from './routes/status';
 import adminRouter from './routes/admin';
 import githubAppRouter from './routes/github-app';
+import reviewRouter from './routes/review';
 import { startWorkers } from './queue/index';
 
 // ─── Types ────────────────────────────────────────────────────────────────
@@ -96,6 +98,7 @@ export function createApp(): Express {
   app.use('/status', statusRouter);
   app.use('/api/admin', adminRouter);
   app.use('/github', githubAppRouter);
+  app.use('/review', reviewRouter);
 
   // Start BullMQ workers
   startWorkers();
@@ -123,6 +126,7 @@ export function createApp(): Express {
       requestId: r.requestId,
       error: err.message,
     });
+    Sentry.captureException(err);
 
     res.status(500).json({
       error: 'Internal Server Error',

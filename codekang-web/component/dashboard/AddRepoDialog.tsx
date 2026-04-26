@@ -262,7 +262,7 @@ export default function AddRepoDialog({
                     className="h-full rounded-full transition-all"
                     style={{
                       width: `${Math.min(100, (connectedCount / planLimit) * 100)}%`,
-                      background: atLimit ? '#ef4444' : '#f97316',
+                      background: atLimit ? '#ef4444' : '#f8423b',
                     }}
                   />
                 </div>
@@ -273,7 +273,7 @@ export default function AddRepoDialog({
             <a
               href="/settings/billing"
               className="flex items-center gap-1 text-[12px] font-medium whitespace-nowrap transition-opacity hover:opacity-80"
-              style={{ color: '#f97316' }}
+              style={{ color: '#f8423b' }}
             >
               Upgrade
               <ArrowUpRight size={13} />
@@ -433,7 +433,7 @@ export default function AddRepoDialog({
           ) : atLimit ? (
             <p className="text-[12px]" style={{ color: '#71717a' }}>
               Repo limit reached.{' '}
-              <a href="/settings/billing" className="underline" style={{ color: '#f97316' }}>
+              <a href="/settings/billing" className="underline" style={{ color: '#f8423b' }}>
                 Upgrade your plan
               </a>{' '}
               to add more.
@@ -465,7 +465,7 @@ export default function AddRepoDialog({
               onClick={handleAdd}
               disabled={selected.size === 0 || connecting || atLimit}
               className="flex items-center gap-2 px-5 py-2 rounded-lg text-[13px] font-bold transition-opacity hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed"
-              style={{ background: '#f97316', color: '#fff' }}
+              style={{ background: '#f8423b', color: '#fff' }}
             >
               {connecting ? (
                 <>

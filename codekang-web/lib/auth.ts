@@ -381,6 +381,189 @@ export async function disconnectRepo(repoId: string): Promise<void> {
   }
 }
 
+// ─── Razorpay payments ────────────────────────────────────────────────────────
+
+export interface IRazorpaySubscriptionResult {
+  subscriptionId: string;
+  razorpayKeyId: string;
+  shortUrl: string;
+}
+
+export async function createRazorpaySubscription(
+  planTier: 'starter' | 'team',
+  billingPeriod: 'monthly' | 'annual' = 'monthly',
+): Promise<IRazorpaySubscriptionResult> {
+  const res = await fetchWithAuth(`${API_URL}/plans/subscription/create`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ planTier, billingPeriod }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(
+      (err as { message?: string }).message ?? 'Failed to create subscription',
+    );
+  }
+  return res.json() as Promise<IRazorpaySubscriptionResult>;
+}
+
+export async function cancelRazorpaySubscription(): Promise<void> {
+  const res = await fetchWithAuth(`${API_URL}/plans/subscription/cancel`, {
+    method: 'POST',
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(
+      (err as { message?: string }).message ?? 'Failed to cancel subscription',
+    );
+  }
+}
+
+export interface ISubscription {
+  creditsUsed: number;
+  creditsReset: string | null;
+  isActive: boolean;
+  plan: {
+    tier: string;
+    name: string;
+    tagline: string;
+    creditsPerMonth: number | 'unlimited';
+    autonomousFixEnabled: boolean;
+    prReviewEnabled: boolean;
+  };
+}
+
+export async function fetchSubscription(): Promise<ISubscription> {
+  const res = await fetchWithAuth(`${API_URL}/plans/subscription`);
+  if (!res.ok) throw new Error('Failed to fetch subscription');
+  return res.json() as Promise<ISubscription>;
+}
+
+// ─── Organizations ────────────────────────────────────────────────────────────
+
+export interface IOrganization {
+  id: string;
+  ownerId: string;
+  slug: string;
+  name: string;
+  description?: string;
+  isPersonal: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export async function ensureDefaultOrg(): Promise<IOrganization> {
+  const res = await fetchWithAuth(`${API_URL}/organizations/ensure-default`, { method: 'POST' });
+  if (!res.ok) throw new Error('Failed to ensure default organization');
+  return res.json() as Promise<IOrganization>;
+}
+
+export async function fetchOrganizations(): Promise<IOrganization[]> {
+  const res = await fetchWithAuth(`${API_URL}/organizations`);
+  if (!res.ok) return [];
+  return res.json() as Promise<IOrganization[]>;
+}
+
+export async function createOrganization(data: {
+  name: string;
+  slug: string;
+  description?: string;
+}): Promise<IOrganization> {
+  const res = await fetchWithAuth(`${API_URL}/organizations`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error((err as { message?: string }).message ?? 'Failed to create organization');
+  }
+  return res.json() as Promise<IOrganization>;
+}
+
+export async function deleteOrganization(orgId: string): Promise<void> {
+  await fetchWithAuth(`${API_URL}/organizations/${orgId}`, { method: 'DELETE' });
+}
+
+export async function fetchOrgRepos(orgId: string): Promise<IRepository[]> {
+  const res = await fetchWithAuth(`${API_URL}/organizations/${orgId}/repos`);
+  if (!res.ok) return [];
+  return res.json() as Promise<IRepository[]>;
+}
+
+export async function addRepoToOrg(orgId: string, repoId: string): Promise<void> {
+  const res = await fetchWithAuth(`${API_URL}/organizations/${orgId}/repos`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ repoId }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error((err as { message?: string }).message ?? 'Failed to add repository');
+  }
+}
+
+export async function removeRepoFromOrg(orgId: string, repoId: string): Promise<void> {
+  await fetchWithAuth(`${API_URL}/organizations/${orgId}/repos/${repoId}`, { method: 'DELETE' });
+}
+
+// ─── Repository Settings ──────────────────────────────────────────────────────
+
+export interface IRepoSettings {
+  triggers: {
+    onPROpen: boolean;
+    onPush: boolean;
+    onDraft: boolean;
+  };
+  issueTypes: {
+    bugs: boolean;
+    security: boolean;
+    performance: boolean;
+    style: boolean;
+    documentation: boolean;
+  };
+  reviewDepth: 'quick' | 'standard' | 'thorough';
+  watchedBranches: string[];
+  autoComment: boolean;
+  notifyOnComplete: boolean;
+}
+
+export const DEFAULT_REPO_SETTINGS: IRepoSettings = {
+  triggers: { onPROpen: true, onPush: false, onDraft: false },
+  issueTypes: { bugs: true, security: true, performance: true, style: false, documentation: false },
+  reviewDepth: 'standard',
+  watchedBranches: [],
+  autoComment: true,
+  notifyOnComplete: false,
+};
+
+export async function fetchRepoSettings(repoId: string): Promise<IRepoSettings> {
+  const res = await fetchWithAuth(`${API_URL}/repos/${repoId}/settings`);
+  if (!res.ok) return { ...DEFAULT_REPO_SETTINGS };
+  const raw = await res.json() as Partial<IRepoSettings>;
+  return {
+    triggers: { ...DEFAULT_REPO_SETTINGS.triggers, ...raw.triggers },
+    issueTypes: { ...DEFAULT_REPO_SETTINGS.issueTypes, ...raw.issueTypes },
+    reviewDepth: raw.reviewDepth ?? DEFAULT_REPO_SETTINGS.reviewDepth,
+    watchedBranches: raw.watchedBranches ?? DEFAULT_REPO_SETTINGS.watchedBranches,
+    autoComment: raw.autoComment ?? DEFAULT_REPO_SETTINGS.autoComment,
+    notifyOnComplete: raw.notifyOnComplete ?? DEFAULT_REPO_SETTINGS.notifyOnComplete,
+  };
+}
+
+export async function updateRepoSettings(repoId: string, settings: IRepoSettings): Promise<IRepoSettings> {
+  const res = await fetchWithAuth(`${API_URL}/repos/${repoId}/settings`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ settings }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error((err as { message?: string }).message ?? 'Failed to save settings');
+  }
+  return res.json() as Promise<IRepoSettings>;
+}
+
 export async function syncRepo(repoId: string): Promise<IRepository> {
   const res = await fetchWithAuth(`${API_URL}/repos/${repoId}/sync`, {
     method: 'POST',
@@ -440,6 +623,103 @@ export async function fetchRepoIssues(
   );
   if (!res.ok) return [];
   return res.json() as Promise<IGitHubIssue[]>;
+}
+
+// ─── PR Reviews ──────────────────────────────────────────────────────────────
+
+export interface IPRReviewComment {
+  path: string;
+  line: number;
+  body: string;
+}
+
+export interface IPRReview {
+  id: number;
+  owner: string;
+  repo: string;
+  pr_number: number;
+  pr_title: string | null;
+  head_sha: string | null;
+  head_branch: string | null;
+  summary: string;
+  verdict: 'APPROVE' | 'REQUEST_CHANGES' | 'COMMENT';
+  comments: IPRReviewComment[];
+  fix_status: 'none' | 'pending' | 'running' | 'done' | 'failed';
+  fix_pr_url: string | null;
+  fix_branch: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export async function fetchPRReview(
+  owner: string,
+  repo: string,
+  prNumber: number,
+): Promise<IPRReview | null> {
+  const res = await fetchWithAuth(`${API_URL}/review/${owner}/${repo}/${prNumber}`);
+  if (res.status === 404) return null;
+  if (!res.ok) return null;
+  return res.json() as Promise<IPRReview>;
+}
+
+export async function triggerPRFix(
+  owner: string,
+  repo: string,
+  prNumber: number,
+): Promise<{ status: string; message?: string; prUrl?: string }> {
+  const res = await fetchWithAuth(
+    `${API_URL}/review/${owner}/${repo}/${prNumber}/fix`,
+    { method: 'POST', headers: { 'content-type': 'application/json' }, body: '{}' },
+  );
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error((err as { message?: string }).message ?? 'Failed to trigger fix');
+  }
+  return res.json() as Promise<{ status: string; message?: string; prUrl?: string }>;
+}
+
+// ─── Reports / Analytics ─────────────────────────────────────────────────────
+
+export interface IReportStats {
+  totals: {
+    reviews: number;
+    bugs: number;
+    fixed: number;
+    approved: number;
+    requestChanges: number;
+    commented: number;
+  };
+  prev: {
+    reviews: number;
+    bugs: number;
+    fixed: number;
+  };
+  daily: Array<{ date: string; reviews: number; bugs: number }>;
+  byRepo: Array<{ owner: string; repo: string; reviews: number; bugs: number; fixed: number }>;
+  recent: Array<{
+    owner: string;
+    repo: string;
+    pr_number: number;
+    pr_title: string | null;
+    verdict: 'APPROVE' | 'REQUEST_CHANGES' | 'COMMENT';
+    fix_status: 'none' | 'pending' | 'running' | 'done' | 'failed';
+    fix_pr_url: string | null;
+    created_at: string;
+    updated_at: string;
+  }>;
+}
+
+export async function fetchReportStats(days: 7 | 30 | 90 | 0 = 30): Promise<IReportStats> {
+  const res = await fetchWithAuth(`${API_URL}/review/stats?days=${days}`);
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(
+      (err as { message?: string; error?: string }).message ??
+      (err as { message?: string; error?: string }).error ??
+      `Failed to fetch report stats (${res.status})`,
+    );
+  }
+  return res.json() as Promise<IReportStats>;
 }
 
 // ─── Token refresh ────────────────────────────────────────────────────────────
@@ -522,3 +802,194 @@ export async function signOut() {
   clearTokens();
   window.location.href = '/in/login';
 }
+
+// ─── Real-Time Data Fetchers ──────────────────────────────────────────────────
+
+export interface IOrganizationMember {
+  id: string;
+  userId: string;
+  organizationId: string;
+  role: 'owner' | 'admin' | 'member';
+  email: string | null;
+  displayName: string | null;
+  status: 'active' | 'pending';
+  invitedBy: string | null;
+  createdAt: string;
+}
+
+export async function fetchOrgMembers(orgId: string): Promise<IOrganizationMember[]> {
+  const res = await fetchWithAuth(`${API_URL}/organizations/${orgId}/members`);
+  if (!res.ok) return [];
+  return res.json() as Promise<IOrganizationMember[]>;
+}
+
+export async function inviteOrgMember(
+  orgId: string,
+  email: string,
+  role: 'admin' | 'member',
+  displayName?: string,
+): Promise<IOrganizationMember> {
+  const res = await fetchWithAuth(`${API_URL}/organizations/${orgId}/members`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email, role, displayName }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error((err as { message?: string }).message ?? 'Failed to invite member');
+  }
+  return res.json() as Promise<IOrganizationMember>;
+}
+
+export async function removeOrgMember(orgId: string, memberId: string): Promise<void> {
+  const res = await fetchWithAuth(`${API_URL}/organizations/${orgId}/members/${memberId}`, {
+    method: 'DELETE',
+  });
+  if (!res.ok && res.status !== 204) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error((err as { message?: string }).message ?? 'Failed to remove member');
+  }
+}
+
+export async function updateOrgMemberRole(
+  orgId: string,
+  memberId: string,
+  role: 'admin' | 'member',
+): Promise<IOrganizationMember> {
+  const res = await fetchWithAuth(`${API_URL}/organizations/${orgId}/members/${memberId}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ role }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error((err as { message?: string }).message ?? 'Failed to update member role');
+  }
+  return res.json() as Promise<IOrganizationMember>;
+}
+
+export interface INotification {
+  id: string;
+  userId: string;
+  type: string;
+  title: string;
+  message: string;
+  link: string | null;
+  isRead: boolean;
+  createdAt: string;
+}
+
+export async function fetchNotifications(): Promise<INotification[]> {
+  const res = await fetchWithAuth(`${API_URL}/notifications`);
+  if (!res.ok) return [];
+  return res.json() as Promise<INotification[]>;
+}
+
+export async function markNotificationRead(id: string): Promise<void> {
+  await fetchWithAuth(`${API_URL}/notifications/${id}/read`, { method: 'PATCH' });
+}
+
+export interface ISupportTicket {
+  id: string;
+  subject: string;
+  category: string;
+  status: string;
+  priority: string;
+  createdAt: string;
+  updatedAt: string;
+  messages: Array<{
+    id: string;
+    author: 'user' | 'agent';
+    content: string;
+    createdAt: string;
+  }>;
+}
+
+export async function fetchSupportTickets(): Promise<ISupportTicket[]> {
+  const res = await fetchWithAuth(`${API_URL}/support`);
+  if (!res.ok) return [];
+  return res.json() as Promise<ISupportTicket[]>;
+}
+
+export async function createSupportTicket(data: {
+  subject: string;
+  category: string;
+  priority: string;
+  message: string;
+}): Promise<ISupportTicket> {
+  const res = await fetchWithAuth(`${API_URL}/support`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error((err as { message?: string }).message ?? 'Failed to create ticket');
+  }
+  return res.json() as Promise<ISupportTicket>;
+}
+
+export interface IAuditLog {
+  id: string;
+  action: string;
+  resource: string | null;
+  ipAddress: string | null;
+  createdAt: string;
+}
+
+export async function fetchAuditLogs(): Promise<IAuditLog[]> {
+  const res = await fetchWithAuth(`${API_URL}/audit`);
+  if (!res.ok) return [];
+  return res.json() as Promise<IAuditLog[]>;
+}
+
+export interface ISession {
+  id: string;
+  device: string;
+  os: string;
+  ip: string;
+  location: string;
+  lastActive: string;
+}
+
+export async function fetchSessions(): Promise<ISession[]> {
+  const res = await fetchWithAuth(`${API_URL}/auth/sessions`);
+  if (!res.ok) return [];
+  return res.json() as Promise<ISession[]>;
+}
+
+export async function revokeSession(sessionId: string): Promise<void> {
+  const res = await fetchWithAuth(`${API_URL}/auth/sessions/${sessionId}`, { method: 'DELETE' });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error((err as { message?: string }).message ?? 'Failed to revoke session');
+  }
+}
+
+// ─── Plans / Billing ─────────────────────────────────────────────────────────
+
+export interface IPlanCatalogItem {
+  tier: string;
+  name: string;
+  tagline: string;
+  billingModel: string;
+  pricing: {
+    monthly: number | 'custom';
+    annual: number | 'custom';
+  };
+  trialDays: number;
+  features: {
+    repos: { privateRepos: number | 'unlimited'; publicRepos: 'unlimited' };
+    reviews: { prReviews: boolean; prSummarization: boolean; inlineComments: boolean; linterSast: boolean; reviewsPerHour: number | 'unlimited' };
+    ai: { creditsPerMonth: number | 'unlimited'; autonomousFix: boolean; unitTestGeneration: boolean; mergeConflictResolution: boolean; issuePlanner: boolean; docstringGeneration: boolean; autofixSuggestions: boolean };
+    integrations: { jiraLinear: boolean; linkedRepoAnalyses: number | 'unlimited'; mcpConnections: number | 'unlimited'; customPreMergeChecks: number | 'unlimited'; apiAccess: boolean };
+    team: { rbac: boolean; analytics: boolean; customReports: boolean; auditLogging: boolean; sso: boolean; selfHosting: boolean; multiOrg: boolean; sla: boolean; dedicatedCsm: boolean };
+  };
+}
+
+export async function fetchPlans(): Promise<IPlanCatalogItem[]> {
+  const res = await fetchWithAuth(`${API_URL}/plans`);
+  if (!res.ok) return [];
+  return res.json() as Promise<IPlanCatalogItem[]>;
+}
+

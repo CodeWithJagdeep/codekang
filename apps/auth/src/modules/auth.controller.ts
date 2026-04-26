@@ -115,11 +115,11 @@ export class AuthController {
 
   @MessagePattern(MESSAGE_PATTERNS.AUTH_FIREBASE_LOGIN)
   async socialLogin(
-    @Payload() data: { provider: 'google' | 'github'; token: string },
+    @Payload() data: { provider: 'google' | 'github'; token: string; ip?: string; userAgent?: string },
   ) {
     this.logger.log(`socialLogin provider=${data.provider}`);
     try {
-      const result = await this.authService.socialLogin(data.provider, data.token);
+      const result = await this.authService.socialLogin(data.provider, data.token, data.ip, data.userAgent);
       this.logger.log(`socialLogin success provider=${data.provider} userId=${result.user.id} isNewUser=${result.isNewUser}`);
       return result;
     } catch (err) {
@@ -187,6 +187,34 @@ export class AuthController {
     }
   }
 
+  @MessagePattern(MESSAGE_PATTERNS.AUTH_CREATE_SUBSCRIPTION)
+  async createSubscription(
+    @Payload() data: { userId: string; planTier: 'starter' | 'team'; billingPeriod?: 'monthly' | 'annual' },
+  ) {
+    this.logger.log(`createSubscription userId=${data.userId} planTier=${data.planTier} billingPeriod=${data.billingPeriod}`);
+    try {
+      const result = await this.authService.createRazorpaySubscription(data.userId, data.planTier, data.billingPeriod);
+      this.logger.log(`createSubscription success userId=${data.userId}`);
+      return result;
+    } catch (err) {
+      this.logger.error(`createSubscription failed userId=${data.userId}`, err instanceof Error ? err.stack : String(err));
+      throw err;
+    }
+  }
+
+  @MessagePattern(MESSAGE_PATTERNS.AUTH_CANCEL_SUBSCRIPTION)
+  async cancelSubscription(@Payload() data: { userId: string }) {
+    this.logger.log(`cancelSubscription userId=${data.userId}`);
+    try {
+      const result = await this.authService.cancelRazorpaySubscription(data.userId);
+      this.logger.log(`cancelSubscription success userId=${data.userId}`);
+      return result;
+    } catch (err) {
+      this.logger.error(`cancelSubscription failed userId=${data.userId}`, err instanceof Error ? err.stack : String(err));
+      throw err;
+    }
+  }
+
   @MessagePattern(MESSAGE_PATTERNS.AUTH_SEND_OTP)
   async sendOtp(@Payload() data: { email: string }) {
     this.logger.log(`sendOtp email=${data.email}`);
@@ -201,15 +229,28 @@ export class AuthController {
   }
 
   @MessagePattern(MESSAGE_PATTERNS.AUTH_VERIFY_OTP)
-  async verifyOtp(@Payload() data: { email: string; code: string }) {
+  async verifyOtp(@Payload() data: { email: string; code: string; ip?: string; userAgent?: string }) {
     this.logger.log(`verifyOtp email=${data.email}`);
     try {
-      const result = await this.authService.verifyOtp(data.email, data.code);
+      const result = await this.authService.verifyOtp(data.email, data.code, data.ip, data.userAgent);
       this.logger.log(`verifyOtp success email=${data.email} isNewUser=${result.isNewUser}`);
       return result;
     } catch (err) {
       this.logger.error(`verifyOtp failed email=${data.email}`, err instanceof Error ? err.stack : String(err));
       throw err;
     }
+  }
+
+  @MessagePattern(MESSAGE_PATTERNS.AUTH_GET_SESSIONS)
+  async getSessions(@Payload() data: { userId: string }) {
+    this.logger.log(`getSessions userId=${data.userId}`);
+    return this.authService.getSessions(data.userId);
+  }
+
+  @MessagePattern(MESSAGE_PATTERNS.AUTH_REVOKE_SESSION)
+  async revokeSession(@Payload() data: { userId: string; sessionId: string }) {
+    this.logger.log(`revokeSession userId=${data.userId} sessionId=${data.sessionId}`);
+    await this.authService.revokeSession(data.userId, data.sessionId);
+    return { success: true };
   }
 }

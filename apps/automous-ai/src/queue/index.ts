@@ -6,16 +6,20 @@ import {
   createIndexQueue,
   createFixQueue,
   createExecuteFixQueue,
+  createFixPRQueue,
   INDEX_QUEUE,
   FIX_QUEUE,
   EXECUTE_FIX_QUEUE,
+  FIX_PR_QUEUE,
 } from './config';
 import { indexRepoJob } from '../services/index-service';
 import { proposeFixJob, executeApprovedFix } from '../services/fix-service';
+import { fixPRIssues } from '../services/fix-pr-service';
 import type {
   IndexJobData,
   FixJobData,
   ExecuteFixJobData,
+  FixPRJobData,
   JobResult,
 } from '../types/queue';
 
@@ -24,6 +28,7 @@ import type {
 export const indexQueue = createIndexQueue();
 export const fixQueue = createFixQueue();
 export const executeFixQueue = createExecuteFixQueue();
+export const fixPRQueue = createFixPRQueue();
 
 // ─── Worker startup ───────────────────────────────────────────────────────────
 
@@ -45,7 +50,7 @@ export function startWorkers(): void {
         jobId: job.id,
         issue: job.data.issueNumber,
       });
-      return proposeFixJob(job.data);
+      return proposeFixJob({ ...job.data, jobId: job.id ?? undefined });
     },
     { connection: redis, concurrency: env.FIX_WORKER_CONCURRENCY },
   );
@@ -59,7 +64,7 @@ export function startWorkers(): void {
         issue: job.data.issueNumber,
         approvedBy: job.data.approvedBy,
       });
-      return executeApprovedFix(job.data);
+      return executeApprovedFix({ ...job.data, jobId: job.id ?? undefined });
     },
     { connection: redis, concurrency: env.FIX_WORKER_CONCURRENCY },
   );
@@ -83,6 +88,27 @@ export function startWorkers(): void {
   });
   executeFixWorker.on('failed', (job, err: Error) => {
     logger.error('Execute fix failed', { jobId: job?.id, error: err.message });
+  });
+
+  // Phase 3: fix PR review issues after user approval
+  const fixPRWorker = new Worker<FixPRJobData, JobResult>(
+    FIX_PR_QUEUE,
+    async (job: Job<FixPRJobData>): Promise<JobResult> => {
+      logger.info('Fix-PR job started', {
+        jobId: job.id,
+        prNumber: job.data.prNumber,
+        approvedBy: job.data.approvedBy,
+      });
+      return fixPRIssues(job.data);
+    },
+    { connection: redis, concurrency: env.FIX_WORKER_CONCURRENCY },
+  );
+
+  fixPRWorker.on('completed', (job, result: JobResult) => {
+    logger.info('Fix-PR done', { jobId: job.id, success: result.success });
+  });
+  fixPRWorker.on('failed', (job, err: Error) => {
+    logger.error('Fix-PR failed', { jobId: job?.id, error: err.message });
   });
 
   logger.info('Workers started', {

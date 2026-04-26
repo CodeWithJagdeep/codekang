@@ -10,6 +10,10 @@ export const MESSAGE_PATTERNS = {
   AUTH_GET_USER: 'auth.get_user',
   AUTH_LOGOUT: 'auth.logout',
   AUTH_REFRESH_TOKEN: 'auth.refresh_token',
+  AUTH_CREATE_SUBSCRIPTION: 'auth.create_subscription',
+  AUTH_CANCEL_SUBSCRIPTION: 'auth.cancel_subscription',
+  AUTH_GET_SESSIONS: 'auth.get_sessions',
+  AUTH_REVOKE_SESSION: 'auth.revoke_session',
   AUTH_GET_SUBSCRIPTION: 'auth.get_subscription',
   AUTH_CHECK_CREDITS: 'auth.check_credits',
   AUTH_CONSUME_CREDITS: 'auth.consume_credits',
@@ -39,4 +43,34 @@ export const MESSAGE_PATTERNS = {
   REPOS_LIST_CONNECTED: 'repos.list_connected',
   REPOS_GET_ONE: 'repos.get_one',
   REPOS_SYNC: 'repos.sync',
+
+  REPOS_GET_SETTINGS: 'repos.get_settings',
+  REPOS_UPDATE_SETTINGS: 'repos.update_settings',
+
+  // Organizations
+  ORG_CREATE: 'org.create',
+  ORG_LIST: 'org.list',
+  ORG_GET_ONE: 'org.get_one',
+  ORG_UPDATE: 'org.update',
+  ORG_DELETE: 'org.delete',
+  ORG_LIST_REPOS: 'org.list_repos',
+  ORG_ADD_REPO: 'org.add_repo',
+  ORG_REMOVE_REPO: 'org.remove_repo',
+  ORG_ENSURE_DEFAULT: 'org.ensure_default',
+  ORG_LIST_MEMBERS: 'org.list_members',
+  ORG_INVITE_MEMBER: 'org.invite_member',
+  ORG_REMOVE_MEMBER: 'org.remove_member',
+  ORG_UPDATE_MEMBER_ROLE: 'org.update_member_role',
+
+  // Notifications
+  NOTIF_LIST: 'notif.list',
+  NOTIF_READ: 'notif.read',
+  NOTIF_UNREAD_COUNT: 'notif.unread_count',
+
+  // Support
+  SUPPORT_CREATE: 'support.create',
+  SUPPORT_LIST: 'support.list',
+
+  // Audit
+  AUDIT_LIST: 'audit.list',
 } as const;

@@ -1,12 +1,23 @@
+import * as Sentry from '@sentry/node';
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import helmet from 'helmet';
+import { IoAdapter } from '@nestjs/platform-socket.io';
 import { AppModule } from './app.module';
 import { RpcExceptionFilter } from './common';
 
+if (process.env.SENTRY_DSN) {
+  Sentry.init({
+    dsn: process.env.SENTRY_DSN,
+    environment: process.env.SENTRY_ENVIRONMENT ?? process.env.NODE_ENV,
+    tracesSampleRate: process.env.NODE_ENV === 'production' ? 0.1 : 1.0,
+  });
+}
+
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, {
+    rawBody: true,
     logger:
       process.env.NODE_ENV === 'production'
         ? ['error', 'warn']
@@ -32,6 +43,7 @@ async function bootstrap() {
     }),
   );
 
+  app.useWebSocketAdapter(new IoAdapter(app));
   app.useGlobalFilters(new RpcExceptionFilter());
 
   const isProduction = process.env.NODE_ENV === 'production';

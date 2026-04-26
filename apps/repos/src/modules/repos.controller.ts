@@ -148,4 +148,16 @@ export class ReposController {
       data.githubToken,
     );
   }
+
+  @MessagePattern(MESSAGE_PATTERNS.REPOS_GET_SETTINGS)
+  getSettings(@Payload() data: { userId: string; repoId: string }) {
+    return this.reposService.getRepoSettings(data.userId, data.repoId);
+  }
+
+  @MessagePattern(MESSAGE_PATTERNS.REPOS_UPDATE_SETTINGS)
+  updateSettings(
+    @Payload() data: { userId: string; repoId: string; settings: Record<string, unknown> },
+  ) {
+    return this.reposService.updateRepoSettings(data.userId, data.repoId, data.settings);
+  }
 }

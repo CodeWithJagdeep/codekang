@@ -57,6 +57,9 @@ export class Repository {
   @Column({ name: 'github_updated_at', nullable: true, type: 'timestamptz' })
   githubUpdatedAt: Date;
 
+  @Column({ type: 'jsonb', nullable: true, default: '{}' })
+  settings: Record<string, unknown>;
+
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;
 

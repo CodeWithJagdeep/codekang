@@ -19,7 +19,18 @@ export type FixStrategy =
   | 'cannot_fix';
 
 export type AgentStepType =
-  // Code reading / exploration
+  // Lightweight GitHub API tools (no clone needed)
+  | 'gh_read_file'
+  | 'gh_list_dir'
+  | 'gh_tree'
+  | 'gh_search'
+  | 'gh_create_branch'
+  | 'gh_commit_files'
+  | 'gh_open_pr'
+  // Escalation
+  | 'request_clone'
+  | 'request_sandbox'
+  // Code reading / exploration (requires clone)
   | 'read_file'
   | 'write_file'
   | 'list_directory'
@@ -27,7 +38,9 @@ export type AgentStepType =
   | 'search_files'
   | 'get_package_info'
   | 'vector_search'
-  // Execution
+  | 'search_by_symbol'
+  | 'search_by_file'
+  // Execution (requires sandbox)
   | 'run_command'
   | 'run_file'
   | 'write_and_run'
@@ -99,9 +112,13 @@ export interface FixContext {
   issueBody: string;
   repoOwner: string;
   repoName: string;
-  repoPath: string; // local clone path
+  repoPath?: string; // local clone path — only set after request_clone escalation
   branchName: string;
   classification: ClassificationResult;
+  /** User ID for real-time progress events via Socket.IO */
+  userId?: string;
+  /** BullMQ job ID for correlating socket events with jobs */
+  jobId?: string;
   /** Root cause summary from the analysis pass — injected before fix run */
   analysisSummary?: string;
   /** Test failure output from a previous fix attempt — injected on retry */

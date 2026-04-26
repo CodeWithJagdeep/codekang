@@ -426,3 +426,276 @@ export async function getPR(
     );
   }
 }
+
+// ─── Lightweight API tools (no local clone required) ─────────────────────────
+
+export async function githubListDir(
+  owner: string,
+  repo: string,
+  dirPath: string,
+  ref?: string,
+  installationId?: number,
+): Promise<{ name: string; type: string; size: number }[]> {
+  try {
+    const octokit =
+      installationId && isGitHubAppConfigured()
+        ? getAppOctokit(installationId)
+        : getOctokit();
+    const { data } = await octokit.repos.getContent({
+      owner,
+      repo,
+      path: dirPath || '.',
+      ...(ref ? { ref } : {}),
+    });
+    if (!Array.isArray(data)) return [];
+    return data.map((item: any) => ({
+      name: item.name,
+      type: item.type as string,
+      size: (item.size as number) ?? 0,
+    }));
+  } catch (err: unknown) {
+    const e = err as { message: string; status?: number };
+    throw new GitHubAPIError(`Failed to list dir ${dirPath}: ${e.message}`, e.status);
+  }
+}
+
+export async function githubGetTree(
+  owner: string,
+  repo: string,
+  ref?: string,
+  installationId?: number,
+): Promise<string> {
+  const IGNORE = new Set([
+    '.git', 'node_modules', 'dist', 'build', '.next',
+    '__pycache__', '.venv', 'vendor', 'target', '.cache', 'coverage',
+  ]);
+  try {
+    const octokit =
+      installationId && isGitHubAppConfigured()
+        ? getAppOctokit(installationId)
+        : getOctokit();
+    const { data } = await octokit.git.getTree({
+      owner,
+      repo,
+      tree_sha: ref ?? 'HEAD',
+      recursive: '1',
+    });
+    const lines = (data.tree ?? [])
+      .filter((item) => {
+        if (!item.path) return false;
+        const parts = item.path.split('/');
+        return !parts.some((p) => IGNORE.has(p));
+      })
+      .map((item) => `${item.type === 'tree' ? '📁' : '📄'} ${item.path}`)
+      .slice(0, 500);
+    return lines.join('\n') || '(empty tree)';
+  } catch (err: unknown) {
+    const e = err as { message: string; status?: number };
+    throw new GitHubAPIError(`Failed to get repo tree: ${e.message}`, e.status);
+  }
+}
+
+export async function githubSearchCode(
+  owner: string,
+  repo: string,
+  query: string,
+  installationId?: number,
+): Promise<{ path: string; fragment: string }[]> {
+  try {
+    const octokit =
+      installationId && isGitHubAppConfigured()
+        ? getAppOctokit(installationId)
+        : getOctokit();
+    const { data } = await octokit.search.code({
+      q: `${query} repo:${owner}/${repo}`,
+      per_page: 10,
+    });
+    return (data.items ?? []).map((item: any) => ({
+      path: item.path as string,
+      fragment: (item.text_matches as any[])?.[0]?.fragment ?? '',
+    }));
+  } catch (err: unknown) {
+    const e = err as { message: string };
+    logger.warn('GitHub code search failed', { error: e.message });
+    return [];
+  }
+}
+
+export async function githubCreateBranch(
+  owner: string,
+  repo: string,
+  branchName: string,
+  fromRef: string,
+  installationId?: number,
+): Promise<void> {
+  if (env.GITHUB_TOKEN.includes('xxxx') && !isGitHubAppConfigured()) {
+    logger.info('🧪 [TEST MODE] Bypassed branch creation', { branchName });
+    return;
+  }
+  try {
+    const octokit =
+      installationId && isGitHubAppConfigured()
+        ? getAppOctokit(installationId)
+        : getOctokit();
+    const { data: refData } = await octokit.git.getRef({
+      owner,
+      repo,
+      ref: `heads/${fromRef}`,
+    });
+    await octokit.git.createRef({
+      owner,
+      repo,
+      ref: `refs/heads/${branchName}`,
+      sha: refData.object.sha,
+    });
+  } catch (err: unknown) {
+    const e = err as { message: string; status?: number };
+    if (e.status === 422 || e.message?.includes('already exists')) {
+      logger.debug('Branch already exists', { branchName });
+      return;
+    }
+    throw new GitHubAPIError(`Failed to create branch ${branchName}: ${e.message}`, e.status);
+  }
+}
+
+export async function githubCommitFiles(
+  owner: string,
+  repo: string,
+  branch: string,
+  files: { path: string; content: string }[],
+  message: string,
+  installationId?: number,
+): Promise<{ sha: string; url: string }> {
+  if (env.GITHUB_TOKEN.includes('xxxx') && !isGitHubAppConfigured()) {
+    logger.info('🧪 [TEST MODE] Bypassed file commit', {
+      branch,
+      files: files.map((f) => f.path),
+    });
+    return { sha: 'test-sha', url: `https://github.com/${owner}/${repo}/commit/test-sha` };
+  }
+  try {
+    const octokit =
+      installationId && isGitHubAppConfigured()
+        ? getAppOctokit(installationId)
+        : getOctokit();
+
+    const { data: refData } = await octokit.git.getRef({
+      owner,
+      repo,
+      ref: `heads/${branch}`,
+    });
+    const latestSha = refData.object.sha;
+
+    const { data: commitData } = await octokit.git.getCommit({
+      owner,
+      repo,
+      commit_sha: latestSha,
+    });
+    const baseTreeSha = commitData.tree.sha;
+
+    const treeItems = await Promise.all(
+      files.map(async (f) => {
+        const { data: blob } = await octokit.git.createBlob({
+          owner,
+          repo,
+          content: Buffer.from(f.content).toString('base64'),
+          encoding: 'base64',
+        });
+        return {
+          path: f.path,
+          mode: '100644' as const,
+          type: 'blob' as const,
+          sha: blob.sha,
+        };
+      }),
+    );
+
+    const { data: newTree } = await octokit.git.createTree({
+      owner,
+      repo,
+      base_tree: baseTreeSha,
+      tree: treeItems,
+    });
+
+    const { data: newCommit } = await octokit.git.createCommit({
+      owner,
+      repo,
+      message,
+      tree: newTree.sha,
+      parents: [latestSha],
+    });
+
+    await octokit.git.updateRef({
+      owner,
+      repo,
+      ref: `heads/${branch}`,
+      sha: newCommit.sha,
+    });
+
+    logger.info('Files committed via API', {
+      owner,
+      repo,
+      branch,
+      files: files.map((f) => f.path),
+    });
+    return {
+      sha: newCommit.sha,
+      url: `https://github.com/${owner}/${repo}/commit/${newCommit.sha}`,
+    };
+  } catch (err: unknown) {
+    const e = err as { message: string; status?: number };
+    throw new GitHubAPIError(
+      `Failed to commit files to ${branch}: ${e.message}`,
+      e.status,
+    );
+  }
+}
+
+export async function getFileContent(
+  owner: string,
+  repo: string,
+  path: string,
+  ref: string,
+  installationId?: number,
+): Promise<string | null> {
+  try {
+    const octokit =
+      installationId && isGitHubAppConfigured()
+        ? getAppOctokit(installationId)
+        : getOctokit();
+    const { data } = await octokit.repos.getContent({ owner, repo, path, ref });
+    if (Array.isArray(data) || data.type !== 'file') return null;
+    if (data.encoding === 'base64') {
+      return Buffer.from(data.content.replace(/\n/g, ''), 'base64').toString('utf8');
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+export async function createIssueForFinding(
+  owner: string,
+  repo: string,
+  title: string,
+  body: string,
+  labels: string[],
+  installationId?: number,
+): Promise<{ number: number; html_url: string } | null> {
+  if (env.GITHUB_TOKEN.includes('xxxx') && !isGitHubAppConfigured()) {
+    logger.info('🧪 [TEST MODE] Bypassed GitHub Issue Creation', { title });
+    return { number: 999, html_url: 'https://github.com/mock/issue/999' };
+  }
+  try {
+    const octokit =
+      installationId && isGitHubAppConfigured()
+        ? getAppOctokit(installationId)
+        : getOctokit();
+    const { data } = await octokit.issues.create({ owner, repo, title, body, labels });
+    return { number: data.number, html_url: data.html_url };
+  } catch (err: unknown) {
+    const e = err as { message: string };
+    logger.warn('Failed to create issue for finding', { error: e.message });
+    return null;
+  }
+}

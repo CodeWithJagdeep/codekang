@@ -3,6 +3,7 @@ export * from './interfaces/user.interface';
 export * from './interfaces/conversation.interface';
 export * from './interfaces/repo.interface';
 export * from './interfaces/plan.interface';
+export * from './interfaces/organization.interface';
 export * from './decorators/current-user.decorator';
 export * from './guards/jwt-auth.guard';
 export * from './guards/plan.guard';

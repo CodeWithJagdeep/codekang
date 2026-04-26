@@ -12,8 +12,19 @@
  *   node test-webhook.js bug6        → Race condition in stock decrement
  *   node test-webhook.js noisy       → Vague issue (non-actionable, should be skipped)
  *   node test-webhook.js feature     → Feature request (non-actionable, should be skipped)
- *   node test-webhook.js approve     → Simulate @codekang fix approval comment
+ *   node test-webhook.js approve     → Simulate @codekang fix approval comment (issue)
  *   node test-webhook.js all         → Fire all bug scenarios one after another
+ *
+ *   ── PR Review scenarios ────────────────────────────────────────────────────
+ *   node test-webhook.js pr-open     → PR opened → triggers AI review
+ *   node test-webhook.js pr-sync     → Commits pushed to PR → re-review
+ *   node test-webhook.js pr-draft    → Draft PR → should be SKIPPED (onDraft=false)
+ *   node test-webhook.js pr-approve  → @codekang fix on PR → triggers fix-pr job
+ *                                      (run AFTER pr-open has completed)
+ *
+ *   Env overrides:
+ *   TEST_SERVER=http://localhost:4000  (default; autonomous-ai port)
+ *   WEBHOOK_PATH=/webhook/github       (default; must match WEBHOOK_PATH in .env)
  */
 
 const crypto = require("crypto");
@@ -38,7 +49,9 @@ function getSecret() {
 }
 
 const SECRET = getSecret();
-const SERVER = "http://localhost:3000";
+// autonomous-ai runs on port 4000 by default (AUTONOMOUS_PORT in root .env)
+const SERVER = process.env.TEST_SERVER || "http://localhost:4000";
+const WEBHOOK_PATH = process.env.WEBHOOK_PATH || "/webhook/github";
 const OWNER = "CodeWithJagdeep";
 const REPO = "demo-api";
 
@@ -77,7 +90,7 @@ async function sendWebhook(event, payload, label) {
   }
 
   try {
-    const res = await fetch(`${SERVER}/webhook/github`, {
+    const res = await fetch(`${SERVER}${WEBHOOK_PATH}`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -272,6 +285,158 @@ We should implement proper JWT signing, verification, and refresh token support.
         sender: { login: OWNER, id: 1 },
       },
       "Approval comment — @codekang fix (triggers Phase 2 execute)",
+    ),
+
+  // ── PR Review scenarios ───────────────────────────────────────────────────
+
+  // Simulate: PR opened → should trigger AI review
+  // Expected: review saved to pr_reviews table, posted to GitHub PR
+  "pr-open": () =>
+    sendWebhook(
+      "pull_request",
+      {
+        action: "opened",
+        number: 42,
+        repository: {
+          ...makeRepo(),
+          default_branch: "main",
+        },
+        installation: { id: 12345678 },
+        pull_request: {
+          number: 42,
+          title: "feat: add user authentication with JWT",
+          body: "Implements JWT-based login and refresh tokens. Also adds rate limiting.",
+          state: "open",
+          html_url: `https://github.com/${OWNER}/${REPO}/pull/42`,
+          head: {
+            ref: "feature/jwt-auth",
+            sha: "abc123def456abc123def456abc123def456abc1",
+            label: `${OWNER}:feature/jwt-auth`,
+          },
+          base: {
+            ref: "main",
+            sha: "deadbeefdeadbeefdeadbeefdeadbeefdeadbee1",
+            label: `${OWNER}:main`,
+          },
+          user: { login: OWNER, id: 1 },
+          draft: false,
+          merged: false,
+        },
+        sender: { login: OWNER, id: 1 },
+      },
+      "PR opened — should trigger AI review (plan + settings permitting)",
+    ),
+
+  // Simulate: commits pushed to an open PR → re-review (onPush trigger)
+  "pr-sync": () =>
+    sendWebhook(
+      "pull_request",
+      {
+        action: "synchronize",
+        number: 42,
+        repository: {
+          ...makeRepo(),
+          default_branch: "main",
+        },
+        installation: { id: 12345678 },
+        pull_request: {
+          number: 42,
+          title: "feat: add user authentication with JWT",
+          body: "Updated after code review feedback.",
+          state: "open",
+          html_url: `https://github.com/${OWNER}/${REPO}/pull/42`,
+          head: {
+            ref: "feature/jwt-auth",
+            sha: "111aaabbbcccdddeee111aaabbbcccdddeee111a",
+            label: `${OWNER}:feature/jwt-auth`,
+          },
+          base: {
+            ref: "main",
+            sha: "deadbeefdeadbeefdeadbeefdeadbeefdeadbee1",
+            label: `${OWNER}:main`,
+          },
+          user: { login: OWNER, id: 1 },
+          draft: false,
+          merged: false,
+        },
+        sender: { login: OWNER, id: 1 },
+      },
+      "PR synchronize — re-review on new push (requires onPush=true in settings)",
+    ),
+
+  // Simulate: draft PR opened — should be SKIPPED if onDraft=false (default)
+  "pr-draft": () =>
+    sendWebhook(
+      "pull_request",
+      {
+        action: "opened",
+        number: 43,
+        repository: {
+          ...makeRepo(),
+          default_branch: "main",
+        },
+        installation: { id: 12345678 },
+        pull_request: {
+          number: 43,
+          title: "WIP: refactor payment service",
+          body: "Work in progress — do not review yet.",
+          state: "open",
+          html_url: `https://github.com/${OWNER}/${REPO}/pull/43`,
+          head: {
+            ref: "refactor/payments",
+            sha: "222aaabbbcccdddeee222aaabbbcccdddeee222a",
+            label: `${OWNER}:refactor/payments`,
+          },
+          base: {
+            ref: "main",
+            sha: "deadbeefdeadbeefdeadbeefdeadbeefdeadbee1",
+            label: `${OWNER}:main`,
+          },
+          user: { login: OWNER, id: 1 },
+          draft: true,
+          merged: false,
+        },
+        sender: { login: OWNER, id: 1 },
+      },
+      "PR draft — should be SKIPPED (onDraft=false by default in repo settings)",
+    ),
+
+  // Simulate: user comments "@codekang fix" on a PR
+  // Run AFTER pr-open has completed and review is stored in pr_reviews table
+  "pr-approve": () =>
+    sendWebhook(
+      "issue_comment",
+      {
+        action: "created",
+        repository: makeRepo(),
+        installation: { id: 12345678 },
+        // GitHub sends issue_comment with issue.pull_request defined for PR comments
+        issue: {
+          number: 42,
+          title: "feat: add user authentication with JWT",
+          body: "",
+          state: "open",
+          labels: [],
+          assignees: [],
+          user: { login: OWNER, id: 1 },
+          html_url: `https://github.com/${OWNER}/${REPO}/pull/42`,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+          pull_request: {
+            url: `https://api.github.com/repos/${OWNER}/${REPO}/pulls/42`,
+            html_url: `https://github.com/${OWNER}/${REPO}/pull/42`,
+          },
+        },
+        comment: {
+          id: 9002,
+          body: "@codekang fix",
+          user: { login: OWNER, id: 1 },
+          created_at: new Date().toISOString(),
+          html_url: `https://github.com/${OWNER}/${REPO}/pull/42#issuecomment-9002`,
+        },
+        sender: { login: OWNER, id: 1 },
+      },
+      "PR approval — @codekang fix on PR #42 (triggers fix-pr job)",
     ),
 
   // Fire all bug scenarios with a small delay between each

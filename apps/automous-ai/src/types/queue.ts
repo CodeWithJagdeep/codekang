@@ -15,6 +15,7 @@ export interface FixJobData {
   issueBody: string;
   installationId?: number;
   triggeredAt: string; // ISO string
+  jobId?: string;
 }
 
 export interface ExecuteFixJobData {
@@ -24,9 +25,19 @@ export interface ExecuteFixJobData {
   approvedBy: string; // GitHub login of contributor who approved
   triggeredAt: string;
   installationId?: number;
+  jobId?: string;
 }
 
-export type JobName = 'index-repo' | 'fix-issue' | 'execute-fix';
+export interface FixPRJobData {
+  owner: string;
+  repo: string;
+  prNumber: number;
+  approvedBy: string;
+  installationId?: number;
+  triggeredAt: string;
+}
+
+export type JobName = 'index-repo' | 'fix-issue' | 'execute-fix' | 'fix-pr';
 
 export interface JobResult {
   success: boolean;

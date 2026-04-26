@@ -2,9 +2,11 @@ import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { AuthModule } from './modules/auth.module';
+import { IntegrationsModule } from './modules/integrations/integrations.module';
 import { User } from './entities/user.entity';
 import { RefreshTokenBlacklist } from './entities/refresh-token-blacklist.entity';
 import { Otp } from './entities/otp.entity';
+import { UserIntegration } from './entities/user-integration.entity';
 
 @Module({
   imports: [
@@ -23,7 +25,7 @@ import { Otp } from './entities/otp.entity';
       useFactory: (config: ConfigService) => ({
         type: 'postgres',
         url: config.getOrThrow('DATABASE_URL'),
-        entities: [User, RefreshTokenBlacklist, Otp],
+        entities: [User, RefreshTokenBlacklist, Otp, UserIntegration],
         synchronize: config.get('NODE_ENV') !== 'production',
         ssl:
           config.get('NODE_ENV') === 'production'
@@ -41,6 +43,7 @@ import { Otp } from './entities/otp.entity';
       }),
     }),
     AuthModule,
+    IntegrationsModule,
   ],
 })
 export class AppModule {}

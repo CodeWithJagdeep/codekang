@@ -156,7 +156,7 @@ export default function OnboardingPage() {
           onClick={handleContinue}
           disabled={!anyConnected || loading !== null}
           className="w-full py-3 flex items-center justify-center gap-2 rounded-xl font-semibold text-[14px] transition-all disabled:opacity-40 disabled:cursor-not-allowed"
-          style={{ background: anyConnected ? '#f97316' : '#27272a', color: '#fff' }}
+          style={{ background: anyConnected ? '#f8423b' : '#27272a', color: '#fff' }}
         >
           Continue
           <ChevronRight size={16} />
@@ -196,7 +196,7 @@ function StepDot({ index, label, active }: { index: number; label: string; activ
       <div
         className="w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-bold"
         style={{
-          background: active ? '#f97316' : '#27272a',
+          background: active ? '#f8423b' : '#27272a',
           color: active ? '#fff' : '#52525b',
         }}
       >

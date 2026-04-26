@@ -1,6 +1,28 @@
 // Isolated unit tests for the plan-check guard.
 // We mock `db` and `createIssueComment` to avoid real DB/GitHub calls.
 
+jest.mock('../config/env', () => ({
+  env: {
+    GITHUB_APP_ID: '',
+    GITHUB_PRIVATE_KEY: '',
+    GITHUB_WEBHOOK_SECRET: 'test-secret',
+    GITHUB_TOKEN: 'ghp_test',
+    NODE_ENV: 'test',
+    PORT: 4000,
+    ANTHROPIC_API_KEY: 'test-key',
+    ANTHROPIC_MODEL_AGENT: 'claude-sonnet-4-6',
+    AGENT_MAX_STEPS: 10,
+    AGENT_MAX_TOKENS: 4096,
+    AGENT_TEMPERATURE: 0.3,
+    WEBHOOK_PATH: '/webhook/github',
+    DATABASE_URL: 'postgresql://localhost/test',
+    REDIS_URL: 'redis://localhost:6379',
+  },
+}));
+jest.mock('../utils/logger', () => ({
+  logger: { info: jest.fn(), warn: jest.fn(), error: jest.fn(), debug: jest.fn() },
+}));
+
 jest.mock('../config/database', () => ({
   db: { query: jest.fn() },
 }));

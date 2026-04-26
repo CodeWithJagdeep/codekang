@@ -7,6 +7,14 @@ import { AuthProxyModule } from './modules/auth/auth.module';
 import { AgentProxyModule } from './modules/agent/agent.module';
 import { ReposProxyModule } from './modules/repos/repos.module';
 import { PlansProxyModule } from './modules/plans/plans.module';
+import { OrganizationsProxyModule } from './modules/organizations/organizations.module';
+import { ReviewProxyModule } from './modules/review/review.module';
+import { NotificationsProxyModule } from './modules/notifications/notifications.module';
+import { SupportProxyModule } from './modules/support/support.module';
+import { AuditProxyModule } from './modules/audit/audit.module';
+import { RealtimeModule } from './modules/realtime/realtime.module';
+import { EventsModule } from './modules/events/events.module';
+import { IntegrationsProxyModule } from './modules/integrations/integrations.module';
 
 @Module({
   imports: [
@@ -30,6 +38,14 @@ import { PlansProxyModule } from './modules/plans/plans.module';
     AgentProxyModule,
     ReposProxyModule,
     PlansProxyModule,
+    OrganizationsProxyModule,
+    ReviewProxyModule,
+    NotificationsProxyModule,
+    SupportProxyModule,
+    AuditProxyModule,
+    RealtimeModule,
+    EventsModule,
+    IntegrationsProxyModule,
   ],
   providers: [
     {

@@ -9,6 +9,10 @@ import {
   HttpCode,
   HttpStatus,
   Logger,
+  Ip,
+  Headers,
+  Delete,
+  Param,
 } from '@nestjs/common';
 import { IsString, IsNotEmpty, IsIn } from 'class-validator';
 import { ClientProxy } from '@nestjs/microservices';
@@ -122,13 +126,19 @@ export class AuthProxyController {
     description:
       'Frontend: after Firebase popup, pass `GoogleAuthProvider.credentialFromResult(result).idToken` (Google) or `GithubAuthProvider.credentialFromResult(result).accessToken` (GitHub).',
   })
-  async socialLogin(@Body() dto: SocialLoginDto) {
+  async socialLogin(
+    @Body() dto: SocialLoginDto,
+    @Ip() ip: string,
+    @Headers('user-agent') userAgent: string,
+  ) {
     this.logger.log(`socialLogin provider=${dto.provider}`);
     try {
       const result = await firstValueFrom(
         this.authClient.send(MESSAGE_PATTERNS.AUTH_FIREBASE_LOGIN, {
           provider: dto.provider,
           token: dto.token,
+          ip,
+          userAgent,
         }),
       );
       this.logger.log(`socialLogin success provider=${dto.provider}`);
@@ -159,13 +169,19 @@ export class AuthProxyController {
 
   @Post('otp/verify')
   @ApiOperation({ summary: 'Verify OTP code and authenticate user' })
-  async verifyOtp(@Body() dto: VerifyOtpDto) {
+  async verifyOtp(
+    @Body() dto: VerifyOtpDto,
+    @Ip() ip: string,
+    @Headers('user-agent') userAgent: string,
+  ) {
     this.logger.log(`verifyOtp email=${dto.email}`);
     try {
       const result = await firstValueFrom(
         this.authClient.send(MESSAGE_PATTERNS.AUTH_VERIFY_OTP, {
           email: dto.email,
           code: dto.code,
+          ip,
+          userAgent,
         }),
       );
       this.logger.log(`verifyOtp success email=${dto.email}`);
@@ -297,6 +313,45 @@ export class AuthProxyController {
       return result;
     } catch (err) {
       this.logger.error(`updatePlan failed userId=${user.id} plan=${dto.plan}`, err instanceof Error ? err.stack : String(err));
+      throw err;
+    }
+  }
+
+  @Get('sessions')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get active user sessions' })
+  async getSessions(@CurrentUser() user: IUser) {
+    this.logger.log(`getSessions userId=${user.id}`);
+    try {
+      const result = await firstValueFrom(
+        this.authClient.send(MESSAGE_PATTERNS.AUTH_GET_SESSIONS, {
+          userId: user.id,
+        }),
+      );
+      return result;
+    } catch (err) {
+      this.logger.error(`getSessions failed userId=${user.id}`, err instanceof Error ? err.stack : String(err));
+      throw err;
+    }
+  }
+
+  @Delete('sessions/:id')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Revoke a user session' })
+  async revokeSession(@CurrentUser() user: IUser, @Param('id') sessionId: string) {
+    this.logger.log(`revokeSession userId=${user.id} sessionId=${sessionId}`);
+    try {
+      const result = await firstValueFrom(
+        this.authClient.send(MESSAGE_PATTERNS.AUTH_REVOKE_SESSION, {
+          userId: user.id,
+          sessionId,
+        }),
+      );
+      return result;
+    } catch (err) {
+      this.logger.error(`revokeSession failed userId=${user.id}`, err instanceof Error ? err.stack : String(err));
       throw err;
     }
   }
