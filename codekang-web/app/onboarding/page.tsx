@@ -11,7 +11,9 @@ import {
 } from '@/lib/auth';
 import { Check, ChevronRight, Loader2, AlertCircle } from 'lucide-react';
 import { RiMagicFill } from 'react-icons/ri';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
+import Image from 'next/image';
+import Favi from '@/public/logo/favi.png';
 
 export default function OnboardingPage() {
   const router = useRouter();
@@ -123,12 +125,7 @@ export default function OnboardingPage() {
         <div className="bg-white border-2 border-black p-8 md:p-12 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]">
           {/* Logo */}
           <div className="flex justify-center mb-10">
-            <div className="flex items-center gap-2">
-              <div className="w-10 h-10 bg-black flex items-center justify-center">
-                <span className="text-white font-black text-xl">K</span>
-              </div>
-              <span className="font-black text-2xl tracking-tighter uppercase italic">KANG</span>
-            </div>
+            <Image src={Favi} alt="CodeKang" width={48} height={48} className="object-contain" />
           </div>
 
           {/* Step indicator */}
@@ -140,12 +137,19 @@ export default function OnboardingPage() {
             <StepDot index={3} label="Source" active={false} completed={false} />
           </div>
 
-          {error && (
-            <div className="mb-8 p-4 bg-red-50 border-2 border-black text-[13px] font-bold text-red-600 flex items-start gap-3">
-              <AlertCircle size={16} className="shrink-0 mt-0.5" />
-              <span>{error}</span>
-            </div>
-          )}
+          <AnimatePresence mode="wait">
+            {error && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                exit={{ opacity: 0, height: 0 }}
+                className="mb-8 p-4 bg-red-50 border-2 border-black text-[13px] font-bold text-red-600 flex items-start gap-3 overflow-hidden"
+              >
+                <AlertCircle size={16} className="shrink-0 mt-0.5" />
+                <span>{error}</span>
+              </motion.div>
+            )}
+          </AnimatePresence>
 
           {step === 'profile' ? (
             <div className="space-y-8">
