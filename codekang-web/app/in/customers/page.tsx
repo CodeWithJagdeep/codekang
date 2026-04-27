@@ -1,210 +1,134 @@
 'use client';
 
+import { motion } from 'framer-motion';
+import { 
+  RiDoubleQuotesL, 
+  RiTeamLine, 
+  RiFlashlightLine, 
+  RiArrowRightLine,
+  RiStarFill,
+  RiBuildingLine,
+  RiGlobalLine
+} from 'react-icons/ri';
 import HomeHeader from '@/component/HomeHeader';
 import Footer from '@/component/Footer';
-import Image from 'next/image';
 import Link from 'next/link';
-import { RiArrowRightUpLine, RiPlayFill } from 'react-icons/ri';
-
-const CASE_STUDIES = [
-  {
-    title: "10x",
-    subtitle: "faster reviews.",
-    description: "TechFlow automated their security checks and reduced PR cycle time by 90%.",
-    color: "bg-[#f8423b]",
-    textColor: "text-white",
-    size: "col-span-12 md:col-span-8 lg:col-span-7",
-  },
-  {
-    title: "Build",
-    subtitle: "Together.",
-    description: "QuantumScale scales their engineering team 2x faster with autonomous code audits.",
-    color: "bg-white/5",
-    textColor: "text-[#888888]",
-    size: "col-span-12 md:col-span-4 lg:col-span-5",
-  },
-  {
-    title: "Design",
-    subtitle: "Freely.",
-    description: "Automating security compliance at DevSync with CodeKang PR monitoring.",
-    color: "bg-[#1c1c1c] border border-white/10",
-    textColor: "text-[#f4f4f5]",
-    size: "col-span-12 md:col-span-5 lg:col-span-5",
-  },
-  {
-    title: "Ship",
-    subtitle: "Anything.",
-    description: "From legacy monoliths to modern microservices, CodeKang handles it all.",
-    color: "bg-white/[0.03]",
-    textColor: "text-[#888888]",
-    size: "col-span-12 md:col-span-7 lg:col-span-7",
-  }
-];
 
 export default function CustomersPage() {
   return (
-    <div className="min-h-screen bg-[#1c1c1c] text-white selection:bg-[#f8423b]/30 font-[family-name:var(--font-geist-sans)]">
+    <div className="min-h-screen bg-[#fcfcfc] text-black font-[family-name:var(--font-space-grotesk)]">
       <HomeHeader />
 
-      <main className="pt-32 pb-20">
-        {/* ── Hero Section (Replit Style) ── */}
-        <section className="px-6 md:px-10 lg:px-16 mb-24">
-          <div className="grid grid-cols-12 gap-4 max-w-7xl mx-auto items-end">
-            <div className="col-span-12 lg:col-span-8">
-              <h1 className="font-[family-name:var(--font-space-grotesk)] text-5xl md:text-8xl font-bold leading-[0.9] tracking-tighter mb-8">
-                TRUSTED BY <br />
-                <span className="text-[#f8423b]">THE BEST</span> TEAMS.
-              </h1>
-            </div>
-            <div className="col-span-12 lg:col-span-4 pb-4">
-              <p className="text-lg md:text-xl text-[#888888] leading-relaxed max-w-sm">
-                Engineering leaders at fast-growing startups and enterprises use CodeKang to build secure, high-quality software.
-              </p>
-            </div>
-          </div>
+      <main>
+        {/* ── Hero ── */}
+        <section className="pt-32 pb-24 px-10 text-center relative border-b-2 border-black/10">
+          <div className="absolute inset-0 pointer-events-none -z-10 opacity-[0.03]"
+            style={{ backgroundImage: 'radial-gradient(#000 1px, transparent 1px)', backgroundSize: '32px 32px' }} />
+          
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="max-w-4xl mx-auto"
+          >
+            <span className="inline-block px-3 py-1 border-2 border-[#f97316] text-[#f97316] text-[12px] font-black uppercase tracking-[0.2em] mb-8">
+              Success Stories
+            </span>
+            <h1 className="text-6xl md:text-7xl font-black uppercase tracking-tight leading-none mb-10">
+              Trusted by <br />
+              <span className="text-[#f97316]">Early Adopters</span>
+            </h1>
+            <p className="text-[20px] text-gray-500 max-w-2xl mx-auto mb-12 font-medium uppercase tracking-normal leading-relaxed">
+              From fast-moving startups to forward-thinking teams, Kang is the engineering partner helping build the future of software at CodeKang.
+            </p>
+          </motion.div>
         </section>
 
-        {/* ── High-End Grid (Inspired by Replit/Agent 4) ── */}
-        <section className="px-6 md:px-10 lg:px-16 mb-32">
-          <div className="max-w-7xl mx-auto">
-            <div className="grid grid-cols-12 gap-4">
-              
-              {/* Feature Card: Large Animated Style */}
-              <div className="col-span-12 lg:col-span-7 h-[400px] md:h-[500px] rounded-[40px] md:rounded-[60px] bg-[#f8423b] p-8 md:p-12 flex flex-col justify-between overflow-hidden relative group">
+        {/* ── Featured Testimonial ── */}
+        <section className="px-10 md:px-14 py-32 border-b-2 border-black/10 bg-white">
+          <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-20 items-center">
+             <div className="relative">
+                <RiDoubleQuotesL className="absolute -top-10 -left-10 text-gray-100" size={160} />
                 <div className="relative z-10">
-                  <span className="text-white/70 text-sm font-bold tracking-widest uppercase mb-4 block">Case Study</span>
-                  <h2 className="text-4xl md:text-6xl font-bold text-white leading-none tracking-tighter">
-                    10x <br />
-                    <span className="text-black/20">FASTER BUILDS.</span>
-                  </h2>
+                   <p className="text-3xl md:text-5xl font-black uppercase tracking-tight leading-tight mb-12">
+                      "Kang reduced our average PR review cycle from 6 hours to under 15 minutes. It’s like having an extra senior engineer on every team."
+                   </p>
+                   <div className="flex items-center gap-4">
+                      <div className="w-16 h-16 border-2 border-black bg-gray-100 flex items-center justify-center">
+                         <RiBuildingLine size={32} />
+                      </div>
+                      <div>
+                         <span className="block text-xl font-black uppercase">Sarah Chen</span>
+                         <span className="block text-[13px] font-bold text-[#f97316] uppercase tracking-widest">VP Engineering, FintechFlow</span>
+                      </div>
+                   </div>
                 </div>
-                <div className="relative z-10 flex items-center justify-between">
-                  <p className="text-white/90 text-lg md:text-xl max-w-xs font-medium">
-                    How TechFlow reduced their PR cycle by 90% using AI.
-                  </p>
-                  <div className="w-16 h-16 rounded-full bg-white flex items-center justify-center text-[#f8423b] group-hover:scale-110 transition-transform">
-                    <RiArrowRightUpLine size={32} />
+             </div>
+             <div className="grid grid-cols-2 gap-8">
+                {[
+                  { l: 'Time Saved', v: '2,400 hrs' },
+                  { l: 'Bugs Patched', v: '12,000+' },
+                  { l: 'Team Scale', v: '80 devs' },
+                  { l: 'ROI', v: '4.5x' }
+                ].map((s, i) => (
+                  <div key={i} className="p-8 border-2 border-black shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] bg-[#fcfcfc]">
+                     <span className="block text-4xl font-black mb-2">{s.v}</span>
+                     <span className="block text-[11px] font-bold text-gray-400 uppercase tracking-widest">{s.l}</span>
                   </div>
-                </div>
-                {/* Decorative SVG Pattern */}
-                <div className="absolute -right-20 -top-20 opacity-10 pointer-events-none">
-                  <svg width="400" height="400" viewBox="0 0 400 400" fill="none">
-                    <circle cx="200" cy="200" r="200" fill="white" />
-                  </svg>
-                </div>
-              </div>
-
-              {/* Video Card: Build Together */}
-              <div className="col-span-12 lg:col-span-5 h-[400px] md:h-[500px] rounded-[40px] md:rounded-[60px] bg-white/5 border border-white/5 p-8 flex flex-col justify-end relative overflow-hidden group">
-                 <div className="absolute inset-0 grayscale opacity-40 group-hover:opacity-60 transition-opacity">
-                    <Image 
-                      src="https://images.unsplash.com/photo-1522071820081-009f0129c71c?auto=format&fit=crop&q=80&w=800" 
-                      alt="Team collaborating" 
-                      fill 
-                      className="object-cover"
-                    />
-                 </div>
-                 <div className="absolute inset-0 bg-gradient-to-t from-[#1c1c1c] via-transparent to-transparent" />
-                 <div className="relative z-10">
-                    <h3 className="text-3xl font-bold mb-2">Build Together.</h3>
-                    <p className="text-[#888888] mb-6">Real-time collaboration for distributed teams.</p>
-                    <div className="flex items-center gap-3 text-sm font-bold text-[#f8423b] uppercase tracking-wider group-hover:translate-x-2 transition-transform">
-                      Watch Story <RiPlayFill />
-                    </div>
-                 </div>
-              </div>
-
-              {/* Smaller Stat Cards */}
-              <div className="col-span-12 md:col-span-4 h-[300px] rounded-[40px] bg-[#151517] border border-white/5 p-8 flex flex-col justify-center text-center">
-                 <div className="text-5xl font-bold text-[#f8423b] mb-2">99.9%</div>
-                 <div className="text-[#888888] font-medium tracking-wide uppercase text-xs">Uptime Guaranteed</div>
-              </div>
-
-              <div className="col-span-12 md:col-span-8 h-[300px] rounded-[40px] bg-white/[0.02] border border-white/5 p-8 flex items-center justify-between group">
-                 <div className="max-w-md">
-                    <h3 className="text-2xl font-bold mb-4">Design in code on an <span className="text-[#f8423b]">infinite canvas.</span></h3>
-                    <p className="text-[#888888]">Tweak designs visually, apply them directly to your app.</p>
-                 </div>
-                 <div className="hidden md:flex w-24 h-24 rounded-3xl bg-white/5 items-center justify-center border border-white/10 group-hover:bg-[#f8423b]/20 transition-colors">
-                    <div className="w-10 h-10 border-2 border-[#f8423b] rounded-lg" />
-                 </div>
-              </div>
-
-            </div>
+                ))}
+             </div>
           </div>
         </section>
 
-        {/* ── Logo Cloud (Ticker Style) ── */}
-        <section className="mb-32 overflow-hidden py-10 border-y border-white/5">
-           <div className="flex gap-20 animate-infinite-scroll whitespace-nowrap opacity-30 grayscale items-center">
-              {[...Array(10)].map((_, i) => (
-                <div key={i} className="text-4xl font-black italic tracking-tighter flex items-center gap-4">
-                  <div className="w-8 h-8 rounded bg-white/20" /> LOGO_NAME
-                </div>
-              ))}
-           </div>
-        </section>
-
-        {/* ── Testimonial Grid ── */}
-        <section className="px-6 md:px-10 lg:px-16 mb-32">
-           <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-8">
-              <div className="p-12 rounded-[50px] bg-[#151517] border border-white/5 relative overflow-hidden">
-                 <div className="absolute top-0 right-0 p-12 text-white/5 text-9xl font-black leading-none pointer-events-none">"</div>
-                 <p className="text-2xl md:text-3xl font-medium leading-snug mb-10 relative z-10">
-                   "CodeKang has completely transformed how our senior engineers spend their time."
-                 </p>
-                 <div className="flex items-center gap-4 relative z-10">
-                    <div className="w-12 h-12 rounded-full bg-[#f8423b]" />
-                    <div>
-                       <div className="font-bold">Sarah Chen</div>
-                       <div className="text-sm text-[#888888]">VP of Engineering at TechFlow</div>
-                    </div>
-                 </div>
-              </div>
-              <div className="p-12 rounded-[50px] bg-white/[0.03] border border-white/5">
-                 <p className="text-2xl md:text-3xl font-medium leading-snug mb-10">
-                   "The accuracy of the AI reviews is staggering. It catches edge cases we miss."
-                 </p>
-                 <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 rounded-full bg-white/10" />
-                    <div>
-                       <div className="font-bold">Marcus Thorne</div>
-                       <div className="text-sm text-[#888888]">CTO at QuantumScale</div>
-                    </div>
-                 </div>
+        {/* ── Case Studies (How it helps) ── */}
+        <section className="px-10 md:px-14 py-32 border-b-2 border-black/10">
+           <div className="max-w-7xl mx-auto">
+              <h2 className="text-4xl font-black uppercase tracking-tighter mb-20 text-center">Real impact across industries</h2>
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
+                 {[
+                   {
+                     title: "Early-Stage Startups",
+                     desc: "Ship features faster by letting Kang handle documentation and unit tests while the founders focus on core logic.",
+                     help: "Reduced time-to-market by 3 weeks."
+                   },
+                   {
+                     title: "Enterprise Fintech",
+                     desc: "Automate security compliance and secret scanning across 1,000+ repositories with centralized reporting.",
+                     help: "Zero leaked secrets in 12 months."
+                   },
+                   {
+                     title: "Open Source Projects",
+                     desc: "Manage high-volume community contributions with autonomous CI verification and architectural reviews.",
+                     help: "90% reduction in maintainer burnout."
+                   }
+                 ].map((item, i) => (
+                   <div key={i} className="p-10 border-2 border-black bg-white shadow-[8px_8px_0px_0px_rgba(249,115,22,1)]">
+                      <h3 className="text-2xl font-black uppercase mb-4">{item.title}</h3>
+                      <p className="text-gray-500 font-medium leading-tight mb-8 uppercase tracking-tight">{item.desc}</p>
+                      <div className="flex items-center gap-3">
+                         <RiFlashlightLine className="text-[#f97316]" />
+                         <span className="text-[13px] font-black uppercase text-[#f97316]">{item.help}</span>
+                      </div>
+                   </div>
+                 ))}
               </div>
            </div>
         </section>
 
-        {/* ── Footer CTA ── */}
-        <section className="px-6 md:px-10 lg:px-16">
-           <div className="max-w-7xl mx-auto bg-[#f8423b] rounded-[60px] p-12 md:p-24 text-center">
-              <h2 className="text-4xl md:text-7xl font-bold tracking-tighter mb-8 leading-none">
-                READY TO SHIP <br className="hidden md:block" /> 10X FASTER?
-              </h2>
-              <div className="flex flex-wrap justify-center gap-4">
-                 <Link href="/in/login" className="px-10 py-5 bg-black text-white rounded-full font-bold text-lg hover:bg-black/80 transition-all">
-                    Start Building
-                 </Link>
-                 <Link href="/in/contact" className="px-10 py-5 bg-white text-[#f8423b] rounded-full font-bold text-lg hover:bg-opacity-90 transition-all">
-                    Contact Sales
-                 </Link>
-              </div>
-           </div>
+        {/* ── CTA ── */}
+        <section className="py-40 px-10 text-center bg-[#fcfcfc]">
+          <h2 className="text-5xl md:text-8xl font-black uppercase tracking-tighter leading-none mb-12">
+            Join the <br /> <span className="text-[#f97316]">elite teams</span> <br /> building with AI
+          </h2>
+          <Link
+            href="/in/login"
+            className="inline-flex items-center gap-3 border-2 border-black bg-black px-16 py-8 text-[24px] font-black text-white transition-all shadow-[10px_10px_0px_0px_rgba(249,115,22,1)] hover:translate-x-[-4px] hover:translate-y-[-4px] hover:shadow-[16px_16px_0px_0px_rgba(249,115,22,1)] active:translate-x-0 active:translate-y-0 active:shadow-none"
+          >
+            START YOUR STORY <RiArrowRightLine size={32} />
+          </Link>
         </section>
       </main>
 
       <Footer />
-      
-      <style jsx global>{`
-        @keyframes infinite-scroll {
-          from { transform: translateX(0); }
-          to { transform: translateX(-50%); }
-        }
-        .animate-infinite-scroll {
-          animation: infinite-scroll 40s linear infinite;
-        }
-      `}</style>
     </div>
   );
 }

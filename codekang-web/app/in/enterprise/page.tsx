@@ -56,8 +56,8 @@ const PILLARS = [
   {
     icon: RiServerLine,
     color: '#34d399',
-    title: 'Private Deployment',
-    description: 'Deploy KangBot inside your own VPC. Air-gapped environments, on-prem, or dedicated cloud tenancy.',
+    title: 'Dedicated Infrastructure',
+    description: 'Run Kang on dedicated, single-tenant infrastructure. Physical isolation for your most sensitive workloads.',
   },
   {
     icon: RiCustomerService2Line,
@@ -78,7 +78,7 @@ const SECURITY_ITEMS = [
   { icon: RiEyeLine, label: 'Full audit log' },
   { icon: RiAlertLine, label: 'SIEM integration' },
   { icon: RiServerLine, label: 'Data residency' },
-  { icon: RiBuildingLine, label: 'Private VPC' },
+  { icon: RiBuildingLine, label: 'Dedicated Cloud' },
 ];
 
 // ── Integrations ──────────────────────────────────────────────────────────────
@@ -103,7 +103,7 @@ const COMPARE = [
   { feature: 'Unlimited repositories', team: false, enterprise: true },
   { feature: 'SSO / SAML / OIDC', team: false, enterprise: true },
   { feature: 'Custom AI model fine-tuning', team: false, enterprise: true },
-  { feature: 'Private VPC / on-prem deploy', team: false, enterprise: true },
+  { feature: 'Dedicated single-tenant deploy', team: false, enterprise: true },
   { feature: 'Data residency (EU / US / APAC)', team: false, enterprise: true },
   { feature: 'Dedicated CSM + Slack Connect', team: false, enterprise: true },
   { feature: '99.9% uptime SLA', team: false, enterprise: true },
@@ -120,12 +120,12 @@ const FAQ = [
     a: 'Most teams are fully onboarded within 5 business days. Your dedicated CSM handles the integration, SSO configuration, and team training. For large orgs (500+ engineers) we offer a phased rollout plan.',
   },
   {
-    q: 'Can KangBot run inside our private cloud or on-prem?',
-    a: 'Yes. We offer a containerised deployment that runs inside your AWS, GCP, or Azure VPC — or fully on-prem with air-gapped support. Your code never leaves your infrastructure.',
+    q: 'What is dedicated infrastructure?',
+    a: 'For enterprise customers, we offer single-tenant cloud deployments. Your data and compute are physically isolated from other customers, ensuring maximum security and zero noise from other workloads.',
   },
   {
-    q: 'What data does KangBot retain?',
-    a: 'By default, KangBot retains review metadata (not source code) for 90 days. In private deployment mode you control all retention policies. We are SOC 2 Type II audited and never train on your code.',
+    q: 'What data does Kang retain?',
+    a: 'By default, Kang retains review metadata (not source code) for 90 days. In private deployment mode you control all retention policies. We are SOC 2 Type II audited and never train on your code.',
   },
   {
     q: 'How does the fine-tuned model work?',
@@ -210,7 +210,7 @@ export default function EnterprisePage() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.7, delay: 0.1 }}
-              className="font-[family-name:var(--font-space-grotesk)] text-5xl sm:text-6xl md:text-7xl font-black leading-[1.0] tracking-tighter text-white mb-6"
+              className="font-[family-name:var(--font-space-grotesk)] text-5xl sm:text-6xl md:text-7xl font-black leading-none tracking-tight text-white mb-6"
             >
               AI code review<br />built for teams that<br /><span className="text-[#f97316]">can't afford risk.</span>
             </motion.h1>
@@ -219,9 +219,9 @@ export default function EnterprisePage() {
               initial={{ opacity: 0, y: 16 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.7, delay: 0.28 }}
-              className="text-[17px] text-white/50 leading-relaxed max-w-2xl mx-auto mb-10"
+              className="text-[17px] text-white/50 leading-relaxed max-w-2xl mx-auto mb-10 tracking-normal"
             >
-              Enterprise-grade security, private deployment, custom AI fine-tuning, and a dedicated team to make sure every PR your engineers merge is safe.
+              Enterprise-grade security at CodeKang, dedicated infrastructure, custom AI fine-tuning, and a named team to make sure every PR your engineers merge is safe.
             </motion.p>
 
             <motion.div
@@ -332,9 +332,9 @@ export default function EnterprisePage() {
               <h2 className="text-3xl md:text-4xl font-bold text-white leading-tight mb-5">
                 Your code stays in<br />your infrastructure
               </h2>
-              <p className="text-[15px] text-[#666] leading-relaxed mb-8">
-                KangBot's enterprise tier is independently audited and built for orgs operating in regulated environments. We never train on your code. You control retention, residency, and access — entirely.
-              </p>
+                <p className="text-[15px] text-[#666] leading-relaxed mb-8">
+                  Kang's enterprise tier is independently audited and built for orgs operating in regulated environments. We never train on your code. You control retention, residency, and access — entirely.
+                </p>
               <ul className="space-y-3">
                 {[
                   'Code never stored after review completes',
@@ -396,7 +396,7 @@ export default function EnterprisePage() {
               <div className="rounded-2xl border border-white/8 bg-[#111113] p-6">
                 {/* VPC wrapper */}
                 <div className="rounded-xl border border-[#34d399]/20 bg-[#34d399]/4 p-5">
-                  <p className="text-[10px] font-bold uppercase tracking-widest text-[#34d399] mb-4">Your VPC</p>
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-[#34d399] mb-4">Isolated Cloud</p>
                   <div className="grid grid-cols-2 gap-3">
                     {[
                       { icon: RiServerLine, label: 'KangBot Engine', sub: 'Private container' },
@@ -440,8 +440,8 @@ export default function EnterprisePage() {
                     <RiGithubLine size={15} className="text-[#888]" />
                   </div>
                   <div>
-                    <p className="text-[12px] font-semibold text-[#888]">GitHub Enterprise Server</p>
-                    <p className="text-[10px] text-[#333]">On-prem or self-hosted</p>
+                    <p className="text-[12px] font-semibold text-[#888]">GitHub Enterprise Cloud</p>
+                    <p className="text-[10px] text-[#333]">Secure Cloud Integration</p>
                   </div>
                   <div className="ml-auto flex h-2 w-2">
                     <span className="animate-ping absolute inline-flex h-2 w-2 rounded-full bg-[#22c55e] opacity-60" />
@@ -461,10 +461,10 @@ export default function EnterprisePage() {
             >
               <span className="inline-block text-[11px] font-bold uppercase tracking-[0.2em] text-[#34d399] mb-5">Private deployment</span>
               <h2 className="text-3xl md:text-4xl font-bold text-white leading-tight mb-5">
-                Run KangBot inside<br />your own cloud
+                Isolated,<br />Dedicated Cloud
               </h2>
               <p className="text-[15px] text-[#666] leading-relaxed mb-8">
-                For teams with strict data sovereignty requirements. Deploy the full KangBot stack into your AWS, GCP, or Azure VPC. Air-gapped setups are fully supported — no egress required.
+                For teams with strict data sovereignty requirements. Deploy Kang on dedicated, single-tenant cloud infrastructure. Full physical isolation and custom retention policies are supported.
               </p>
               <div className="space-y-4">
                 {[
@@ -632,7 +632,7 @@ export default function EnterprisePage() {
                 {/* Slack-style header */}
                 <div className="flex items-center gap-3 px-5 py-4 border-b border-white/5">
                   <div className="w-2 h-2 rounded-full bg-[#22c55e]" />
-                  <span className="text-[13px] font-semibold text-[#888]"># kangbot-enterprise-acme</span>
+                  <span className="text-[13px] font-semibold text-[#888]"># kang-enterprise-acme</span>
                   <div className="ml-auto flex items-center gap-2">
                     <RiTeamLine size={14} className="text-[#444]" />
                     <span className="text-[11px] text-[#333]">4 members</span>
@@ -641,8 +641,8 @@ export default function EnterprisePage() {
                 <div className="p-5 space-y-4 text-[13px]">
                   {[
                     { who: 'Jordan (Acme)', msg: 'Hey, we\'re seeing higher-than-usual review latency on the billing service repo. Any idea what\'s up?', time: '9:03 AM', you: false },
-                    { who: 'Alex (KangBot CSM)', msg: 'On it — I\'m seeing a queue spike. Scaling up dedicated workers now. Should clear in ~2 mins. I\'ll send a root cause summary.', time: '9:04 AM', you: false },
-                    { who: 'Alex (KangBot CSM)', msg: 'Resolved. Root cause: a repo-wide re-analysis job collided with your morning PR burst. We\'ve added queue isolation for your account. Won\'t happen again.', time: '9:06 AM', you: false },
+                    { who: 'Alex (Kang CSM)', msg: 'On it — I\'m seeing a queue spike. Scaling up dedicated workers now. Should clear in ~2 mins. I\'ll send a root cause summary.', time: '9:04 AM', you: false },
+                    { who: 'Alex (Kang CSM)', msg: 'Resolved. Root cause: a repo-wide re-analysis job collided with your morning PR burst. We\'ve added queue isolation for your account. Won\'t happen again.', time: '9:06 AM', you: false },
                     { who: 'Jordan (Acme)', msg: 'That was fast, thank you!', time: '9:07 AM', you: true },
                   ].map((msg, i) => (
                     <motion.div key={i}

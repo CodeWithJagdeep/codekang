@@ -1,6 +1,7 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { useState, useRef } from 'react';
 import {
   signInWithGoogle,
@@ -130,6 +131,23 @@ export default function LoginPage() {
     }
   };
 
+  const handlePaste = (e: React.ClipboardEvent) => {
+    e.preventDefault();
+    const data = e.clipboardData.getData('text').trim();
+    if (!/^\d+$/.test(data)) return;
+
+    const digits = data.slice(0, 6).split('');
+    const newOtp = [...otp];
+    digits.forEach((digit, i) => {
+      if (i < 6) newOtp[i] = digit;
+    });
+    setOtp(newOtp);
+
+    // Focus last filled index
+    const lastIndex = Math.min(digits.length, 6) - 1;
+    otpRefs.current[lastIndex]?.focus();
+  };
+
   const handleVerifyOtp = async () => {
     const code = otp.join('');
     if (code.length < 6) {
@@ -156,32 +174,32 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#1c1c1c] flex items-center justify-center font-sans tracking-tight relative overflow-hidden">
+    <div className="min-h-screen bg-white flex items-center justify-center font-sans tracking-tight relative overflow-hidden">
 
       <div className="w-full max-w-[400px] p-8 mx-auto z-10 animate-in fade-in slide-in-from-bottom-4 duration-700">
         {/* Header */}
         <div className="flex flex-col items-center mb-10 text-center">
           <div className="mb-6">
-            <Image src={Favi} alt="CodeKang" width={176} height={176} className="object-contain" />
+            <Image src={Favi} alt="CodeKang" width={70} height={70} className="object-contain" />
           </div>
 
           {step === 'login' ? (
             <>
-              <h1 className="text-2xl font-semibold text-white mb-2">
+              <h1 className="text-2xl font-semibold text-black mb-2">
                 Welcome back
               </h1>
-              <p className="text-[14px] text-[#a1a1aa]">
+              <p className="text-[14px] text-gray-500">
                 Sign in to your CodeKang account.
               </p>
             </>
           ) : (
             <>
-              <h1 className="text-2xl font-semibold text-white mb-2">
+              <h1 className="text-2xl font-semibold text-black mb-2">
                 Check your email
               </h1>
-              <p className="text-[14px] text-[#a1a1aa] px-4">
+              <p className="text-[14px] text-gray-500 px-4">
                 We&apos;ve sent a 6-digit verification code to <br />
-                <span className="text-white font-medium">
+                <span className="text-black font-medium">
                   {maskEmail(email)}
                 </span>
               </p>
@@ -191,28 +209,28 @@ export default function LoginPage() {
 
         {/* Error Banner */}
         {error && (
-          <div className="mb-6 p-3 bg-red-500/10 border border-red-500/20 rounded-md text-[13px] text-red-400 text-center animate-in fade-in duration-300">
+          <div className="mb-6 p-3 bg-red-50 border border-red-200 rounded-md text-[13px] text-red-600 text-center animate-in fade-in duration-300">
             {error}
           </div>
         )}
 
         {/* Main Card */}
-        <div className="rounded-2xl">
+        <div className="rounded-none">
           {/* Step 1: Login Options */}
           {step === 'login' && (
-            <div className="space-y-4">
-              <div className="flex flex-col gap-3">
+            <div className="space-y-6">
+              <div className="flex flex-col gap-4">
                 <button
                   onClick={() => handleOAuthLogin('github')}
                   disabled={loading !== null}
-                  className="flex items-center justify-center gap-2 py-2.5 bg-black text-white border border-[#27272a] hover:border-[#3f3f46] rounded-lg text-[15px] font-medium transition-all disabled:opacity-50"
+                  className="flex items-center justify-center gap-3 py-3 bg-white text-black border-2 border-black hover:bg-gray-50 rounded-none text-[15px] font-black uppercase tracking-tight transition-all shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[-2px] hover:translate-y-[-2px] hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] active:translate-x-0 active:translate-y-0 active:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] disabled:opacity-50"
                 >
                   {loading === 'github' ? (
-                    <span className="w-5 h-5 border-2 border-white/20 border-t-white rounded-full animate-spin" />
+                    <span className="w-5 h-5 border-2 border-black/20 border-t-black rounded-full animate-spin" />
                   ) : (
                     <svg
-                      width="16"
-                      height="16"
+                      width="18"
+                      height="18"
                       viewBox="0 0 24 24"
                       fill="currentColor"
                     >
@@ -224,12 +242,12 @@ export default function LoginPage() {
                 <button
                   onClick={() => handleOAuthLogin('google')}
                   disabled={loading !== null}
-                  className="flex items-center justify-center gap-2 py-2.5 bg-black text-white border border-[#27272a] hover:border-[#3f3f46] rounded-lg text-[15px] font-medium transition-all disabled:opacity-50"
+                  className="flex items-center justify-center gap-3 py-3 bg-white text-black border-2 border-black hover:bg-gray-50 rounded-none text-[15px] font-black uppercase tracking-tight transition-all shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[-2px] hover:translate-y-[-2px] hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] active:translate-x-0 active:translate-y-0 active:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] disabled:opacity-50"
                 >
                   {loading === 'google' ? (
-                    <span className="w-5 h-5 border-2 border-white/20 border-t-white rounded-full animate-spin" />
+                    <span className="w-5 h-5 border-2 border-black/20 border-t-black rounded-full animate-spin" />
                   ) : (
-                    <svg width="16" height="16" viewBox="0 0 24 24">
+                    <svg width="18" height="18" viewBox="0 0 24 24">
                       <path
                         fill="#4285F4"
                         d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
@@ -254,14 +272,14 @@ export default function LoginPage() {
 
               <div className="relative py-2">
                 <div className="absolute inset-0 flex items-center">
-                  <div className="w-full border-t border-[#27272a]"></div>
+                  <div className="w-full border-t-2 border-black/10"></div>
                 </div>
-                <div className="relative flex justify-center text-[12px] mx-5 uppercase tracking-wider">
-                  <span className="px-2 text-[#e4e4e7]">Or with Email</span>
+                <div className="relative flex justify-center text-[12px] mx-5 uppercase tracking-[0.2em] font-bold">
+                  <span className="px-3 bg-white text-gray-400">Or with Email</span>
                 </div>
               </div>
 
-              <form onSubmit={handleEmailSubmit} className="space-y-3">
+              <form onSubmit={handleEmailSubmit} className="space-y-4">
                 <div>
                   <label htmlFor="email" className="sr-only">
                     Email address
@@ -271,37 +289,49 @@ export default function LoginPage() {
                     type="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    placeholder="name@company.com"
-                    className="w-full bg-[#1c1c1c] border border-white/40 rounded-lg px-4 py-2.5 text-[14px] text-white placeholder:text-[#52525b] outline-none focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/50 transition-all"
+                    placeholder="NAME@COMPANY.COM"
+                    className="w-full bg-white border-2 border-black rounded-none px-4 py-3 text-[14px] text-black font-bold placeholder:text-gray-300 outline-none focus:bg-gray-50 transition-all"
                   />
                 </div>
                 <button
                   type="submit"
                   disabled={loading !== null || !email}
-                  className="w-full flex items-center justify-center gap-2 py-2.5 bg-[#f8423d] text-white rounded-lg text-[15px] font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed group shadow-lg shadow-indigo-500/20"
+                  className="w-full flex items-center justify-center gap-3 py-3 bg-[#f97316] text-white border-2 border-black rounded-none text-[15px] font-black uppercase tracking-tight transition-all shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[-2px] hover:translate-y-[-2px] hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] active:translate-x-0 active:translate-y-0 active:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] disabled:opacity-50 disabled:cursor-not-allowed group"
                 >
                   {loading === 'email' ? (
-                    <span className="w-5 h-5 border-2 border-black/20 border-t-black rounded-full animate-spin" />
+                    <span className="w-5 h-5 border-2 border-white/20 border-t-white rounded-full animate-spin" />
                   ) : (
                     <>
                       Continue with Email
                       <ArrowRight
-                        size={16}
-                        className="text-black/50 group-hover:text-black transition-colors"
+                        size={18}
+                        className="transition-transform group-hover:translate-x-1"
                       />
                     </>
                   )}
                 </button>
               </form>
+
+              <div className="text-center pt-6">
+                <p className="text-[13px] text-gray-500 font-medium">
+                  Don&apos;t have an account?{' '}
+                  <Link 
+                    href="/in/signup"
+                    className="text-black font-black uppercase tracking-tight hover:text-[#f97316] transition-colors underline cursor-pointer"
+                  >
+                    Create an account
+                  </Link>
+                </p>
+              </div>
             </div>
           )}
 
           {/* Step 2: OTP Verification */}
           {step === 'otp' && (
-            <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
-              <div className="flex justify-between gap-2.5">
+            <div className="space-y-8 animate-in fade-in slide-in-from-right-4 duration-300">
+              <div className="flex justify-between gap-3">
                 {otp.map((digit, i) => (
-                  <div key={i} className="relative">
+                  <div key={i} className="relative flex-1">
                     <input
                       type="text"
                       maxLength={1}
@@ -315,7 +345,8 @@ export default function LoginPage() {
                         handleOtpChange(i, char);
                       }}
                       onKeyDown={(e) => handleOtpKeyDown(i, e)}
-                      className="w-10 h-12 bg-[#1c1c1c] border border-[#27272a] rounded-lg text-center text-lg font-medium text-white outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all"
+                      onPaste={handlePaste}
+                      className="w-full h-14 bg-white border-2 border-black rounded-none text-center text-xl font-black text-black outline-none focus:bg-gray-50 transition-all"
                     />
                   </div>
                 ))}
@@ -324,10 +355,10 @@ export default function LoginPage() {
               <button
                 onClick={handleVerifyOtp}
                 disabled={loading === 'verify' || otp.join('').length < 6}
-                className="w-full flex items-center justify-center gap-2 py-2.5 bg-indigo-600 text-white rounded-lg text-[14px] font-semibold hover:bg-indigo-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-indigo-500/20"
+                className="w-full flex items-center justify-center gap-3 py-3 bg-black text-white border-2 border-black rounded-none text-[15px] font-black uppercase tracking-tight transition-all shadow-[4px_4px_0px_0px_rgba(0,0,0,0.2)] hover:translate-x-[-2px] hover:translate-y-[-2px] hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,0.2)] active:translate-x-0 active:translate-y-0 active:shadow-[2px_2px_0px_0px_rgba(0,0,0,0.2)] disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {loading === 'verify' ? (
-                  <span className="w-4 h-4 border-2 border-black/20 border-t-black rounded-full animate-spin" />
+                  <span className="w-5 h-5 border-2 border-white/20 border-t-white rounded-full animate-spin" />
                 ) : (
                   'Verify Code'
                 )}
@@ -336,9 +367,9 @@ export default function LoginPage() {
               <div className="flex items-center justify-center pt-2">
                 <button
                   onClick={() => setStep('login')}
-                  className="flex items-center gap-1.5 text-[12px] text-[#a1a1aa] hover:text-white transition-colors"
+                  className="flex items-center gap-2 text-[12px] font-bold uppercase tracking-wider text-gray-500 hover:text-black transition-colors"
                 >
-                  <ChevronLeft size={14} /> Back to login
+                  <ChevronLeft size={16} /> Back to login
                 </button>
               </div>
             </div>
@@ -346,13 +377,13 @@ export default function LoginPage() {
         </div>
 
         {/* Footer */}
-        <p className="text-center text-[12px] text-[#71717a] mt-8">
+        <p className="text-center text-[12px] text-gray-400 mt-8">
           By continuing, you agree to CodeKang&apos;s{' '}
-          <a href="#" className="underline hover:text-white transition-colors">
+          <a href="#" className="underline hover:text-black transition-colors">
             Terms of Service
           </a>{' '}
           &{' '}
-          <a href="#" className="underline hover:text-white transition-colors">
+          <a href="#" className="underline hover:text-black transition-colors">
             Privacy Policy
           </a>
           .

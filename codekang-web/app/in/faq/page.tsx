@@ -24,8 +24,8 @@ const FAQ_CATEGORIES = [
 const FAQS = [
   {
     category: 'general',
-    question: 'What is CodeKang?',
-    answer: 'CodeKang is an AI-powered code review platform that helps developers and teams ship better code faster. It automatically analyzes pull requests, detects bugs, security vulnerabilities, and suggests improvements just like a human senior developer would.',
+    question: 'What is Kang?',
+    answer: 'Kang is an AI-powered code review platform that helps developers and teams ship better code faster. It automatically analyzes pull requests, detects bugs, security vulnerabilities, and suggests improvements just like a human senior developer would.',
   },
   {
     category: 'general',
@@ -35,7 +35,7 @@ const FAQS = [
   {
     category: 'billing',
     question: 'How do credits work?',
-    answer: 'Credits are the currency of CodeKang. Each AI review consumes a set amount of credits depending on the number of files and lines changed. Free plans get 50 credits/month, while Pro plans get 500 credits/month.',
+    answer: 'Credits are the currency of Kang. Each AI review consumes a set amount of credits depending on the number of files and lines changed. Free plans get 50 credits/month, while Pro plans get 500 credits/month.',
   },
   {
     category: 'billing',
@@ -54,13 +54,13 @@ const FAQS = [
   },
   {
     category: 'security',
-    question: 'Is my code safe with CodeKang?',
+    question: 'Is my code safe with Kang?',
     answer: 'Security is our top priority. We do not store your code on our servers after the review is complete. All analysis happens in isolated, ephemeral environments, and we use enterprise-grade encryption for all data.',
   },
   {
     category: 'security',
     question: 'Do you offer on-premise deployment?',
-    answer: 'Yes, for Enterprise customers with strict compliance requirements, we offer a self-hosted version of CodeKang that can run within your own infrastructure.',
+    answer: 'Yes, for Enterprise customers with strict compliance requirements, we offer a self-hosted version of Kang that can run within your own infrastructure.',
   },
 ];
 
@@ -88,7 +88,7 @@ export default function FAQPage() {
           Common Questions
         </h1>
         <p className="text-[16px] text-[#a1a1aa] max-w-[600px] mx-auto mb-10">
-          Everything you need to know about CodeKang. Can&apos;t find what you&apos;re looking for? Reach out to our support team.
+          Everything you need to know about Kang. Can&apos;t find what you&apos;re looking for? Reach out to our support team.
         </p>
 
         {/* Search Bar */}
