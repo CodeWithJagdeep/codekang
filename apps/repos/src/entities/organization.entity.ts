@@ -52,16 +52,16 @@ export class OrganizationMember {
   @Column({ type: 'varchar', default: 'member' })
   role: 'owner' | 'admin' | 'member';
 
-  @Column({ nullable: true })
+  @Column({ type: 'varchar', nullable: true })
   email: string | null;
 
-  @Column({ name: 'display_name', nullable: true })
+  @Column({ name: 'display_name', type: 'varchar', nullable: true })
   displayName: string | null;
 
   @Column({ type: 'varchar', default: 'active' })
   status: 'active' | 'pending';
 
-  @Column({ name: 'invited_by', nullable: true })
+  @Column({ name: 'invited_by', type: 'varchar', nullable: true })
   invitedBy: string | null;
 
   @CreateDateColumn({ name: 'created_at' })
