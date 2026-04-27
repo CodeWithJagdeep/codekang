@@ -89,7 +89,8 @@ function LiveActivityTicker() {
     return () => clearInterval(id);
   }, []);
 
-  const event = LIVE_EVENTS[current];
+  const event = LIVE_EVENTS[current] || LIVE_EVENTS[0];
+  if (!event) return null;
   const Icon = event.icon;
 
   return (
