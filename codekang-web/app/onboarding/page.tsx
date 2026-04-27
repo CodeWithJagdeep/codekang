@@ -1,7 +1,7 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import {
   getAccessToken,
   getGithubAuthUrl,
@@ -9,9 +9,9 @@ import {
   linkWithBitbucket,
   type User,
 } from '@/lib/auth';
-import Image from 'next/image';
-import Favi from '@/public/logo/favi.png';
 import { Check, ChevronRight, Loader2, AlertCircle } from 'lucide-react';
+import { RiMagicFill } from 'react-icons/ri';
+import { motion } from 'framer-motion';
 
 export default function OnboardingPage() {
   const router = useRouter();
@@ -36,13 +36,11 @@ export default function OnboardingPage() {
           organizationName: u.organizationName || '',
         });
 
-        // If onboarding is already fully done, go to dashboard
         if (u.onboardingCompleted) {
           router.replace('/dashboard');
           return;
         }
 
-        // If profile is already filled, skip to vcs step
         if (u.name && u.organizationName) {
           setStep('vcs');
         }
@@ -116,203 +114,186 @@ export default function OnboardingPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#09090b] flex items-center justify-center font-sans tracking-tight relative overflow-hidden text-white">
-      <div className="absolute top-1/4 left-1/4 w-[400px] h-[400px] bg-indigo-500/10 blur-[120px] rounded-full pointer-events-none" />
-      <div className="absolute bottom-1/4 right-1/4 w-[400px] h-[400px] bg-emerald-500/5 blur-[120px] rounded-full pointer-events-none" />
+    <div className="min-h-screen bg-[#fcfcfc] flex items-center justify-center font-[family-name:var(--font-space-grotesk)] text-black relative overflow-hidden">
+      {/* Grid background */}
+      <div className="absolute inset-0 pointer-events-none opacity-[0.03]"
+        style={{ backgroundImage: 'radial-gradient(#000 1px, transparent 1px)', backgroundSize: '32px 32px' }} />
 
-      <div className="w-full max-w-[480px] px-4 py-8 mx-auto z-10">
-        {/* Logo */}
-        <div className="flex justify-center mb-6">
-          <Image src={Favi} alt="CodeKang" width={40} height={40} className="object-contain" />
-        </div>
-
-        {/* Step indicator */}
-        <div className="flex items-center justify-center gap-3 mb-8">
-          <StepDot index={1} label="Profile" active={step === 'profile'} />
-          <div className="h-px w-8 bg-[#27272a]" />
-          <StepDot index={2} label="Connect" active={step === 'vcs'} />
-          <div className="h-px w-8 bg-[#27272a]" />
-          <StepDot index={3} label="Repos" active={false} />
-        </div>
-
-        {/* Error */}
-        {error && (
-          <div className="mb-5 p-4 bg-red-500/10 border border-red-500/20 rounded-xl text-[13px] text-red-400 flex items-start gap-3">
-            <AlertCircle size={16} className="shrink-0 mt-0.5" />
-            <span>{error}</span>
-          </div>
-        )}
-
-        {step === 'profile' ? (
-          <>
-            <div className="text-center mb-8">
-              <h1 className="text-2xl font-semibold text-white mb-2">Welcome to CodeKang</h1>
-              <p className="text-[14px] text-[#a1a1aa]">
-                Tell us a bit about yourself to personalize your experience.
-              </p>
+      <div className="w-full max-w-[540px] px-6 py-12 mx-auto relative z-10">
+        <div className="bg-white border-2 border-black p-8 md:p-12 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]">
+          {/* Logo */}
+          <div className="flex justify-center mb-10">
+            <div className="flex items-center gap-2">
+              <div className="w-10 h-10 bg-black flex items-center justify-center">
+                <span className="text-white font-black text-xl">K</span>
+              </div>
+              <span className="font-black text-2xl tracking-tighter uppercase italic">KANG</span>
             </div>
+          </div>
 
-            <form onSubmit={handleProfileSubmit} className="space-y-4">
-              <div className="space-y-1.5">
-                <label className="text-[13px] font-medium text-[#a1a1aa]">Full Name</label>
-                <input
-                  type="text"
-                  required
-                  value={profileData.name}
-                  onChange={(e) => setProfileData({ ...profileData, name: e.target.value })}
-                  placeholder="John Doe"
-                  className="w-full bg-[#18181b] border border-[#27272a] rounded-xl px-4 py-3 text-[14px] text-white outline-none focus:border-[#f8423b] transition-all"
-                />
+          {/* Step indicator */}
+          <div className="flex items-center justify-center gap-4 mb-12">
+            <StepDot index={1} label="Identity" active={step === 'profile'} completed={step === 'vcs'} />
+            <div className="h-[2px] w-12 bg-black/10" />
+            <StepDot index={2} label="Connect" active={step === 'vcs'} completed={false} />
+            <div className="h-[2px] w-12 bg-black/10" />
+            <StepDot index={3} label="Source" active={false} completed={false} />
+          </div>
+
+          {error && (
+            <div className="mb-8 p-4 bg-red-50 border-2 border-black text-[13px] font-bold text-red-600 flex items-start gap-3">
+              <AlertCircle size={16} className="shrink-0 mt-0.5" />
+              <span>{error}</span>
+            </div>
+          )}
+
+          {step === 'profile' ? (
+            <div className="space-y-8">
+              <div className="text-center">
+                <h1 className="text-3xl font-black uppercase tracking-tighter mb-3">Initialize Profile</h1>
+                <p className="text-[15px] text-gray-500 font-medium">
+                  Define your engineering identity to continue.
+                </p>
               </div>
 
-              <div className="space-y-1.5">
-                <label className="text-[13px] font-medium text-[#a1a1aa]">Organization / Company Name</label>
-                <input
-                  type="text"
-                  required
-                  value={profileData.organizationName}
-                  onChange={(e) => setProfileData({ ...profileData, organizationName: e.target.value })}
-                  placeholder="Acme Inc."
-                  className="w-full bg-[#18181b] border border-[#27272a] rounded-xl px-4 py-3 text-[14px] text-white outline-none focus:border-[#f8423b] transition-all"
+              <form onSubmit={handleProfileSubmit} className="space-y-6">
+                <div className="space-y-2">
+                  <label className="text-[12px] font-black uppercase tracking-widest text-gray-400">Full Name</label>
+                  <input
+                    type="text"
+                    required
+                    value={profileData.name}
+                    onChange={(e) => setProfileData({ ...profileData, name: e.target.value })}
+                    placeholder="Enter your name"
+                    className="w-full bg-white border-2 border-black px-5 py-4 text-[15px] font-bold outline-none focus:bg-gray-50 transition-all placeholder:text-gray-300"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-[12px] font-black uppercase tracking-widest text-gray-400">Organization</label>
+                  <input
+                    type="text"
+                    required
+                    value={profileData.organizationName}
+                    onChange={(e) => setProfileData({ ...profileData, organizationName: e.target.value })}
+                    placeholder="e.g. CodeKang HQ"
+                    className="w-full bg-white border-2 border-black px-5 py-4 text-[15px] font-bold outline-none focus:bg-gray-50 transition-all placeholder:text-gray-300"
+                  />
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={loading === 'profile'}
+                  className="w-full py-5 bg-black text-white font-black uppercase tracking-widest text-[14px] shadow-[4px_4px_0px_0px_rgba(249,115,22,1)] hover:translate-x-[-2px] hover:translate-y-[-2px] hover:shadow-[6px_6px_0px_0px_rgba(249,115,22,1)] active:translate-x-0 active:translate-y-0 active:shadow-[2px_2px_0px_0px_rgba(249,115,22,1)] transition-all flex items-center justify-center gap-3 disabled:opacity-50"
+                >
+                  {loading === 'profile' ? <Loader2 size={20} className="animate-spin" /> : (
+                    <>
+                      Save Profile
+                      <ChevronRight size={18} />
+                    </>
+                  )}
+                </button>
+              </form>
+            </div>
+          ) : (
+            <div className="space-y-8">
+              <div className="text-center">
+                <h1 className="text-3xl font-black uppercase tracking-tighter mb-3">Connect Source</h1>
+                <p className="text-[15px] text-gray-500 font-medium">
+                  Bridge your VCS accounts to start auditing.
+                </p>
+              </div>
+
+              <div className="space-y-4">
+                <ProviderCard
+                  icon={<GitHubIcon size={24} />}
+                  name="GitHub"
+                  description="Primary VCS integration"
+                  connected={hasGitHub}
+                  username={user?.githubUsername}
+                  loading={loading === 'github'}
+                  disabled={loading !== null}
+                  onConnect={handleLinkGitHub}
                 />
+
+                <ProviderCard
+                  icon={<GitLabIcon size={24} />}
+                  name="GitLab"
+                  description="Enterprise workflows"
+                  connected={hasGitLab}
+                  username={user?.gitlabUsername}
+                  loading={loading === 'gitlab'}
+                  disabled={loading !== null}
+                  onConnect={handleLinkGitLab}
+                />
+
+                <div className="mt-8 p-6 border-2 border-black bg-black text-white relative overflow-hidden group">
+                  <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+                    <RiMagicFill size={60} />
+                  </div>
+                  <h3 className="text-[16px] font-black uppercase tracking-tight mb-2">Automated Fixes</h3>
+                  <p className="text-[13px] text-gray-400 mb-6 leading-relaxed font-medium">
+                    Install the GitHub App to allow Kang to analyze PRs and open ready-to-merge logic fixes.
+                  </p>
+                  <a
+                    href="https://github.com/apps/codekang/installations/new"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-2 px-6 py-3 bg-[#f97316] text-white text-[13px] font-black uppercase tracking-widest hover:bg-[#ea580c] transition-all active:scale-95 shadow-[4px_4px_0px_0px_rgba(255,255,255,0.2)]"
+                  >
+                    <GitHubIcon size={16} />
+                    Grant Permissions
+                  </a>
+                </div>
               </div>
 
               <button
-                type="submit"
-                disabled={loading === 'profile'}
-                className="w-full py-3 mt-4 flex items-center justify-center gap-2 rounded-xl font-semibold text-[14px] transition-all bg-[#f8423b] text-white hover:bg-[#d93a34] disabled:opacity-50"
+                onClick={handleContinue}
+                disabled={!anyConnected || loading !== null}
+                className="w-full py-5 font-black uppercase tracking-widest text-[14px] transition-all flex items-center justify-center gap-3 disabled:opacity-50 disabled:grayscale"
+                style={{
+                  background: anyConnected ? 'black' : '#e5e7eb',
+                  color: anyConnected ? 'white' : '#9ca3af',
+                  boxShadow: anyConnected ? '4px_4px_0px_0px_rgba(34,197,94,1)' : 'none'
+                }}
               >
-                {loading === 'profile' ? <Loader2 size={18} className="animate-spin" /> : (
-                  <>
-                    Save & Continue
-                    <ChevronRight size={16} />
-                  </>
-                )}
+                Continue to Repo Scan
+                <ChevronRight size={18} />
               </button>
-            </form>
-          </>
-        ) : (
-          <>
-            {/* Title */}
-            <div className="text-center mb-8">
-              <h1 className="text-2xl font-semibold text-white mb-2">Connect your code</h1>
-              <p className="text-[14px] text-[#a1a1aa]">
-                Link your source control accounts to get started. You can connect more later.
-              </p>
             </div>
+          )}
 
-            {/* Provider cards */}
-            <div className="space-y-3 mb-6">
-              <ProviderCard
-                icon={<GitHubIcon size={20} />}
-                iconStyle={{ background: '#27272a' }}
-                name="GitHub"
-                description="Connect your GitHub repositories"
-                connected={hasGitHub}
-                username={user?.githubUsername}
-                loading={loading === 'github'}
-                disabled={loading !== null}
-                onConnect={handleLinkGitHub}
-              />
-
-              <ProviderCard
-                icon={<GitLabIcon size={20} />}
-                iconStyle={{ background: 'rgba(252, 109, 38, 0.12)' }}
-                name="GitLab"
-                description="Connect your GitLab projects"
-                connected={hasGitLab}
-                username={user?.gitlabUsername}
-                loading={loading === 'gitlab'}
-                disabled={loading !== null}
-                onConnect={handleLinkGitLab}
-              />
-
-              <ProviderCard
-                icon={<BitbucketIcon size={20} />}
-                iconStyle={{ background: 'rgba(0, 82, 204, 0.12)' }}
-                name="Bitbucket"
-                description="Connect your Bitbucket repositories"
-                connected={hasBitbucket}
-                username={user?.bitbucketUsername}
-                loading={loading === 'bitbucket'}
-                disabled={loading !== null}
-                onConnect={handleLinkBitbucket}
-              />
-            </div>
-
-            <div className="mt-10 p-6 rounded-2xl border border-[#27272a] bg-[#18181b]/50 relative overflow-hidden group transition-all hover:border-[#f8423b]/30">
-              <div className="absolute top-0 right-0 p-3 opacity-10 group-hover:opacity-20 transition-opacity">
-                <GitHubIcon size={40} />
-              </div>
-              <h3 className="text-[15px] font-semibold text-white mb-2">Install GitHub App</h3>
-              <p className="text-[13px] text-[#71717a] mb-5 leading-relaxed">
-                To allow Kang to analyze your Pull Requests and open automated fixes, you need to install the GitHub App on your repositories.
-              </p>
-              <a
-                href="https://github.com/apps/codekang/installations/new"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-white text-black text-[13px] font-black uppercase tracking-tight hover:bg-gray-100 transition-all active:scale-95 shadow-[0px_4px_12px_rgba(255,255,255,0.1)]"
-              >
-                <GitHubIcon size={16} />
-                Install on GitHub
-              </a>
-            </div>
-
-            {/* Continue button */}
+          <div className="mt-10 flex flex-col items-center gap-4">
             <button
-              onClick={handleContinue}
-              disabled={!anyConnected || loading !== null}
-              className="w-full py-3 mt-8 flex items-center justify-center gap-2 rounded-xl font-semibold text-[14px] transition-all disabled:opacity-40 disabled:cursor-not-allowed"
-              style={{ background: anyConnected ? '#f8423b' : '#27272a', color: '#fff' }}
+              onClick={handleSkip}
+              disabled={loading !== null}
+              className="text-[13px] font-bold uppercase tracking-widest text-gray-400 hover:text-black transition-colors disabled:opacity-50"
             >
-              Continue to select repos
-              <ChevronRight size={16} />
+              {loading === 'skip' ? <Loader2 size={16} className="animate-spin mx-auto" /> : 'Enter Dashboard →'}
             </button>
-          </>
-        )}
 
-        {!anyConnected && (
-          <p className="text-center text-[12px] mt-2" style={{ color: '#52525b' }}>
-            Connect at least one account to continue
-          </p>
-        )}
-
-        {/* Skip */}
-        <button
-          onClick={handleSkip}
-          disabled={loading !== null}
-          className="w-full py-3 mt-1 text-[13px] text-[#52525b] hover:text-[#71717a] transition-colors disabled:opacity-50"
-        >
-          {loading === 'skip' ? <Loader2 size={14} className="animate-spin mx-auto" /> : 'Skip for now'}
-        </button>
-
-        <p className="text-center text-[12px] mt-2" style={{ color: '#3f3f46' }}>
-          By continuing you agree to our{' '}
-          <a href="#" className="underline hover:text-white transition-colors">Terms</a>{' '}
-          &{' '}
-          <a href="#" className="underline hover:text-white transition-colors">Privacy Policy</a>.
-        </p>
+            <p className="text-center text-[11px] font-bold uppercase tracking-tight text-gray-300">
+              Commitment to Security · <a href="#" className="underline">Terms</a> · <a href="#" className="underline">Privacy</a>
+            </p>
+          </div>
+        </div>
       </div>
     </div>
   );
 }
 
-// ── Sub-components ────────────────────────────────────────────────────────────
-
-function StepDot({ index, label, active }: { index: number; label: string; active: boolean }) {
+function StepDot({ index, label, active, completed }: { index: number; label: string; active: boolean; completed: boolean }) {
   return (
-    <div className="flex items-center gap-2">
+    <div className="flex flex-col items-center gap-2">
       <div
-        className="w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-bold"
-        style={{
-          background: active ? '#f8423b' : '#27272a',
-          color: active ? '#fff' : '#52525b',
-        }}
+        className={`w-8 h-8 border-2 border-black flex items-center justify-center text-[12px] font-black transition-all ${
+          active ? 'bg-[#f97316] text-white' : completed ? 'bg-black text-white' : 'bg-white text-gray-300'
+        }`}
+        style={{ boxShadow: active || completed ? '2px_2px_0px_0px_rgba(0,0,0,1)' : 'none' }}
       >
-        {index}
+        {completed ? <Check size={16} strokeWidth={4} /> : index}
       </div>
-      <span className="text-[12px] font-medium" style={{ color: active ? '#e8e8e8' : '#52525b' }}>
+      <span className={`text-[10px] font-black uppercase tracking-widest ${active ? 'text-black' : 'text-gray-300'}`}>
         {label}
       </span>
     </div>
@@ -321,7 +302,6 @@ function StepDot({ index, label, active }: { index: number; label: string; activ
 
 function ProviderCard({
   icon,
-  iconStyle,
   name,
   description,
   connected,
@@ -331,7 +311,6 @@ function ProviderCard({
   onConnect,
 }: {
   icon: React.ReactNode;
-  iconStyle: React.CSSProperties;
   name: string;
   description: string;
   connected: boolean;
@@ -342,46 +321,39 @@ function ProviderCard({
 }) {
   return (
     <div
-      className="flex items-center p-4 rounded-xl border"
-      style={{
-        background: connected ? '#0d1f0f' : '#18181b',
-        borderColor: connected ? '#166534' : '#27272a',
-      }}
+      className={`flex items-center p-5 border-2 border-black transition-all ${
+        connected ? 'bg-green-50/50' : 'bg-white'
+      }`}
+      style={{ boxShadow: connected ? 'none' : '4px_4px_0px_0px_rgba(0,0,0,0.05)' }}
     >
-      <div
-        className="w-10 h-10 rounded-lg flex items-center justify-center shrink-0"
-        style={iconStyle}
-      >
+      <div className="w-12 h-12 border-2 border-black bg-white flex items-center justify-center shrink-0">
         {icon}
       </div>
 
-      <div className="flex-1 min-w-0 ml-3">
-        <p className="text-[14px] font-medium text-white">{name}</p>
-        <p className="text-[12px] truncate" style={{ color: '#71717a' }}>
+      <div className="flex-1 min-w-0 ml-4">
+        <p className="text-[15px] font-black uppercase tracking-tight">{name}</p>
+        <p className="text-[12px] font-medium text-gray-400">
           {connected && username ? `@${username}` : description}
         </p>
       </div>
 
       {connected ? (
-        <div className="flex items-center gap-1.5 ml-3 shrink-0 px-2.5 py-1 rounded-full" style={{ background: '#14532d' }}>
-          <Check size={11} className="text-emerald-400" strokeWidth={3} />
-          <span className="text-[11px] font-semibold text-emerald-400">Connected</span>
+        <div className="flex items-center gap-2 ml-4 px-3 py-1 bg-black text-white">
+          <Check size={12} strokeWidth={4} />
+          <span className="text-[10px] font-black uppercase">Active</span>
         </div>
       ) : (
         <button
           onClick={onConnect}
           disabled={disabled}
-          className="ml-3 shrink-0 px-3 py-1.5 rounded-lg text-[12px] font-semibold border transition-colors hover:bg-white/5 disabled:opacity-50 disabled:cursor-not-allowed"
-          style={{ borderColor: '#3f3f46', color: '#e8e8e8' }}
+          className="ml-4 px-4 py-2 border-2 border-black text-[12px] font-black uppercase tracking-widest hover:bg-black hover:text-white transition-all disabled:opacity-50"
         >
-          {loading ? <Loader2 size={13} className="animate-spin" /> : 'Connect'}
+          {loading ? <Loader2 size={14} className="animate-spin" /> : 'Link'}
         </button>
       )}
     </div>
   );
 }
-
-// ── Icons ─────────────────────────────────────────────────────────────────────
 
 function GitHubIcon({ size = 20 }: { size?: number }) {
   return (
@@ -393,7 +365,7 @@ function GitHubIcon({ size = 20 }: { size?: number }) {
 
 function GitLabIcon({ size = 20 }: { size?: number }) {
   return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="#FC6D26">
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor">
       <path d="M23.955 13.587l-1.342-4.135-2.664-8.189a.455.455 0 0 0-.867 0L16.418 9.45H7.582L4.918 1.263a.455.455 0 0 0-.867 0L1.387 9.452.045 13.587a.924.924 0 0 0 .331 1.023L12 23.054l11.624-8.443a.92.92 0 0 0 .331-1.024" />
     </svg>
   );
@@ -401,7 +373,7 @@ function GitLabIcon({ size = 20 }: { size?: number }) {
 
 function BitbucketIcon({ size = 20 }: { size?: number }) {
   return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="#0052CC">
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor">
       <path d="M.778 1.213a.768.768 0 0 0-.768.892l3.263 19.81c.084.5.515.865 1.022.865h15.427a.768.768 0 0 0 .76-.647l3.27-20.025a.768.768 0 0 0-.768-.895zM14.52 15.53H9.522L8.17 8.466h7.561z" />
     </svg>
   );
