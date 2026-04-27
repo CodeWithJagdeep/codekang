@@ -101,6 +101,16 @@ class GithubExchangeDto {
   redirectUri: string;
 }
 
+class UpdateProfileDto {
+  @ApiProperty({ required: false })
+  @IsString()
+  name?: string;
+
+  @ApiProperty({ required: false })
+  @IsString()
+  organizationName?: string;
+}
+
 @ApiTags('auth')
 @Controller('auth')
 export class AuthProxyController {
@@ -352,6 +362,26 @@ export class AuthProxyController {
       return result;
     } catch (err) {
       this.logger.error(`revokeSession failed userId=${user.id}`, err instanceof Error ? err.stack : String(err));
+      throw err;
+    }
+  }
+
+  @Patch('profile')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Update user profile' })
+  async updateProfile(@CurrentUser() user: IUser, @Body() dto: UpdateProfileDto) {
+    this.logger.log(`updateProfile userId=${user.id}`);
+    try {
+      const result = await firstValueFrom(
+        this.authClient.send(MESSAGE_PATTERNS.AUTH_UPDATE_PROFILE, {
+          userId: user.id,
+          ...dto,
+        }),
+      );
+      return result;
+    } catch (err) {
+      this.logger.error(`updateProfile failed userId=${user.id}`, err instanceof Error ? err.stack : String(err));
       throw err;
     }
   }

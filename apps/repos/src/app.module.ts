@@ -6,6 +6,9 @@ import { OrganizationsModule } from './modules/organizations.module';
 import { NotificationsModule } from './modules/notifications.module';
 import { SupportModule } from './modules/support.module';
 import { AuditModule } from './modules/audit.module';
+import { NewsletterModule } from './modules/newsletter.module';
+import { ContactModule } from './modules/contact.module';
+import { CareerModule } from './modules/career.module';
 import { Repository } from './entities/repository.entity';
 import {
   Organization,
@@ -15,6 +18,9 @@ import {
 import { Notification } from './entities/notification.entity';
 import { SupportTicket, SupportMessage } from './entities/support.entity';
 import { AuditLog } from './entities/audit.entity';
+import { NewsletterSubscriber } from './entities/newsletter.entity';
+import { ContactInquiry } from './entities/contact.entity';
+import { CareerApplication } from './entities/career.entity';
 
 @Module({
   imports: [
@@ -37,6 +43,9 @@ import { AuditLog } from './entities/audit.entity';
           SupportTicket,
           SupportMessage,
           AuditLog,
+          NewsletterSubscriber,
+          ContactInquiry,
+          CareerApplication,
         ],
         synchronize: config.get('NODE_ENV') !== 'production',
         ssl:
@@ -59,6 +68,9 @@ import { AuditLog } from './entities/audit.entity';
     NotificationsModule,
     SupportModule,
     AuditModule,
+    NewsletterModule,
+    ContactModule,
+    CareerModule,
   ],
 })
 export class AppModule {}

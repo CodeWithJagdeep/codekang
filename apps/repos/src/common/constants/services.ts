@@ -73,4 +73,14 @@ export const MESSAGE_PATTERNS = {
 
   // Audit
   AUDIT_LIST: 'audit.list',
+
+  // Newsletter
+  NEWSLETTER_SUBSCRIBE: 'newsletter.subscribe',
+
+  // Contact
+  CONTACT_SUBMIT: 'contact.submit',
+
+  // Careers
+  CAREER_APPLY: 'career.apply',
+  CAREER_LIST: 'career.list',
 } as const;

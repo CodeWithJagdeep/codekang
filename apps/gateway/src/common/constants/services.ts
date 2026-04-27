@@ -24,6 +24,7 @@ export const MESSAGE_PATTERNS = {
   AUTH_CANCEL_SUBSCRIPTION: 'auth.cancel_subscription',
   AUTH_GET_SESSIONS: 'auth.get_sessions',
   AUTH_REVOKE_SESSION: 'auth.revoke_session',
+  AUTH_UPDATE_PROFILE: 'auth.update_profile',
 
   // AI Agent
   AGENT_CREATE_CONVERSATION: 'agent.create_conversation',
@@ -83,4 +84,14 @@ export const MESSAGE_PATTERNS = {
 
   // Audit
   AUDIT_LIST: 'audit.list',
+
+  // Newsletter
+  NEWSLETTER_SUBSCRIBE: 'newsletter.subscribe',
+
+  // Contact
+  CONTACT_SUBMIT: 'contact.submit',
+
+  // Careers
+  CAREER_APPLY: 'career.apply',
+  CAREER_LIST: 'career.list',
 } as const;

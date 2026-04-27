@@ -15,6 +15,9 @@ import { AuditProxyModule } from './modules/audit/audit.module';
 import { RealtimeModule } from './modules/realtime/realtime.module';
 import { EventsModule } from './modules/events/events.module';
 import { IntegrationsProxyModule } from './modules/integrations/integrations.module';
+import { NewsletterProxyModule } from './modules/newsletter/newsletter.module';
+import { ContactProxyModule } from './modules/contact/contact.module';
+import { CareersProxyModule } from './modules/careers/careers.module';
 
 @Module({
   imports: [
@@ -46,6 +49,9 @@ import { IntegrationsProxyModule } from './modules/integrations/integrations.mod
     RealtimeModule,
     EventsModule,
     IntegrationsProxyModule,
+    NewsletterProxyModule,
+    ContactProxyModule,
+    CareersProxyModule,
   ],
   providers: [
     {
