@@ -318,6 +318,19 @@ export async function completeOnboarding(): Promise<void> {
   });
 }
 
+export async function updateProfile(data: {
+  name?: string;
+  organizationName?: string;
+}): Promise<User> {
+  const res = await fetchWithAuth(`${API_URL}/auth/profile`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) throw new Error('Failed to update profile');
+  return res.json() as Promise<User>;
+}
+
 export async function fetchRepos(): Promise<IGitHubRepo[]> {
   const res = await fetchWithAuth(`${API_URL}/repos`);
   if (!res.ok) {

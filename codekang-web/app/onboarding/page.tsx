@@ -16,7 +16,9 @@ import { Check, ChevronRight, Loader2, AlertCircle } from 'lucide-react';
 export default function OnboardingPage() {
   const router = useRouter();
   const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState<'github' | 'gitlab' | 'bitbucket' | 'skip' | null>(null);
+  const [step, setStep] = useState<'profile' | 'vcs'>('profile');
+  const [profileData, setProfileData] = useState({ name: '', organizationName: '' });
+  const [loading, setLoading] = useState<'profile' | 'github' | 'gitlab' | 'bitbucket' | 'skip' | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -26,9 +28,44 @@ export default function OnboardingPage() {
     }
     const raw = localStorage.getItem('user');
     if (raw) {
-      try { setUser(JSON.parse(raw)); } catch {}
+      try {
+        const u = JSON.parse(raw);
+        setUser(u);
+        setProfileData({
+          name: u.name || '',
+          organizationName: u.organizationName || '',
+        });
+
+        // If onboarding is already fully done, go to dashboard
+        if (u.onboardingCompleted) {
+          router.replace('/dashboard');
+          return;
+        }
+
+        // If profile is already filled, skip to vcs step
+        if (u.name && u.organizationName) {
+          setStep('vcs');
+        }
+      } catch {}
     }
   }, [router]);
+
+  async function handleProfileSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setLoading('profile');
+    setError(null);
+    try {
+      const { updateProfile } = await import('@/lib/auth');
+      const updatedUser = await updateProfile(profileData);
+      localStorage.setItem('user', JSON.stringify(updatedUser));
+      setUser(updatedUser);
+      setStep('vcs');
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Failed to save profile');
+    } finally {
+      setLoading(null);
+    }
+  }
 
   const hasGitHub = !!user?.githubUsername;
   const hasGitLab = !!user?.gitlabUsername;
@@ -91,9 +128,11 @@ export default function OnboardingPage() {
 
         {/* Step indicator */}
         <div className="flex items-center justify-center gap-3 mb-8">
-          <StepDot index={1} label="Connect accounts" active />
+          <StepDot index={1} label="Profile" active={step === 'profile'} />
           <div className="h-px w-8 bg-[#27272a]" />
-          <StepDot index={2} label="Select repos" active={false} />
+          <StepDot index={2} label="Connect" active={step === 'vcs'} />
+          <div className="h-px w-8 bg-[#27272a]" />
+          <StepDot index={3} label="Repos" active={false} />
         </div>
 
         {/* Error */}
@@ -104,63 +143,134 @@ export default function OnboardingPage() {
           </div>
         )}
 
-        {/* Title */}
-        <div className="text-center mb-8">
-          <h1 className="text-2xl font-semibold text-white mb-2">Connect your code</h1>
-          <p className="text-[14px] text-[#a1a1aa]">
-            Link your source control accounts to get started. You can connect more later.
-          </p>
-        </div>
+        {step === 'profile' ? (
+          <>
+            <div className="text-center mb-8">
+              <h1 className="text-2xl font-semibold text-white mb-2">Welcome to CodeKang</h1>
+              <p className="text-[14px] text-[#a1a1aa]">
+                Tell us a bit about yourself to personalize your experience.
+              </p>
+            </div>
 
-        {/* Provider cards */}
-        <div className="space-y-3 mb-6">
-          <ProviderCard
-            icon={<GitHubIcon size={20} />}
-            iconStyle={{ background: '#27272a' }}
-            name="GitHub"
-            description="Connect your GitHub repositories"
-            connected={hasGitHub}
-            username={user?.githubUsername}
-            loading={loading === 'github'}
-            disabled={loading !== null}
-            onConnect={handleLinkGitHub}
-          />
+            <form onSubmit={handleProfileSubmit} className="space-y-4">
+              <div className="space-y-1.5">
+                <label className="text-[13px] font-medium text-[#a1a1aa]">Full Name</label>
+                <input
+                  type="text"
+                  required
+                  value={profileData.name}
+                  onChange={(e) => setProfileData({ ...profileData, name: e.target.value })}
+                  placeholder="John Doe"
+                  className="w-full bg-[#18181b] border border-[#27272a] rounded-xl px-4 py-3 text-[14px] text-white outline-none focus:border-[#f8423b] transition-all"
+                />
+              </div>
 
-          <ProviderCard
-            icon={<GitLabIcon size={20} />}
-            iconStyle={{ background: 'rgba(252, 109, 38, 0.12)' }}
-            name="GitLab"
-            description="Connect your GitLab projects"
-            connected={hasGitLab}
-            username={user?.gitlabUsername}
-            loading={loading === 'gitlab'}
-            disabled={loading !== null}
-            onConnect={handleLinkGitLab}
-          />
+              <div className="space-y-1.5">
+                <label className="text-[13px] font-medium text-[#a1a1aa]">Organization / Company Name</label>
+                <input
+                  type="text"
+                  required
+                  value={profileData.organizationName}
+                  onChange={(e) => setProfileData({ ...profileData, organizationName: e.target.value })}
+                  placeholder="Acme Inc."
+                  className="w-full bg-[#18181b] border border-[#27272a] rounded-xl px-4 py-3 text-[14px] text-white outline-none focus:border-[#f8423b] transition-all"
+                />
+              </div>
 
-          <ProviderCard
-            icon={<BitbucketIcon size={20} />}
-            iconStyle={{ background: 'rgba(0, 82, 204, 0.12)' }}
-            name="Bitbucket"
-            description="Connect your Bitbucket repositories"
-            connected={hasBitbucket}
-            username={user?.bitbucketUsername}
-            loading={loading === 'bitbucket'}
-            disabled={loading !== null}
-            onConnect={handleLinkBitbucket}
-          />
-        </div>
+              <button
+                type="submit"
+                disabled={loading === 'profile'}
+                className="w-full py-3 mt-4 flex items-center justify-center gap-2 rounded-xl font-semibold text-[14px] transition-all bg-[#f8423b] text-white hover:bg-[#d93a34] disabled:opacity-50"
+              >
+                {loading === 'profile' ? <Loader2 size={18} className="animate-spin" /> : (
+                  <>
+                    Save & Continue
+                    <ChevronRight size={16} />
+                  </>
+                )}
+              </button>
+            </form>
+          </>
+        ) : (
+          <>
+            {/* Title */}
+            <div className="text-center mb-8">
+              <h1 className="text-2xl font-semibold text-white mb-2">Connect your code</h1>
+              <p className="text-[14px] text-[#a1a1aa]">
+                Link your source control accounts to get started. You can connect more later.
+              </p>
+            </div>
 
-        {/* Continue button */}
-        <button
-          onClick={handleContinue}
-          disabled={!anyConnected || loading !== null}
-          className="w-full py-3 flex items-center justify-center gap-2 rounded-xl font-semibold text-[14px] transition-all disabled:opacity-40 disabled:cursor-not-allowed"
-          style={{ background: anyConnected ? '#f8423b' : '#27272a', color: '#fff' }}
-        >
-          Continue
-          <ChevronRight size={16} />
-        </button>
+            {/* Provider cards */}
+            <div className="space-y-3 mb-6">
+              <ProviderCard
+                icon={<GitHubIcon size={20} />}
+                iconStyle={{ background: '#27272a' }}
+                name="GitHub"
+                description="Connect your GitHub repositories"
+                connected={hasGitHub}
+                username={user?.githubUsername}
+                loading={loading === 'github'}
+                disabled={loading !== null}
+                onConnect={handleLinkGitHub}
+              />
+
+              <ProviderCard
+                icon={<GitLabIcon size={20} />}
+                iconStyle={{ background: 'rgba(252, 109, 38, 0.12)' }}
+                name="GitLab"
+                description="Connect your GitLab projects"
+                connected={hasGitLab}
+                username={user?.gitlabUsername}
+                loading={loading === 'gitlab'}
+                disabled={loading !== null}
+                onConnect={handleLinkGitLab}
+              />
+
+              <ProviderCard
+                icon={<BitbucketIcon size={20} />}
+                iconStyle={{ background: 'rgba(0, 82, 204, 0.12)' }}
+                name="Bitbucket"
+                description="Connect your Bitbucket repositories"
+                connected={hasBitbucket}
+                username={user?.bitbucketUsername}
+                loading={loading === 'bitbucket'}
+                disabled={loading !== null}
+                onConnect={handleLinkBitbucket}
+              />
+            </div>
+
+            <div className="mt-10 p-6 rounded-2xl border border-[#27272a] bg-[#18181b]/50 relative overflow-hidden group transition-all hover:border-[#f8423b]/30">
+              <div className="absolute top-0 right-0 p-3 opacity-10 group-hover:opacity-20 transition-opacity">
+                <GitHubIcon size={40} />
+              </div>
+              <h3 className="text-[15px] font-semibold text-white mb-2">Install GitHub App</h3>
+              <p className="text-[13px] text-[#71717a] mb-5 leading-relaxed">
+                To allow Kang to analyze your Pull Requests and open automated fixes, you need to install the GitHub App on your repositories.
+              </p>
+              <a
+                href="https://github.com/apps/codekang/installations/new"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-white text-black text-[13px] font-black uppercase tracking-tight hover:bg-gray-100 transition-all active:scale-95 shadow-[0px_4px_12px_rgba(255,255,255,0.1)]"
+              >
+                <GitHubIcon size={16} />
+                Install on GitHub
+              </a>
+            </div>
+
+            {/* Continue button */}
+            <button
+              onClick={handleContinue}
+              disabled={!anyConnected || loading !== null}
+              className="w-full py-3 mt-8 flex items-center justify-center gap-2 rounded-xl font-semibold text-[14px] transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+              style={{ background: anyConnected ? '#f8423b' : '#27272a', color: '#fff' }}
+            >
+              Continue to select repos
+              <ChevronRight size={16} />
+            </button>
+          </>
+        )}
 
         {!anyConnected && (
           <p className="text-center text-[12px] mt-2" style={{ color: '#52525b' }}>
