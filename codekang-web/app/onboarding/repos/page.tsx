@@ -268,15 +268,31 @@ export default function OnboardingReposPage() {
                     <p className="text-[13px] text-gray-400 mb-6 leading-relaxed font-medium">
                       CodeKang cannot operate without the GitHub App. You must install it on your selected repositories to proceed to the dashboard.
                     </p>
-                    <a
-                      href="https://github.com/apps/codekang/installations/new"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center gap-2 px-6 py-3 bg-[#f97316] text-white text-[13px] font-black uppercase tracking-widest hover:bg-[#ea580c] transition-all active:scale-95 shadow-[4px_4px_0px_0px_rgba(255,255,255,0.2)]"
-                    >
-                      <GitHubIcon size={16} />
-                      Install Required App
-                    </a>
+                    <div className="flex flex-col md:flex-row gap-3">
+                      <a
+                        href="https://github.com/apps/codekang/installations/new"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex-1 inline-flex items-center justify-center gap-2 px-6 py-3 bg-[#f97316] text-white text-[13px] font-black uppercase tracking-widest hover:bg-[#ea580c] transition-all active:scale-95 shadow-[4px_4px_0px_0px_rgba(255,255,255,0.2)]"
+                      >
+                        <GitHubIcon size={16} />
+                        Install Required App
+                      </a>
+                      <button
+                        onClick={() => window.location.reload()}
+                        className="px-6 py-3 border-2 border-white/20 text-white text-[11px] font-black uppercase tracking-widest hover:bg-white/10 transition-all"
+                      >
+                        Check Status
+                      </button>
+                    </div>
+
+                    {/* Quick Help */}
+                    <div className="mt-6 pt-6 border-t border-white/10">
+                      <p className="text-[10px] font-black uppercase tracking-widest text-gray-500 mb-2">Still not detecting?</p>
+                      <p className="text-[11px] text-gray-400 font-medium">
+                        Ensure you've selected "All Repositories" on GitHub. If your repos are in an Organization, install the app on that specific Org profile.
+                      </p>
+                    </div>
                   </div>
                 </>
               )}

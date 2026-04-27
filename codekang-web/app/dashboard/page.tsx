@@ -128,17 +128,41 @@ export default function DashboardPage() {
             <p className="text-[15px] font-medium text-gray-500 mb-8 leading-relaxed">
               We've connected your repositories, but CodeKang cannot perform audits until the GitHub App is installed. This is a mandatory security step.
             </p>
-            <a
-              href="https://github.com/apps/codekang/installations/new"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-3 px-8 py-5 bg-[#f97316] text-white font-black uppercase tracking-widest text-[14px] shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[-2px] hover:translate-y-[-2px] hover:shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] active:translate-x-0 active:translate-y-0 active:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all"
-            >
-              Install GitHub App Now
-            </a>
-            <p className="mt-8 text-[11px] font-black uppercase tracking-widest text-gray-300">
-              Audits will begin automatically after installation.
-            </p>
+            <div className="flex flex-col gap-4">
+              <a
+                href="https://github.com/apps/codekang/installations/new"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center justify-center gap-3 px-8 py-5 bg-[#f97316] text-white font-black uppercase tracking-widest text-[14px] shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[-2px] hover:translate-y-[-2px] hover:shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] active:translate-x-0 active:translate-y-0 active:shadow-[2px_2px_0px_0px_rgba(2,2,2,1)] transition-all"
+              >
+                Install GitHub App Now
+              </a>
+              <button
+                onClick={() => window.location.reload()}
+                className="inline-flex items-center justify-center gap-3 px-8 py-4 border-2 border-black bg-white text-black font-black uppercase tracking-widest text-[12px] hover:bg-gray-50 transition-all"
+              >
+                Check Activation Status
+              </button>
+            </div>
+
+            {/* Troubleshooting Guide */}
+            <div className="mt-10 pt-8 border-t-2 border-dashed border-gray-200 text-left">
+              <h4 className="text-[11px] font-black uppercase tracking-widest text-black mb-4">Troubleshooting:</h4>
+              <ul className="space-y-3">
+                <li className="flex items-start gap-3 text-[12px] font-medium text-gray-500">
+                  <span className="w-4 h-4 rounded-full bg-black text-white flex items-center justify-center text-[8px] mt-0.5 shrink-0">1</span>
+                  <span>Ensure you've selected <strong>"All repositories"</strong> or specific target repos during installation.</span>
+                </li>
+                <li className="flex items-start gap-3 text-[12px] font-medium text-gray-500">
+                  <span className="w-4 h-4 rounded-full bg-black text-white flex items-center justify-center text-[8px] mt-0.5 shrink-0">2</span>
+                  <span>If repos are in an <strong>Organization</strong>, verify installation on the correct Org account.</span>
+                </li>
+                <li className="flex items-start gap-3 text-[12px] font-medium text-gray-500">
+                  <span className="w-4 h-4 rounded-full bg-black text-white flex items-center justify-center text-[8px] mt-0.5 shrink-0">3</span>
+                  <span>Wait 5-10 seconds for GitHub's secure webhook to propagate to our servers.</span>
+                </li>
+              </ul>
+            </div>
           </div>
         </div>
       )}
