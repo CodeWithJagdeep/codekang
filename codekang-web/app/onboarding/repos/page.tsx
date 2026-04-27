@@ -147,126 +147,128 @@ export default function OnboardingReposPage() {
   if (user?.bitbucketUsername) connectedProviders.push('bitbucket');
 
   return (
-    <div className="min-h-screen bg-[#09090b] flex flex-col items-center font-sans tracking-tight text-white relative overflow-hidden">
-      <div className="absolute top-1/4 left-1/4 w-[400px] h-[400px] bg-indigo-500/10 blur-[120px] rounded-full pointer-events-none" />
-      <div className="absolute bottom-1/4 right-1/4 w-[400px] h-[400px] bg-emerald-500/5 blur-[120px] rounded-full pointer-events-none" />
+    <div className="min-h-screen bg-[#fcfcfc] flex flex-col items-center font-[family-name:var(--font-space-grotesk)] text-black relative overflow-hidden">
+      {/* Grid background */}
+      <div className="absolute inset-0 pointer-events-none opacity-[0.03]"
+        style={{ backgroundImage: 'radial-gradient(#000 1px, transparent 1px)', backgroundSize: '32px 32px' }} />
 
-      <div className="w-full max-w-[600px] px-4 py-8 mx-auto z-10 flex flex-col">
-        {/* Logo */}
-        <div className="flex justify-center mb-6">
-          <Image src={Favi} alt="CodeKang" width={40} height={40} className="object-contain" />
-        </div>
-
-        {/* Step indicator */}
-        <div className="flex items-center justify-center gap-3 mb-8">
-          <StepDot index={1} label="Connect accounts" active={false} done />
-          <div className="h-px w-8 bg-[#f8423b]/40" />
-          <StepDot index={2} label="Select repos" active />
-        </div>
-
-        {/* Header */}
-        <div className="flex items-center gap-3 mb-2">
-          <button
-            onClick={() => router.push('/onboarding')}
-            className="p-2 rounded-lg hover:bg-white/5 transition-colors"
-            style={{ color: '#71717a' }}
-          >
-            <ArrowLeft size={18} />
-          </button>
-          <div>
-            <h1 className="text-xl font-semibold text-white">Select repositories</h1>
-            <p className="text-[13px]" style={{ color: '#71717a' }}>
-              Choose which repos to connect. You can change this later.
-            </p>
+      <div className="w-full max-w-[640px] px-6 py-12 mx-auto relative z-10 flex flex-col">
+        <div className="bg-white border-2 border-black p-8 md:p-10 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]">
+          {/* Logo */}
+          <div className="flex justify-center mb-10">
+            <Image src={Favi} alt="CodeKang" width={48} height={48} className="object-contain" />
           </div>
-        </div>
 
-        {/* Plan limit bar */}
-        {user && (
-          <PlanBar
-            plan={user.plan}
-            used={usedSlots}
-            limit={limit}
-            unlimited={unlimited}
-          />
-        )}
-
-        {/* Submit error */}
-        {submitError && (
-          <div className="mt-4 p-4 bg-red-500/10 border border-red-500/20 rounded-xl text-[13px] text-red-400 flex items-start gap-3">
-            <AlertCircle size={16} className="shrink-0 mt-0.5" />
-            <span>{submitError}</span>
+          {/* Step indicator */}
+          <div className="flex items-center justify-center gap-4 mb-12">
+            <StepDot index={1} label="Identity" active={false} completed />
+            <div className="h-[2px] w-12 bg-black" />
+            <StepDot index={2} label="Connect" active={false} completed />
+            <div className="h-[2px] w-12 bg-black" />
+            <StepDot index={3} label="Source" active completed={false} />
           </div>
-        )}
 
-        {/* Provider tabs */}
-        {connectedProviders.length > 1 && (
-          <div className="flex gap-1 mt-5 p-1 rounded-xl" style={{ background: '#18181b' }}>
-            {connectedProviders.map((p) => (
-              <button
-                key={p}
-                onClick={() => setActiveTab(p)}
-                className="flex-1 py-2 rounded-lg text-[13px] font-medium transition-all capitalize"
-                style={{
-                  background: activeTab === p ? '#27272a' : 'transparent',
-                  color: activeTab === p ? '#e8e8e8' : '#71717a',
-                }}
-              >
-                {PROVIDER_LABELS[p]}
-              </button>
-            ))}
+          {/* Header */}
+          <div className="flex items-center gap-5 mb-8">
+            <button
+              onClick={() => router.push('/onboarding')}
+              className="p-3 border-2 border-black hover:bg-gray-50 transition-all"
+            >
+              <ArrowLeft size={20} className="text-black" />
+            </button>
+            <div>
+              <h1 className="text-3xl font-black uppercase tracking-tighter">Target Repositories</h1>
+              <p className="text-[15px] font-medium text-gray-500">
+                Identify the codebases for Kang to protect.
+              </p>
+            </div>
           </div>
-        )}
 
-        {/* Repo list */}
-        <div className="mt-4 flex-1">
-          {activeTab === 'github' && (
-            <GitHubRepoList
-              repos={availableGithubRepos}
-              connectedRepos={connectedRepos}
-              selected={selected}
-              atLimit={atLimit}
-              loading={loadingRepos}
-              error={repoError}
-              onToggle={toggleRepo}
-              onRetry={loadRepos}
+          {/* Plan limit bar */}
+          {user && (
+            <PlanBar
+              plan={user.plan}
+              used={usedSlots}
+              limit={limit}
+              unlimited={unlimited}
             />
           )}
-          {activeTab === 'gitlab' && <ComingSoonTab provider="GitLab" />}
-          {activeTab === 'bitbucket' && <ComingSoonTab provider="Bitbucket" />}
-        </div>
 
-        {/* Footer actions */}
-        <div className="mt-6 space-y-3">
-          <button
-            onClick={handleFinish}
-            disabled={submitting}
-            className="w-full py-3 flex items-center justify-center gap-2 rounded-xl font-semibold text-[14px] transition-opacity hover:opacity-90 disabled:opacity-50"
-            style={{ background: '#f8423b', color: '#fff' }}
-          >
-            {submitting ? (
-              <Loader2 size={16} className="animate-spin" />
-            ) : totalSelected > 0 ? (
-              <>
-                Connect {totalSelected} {totalSelected === 1 ? 'repo' : 'repos'} & continue
-                <ChevronRight size={16} />
-              </>
-            ) : (
-              <>
-                Continue to dashboard
-                <ChevronRight size={16} />
-              </>
+          {/* Submit error */}
+          {submitError && (
+            <div className="mt-8 p-4 bg-red-50 border-2 border-black text-[13px] font-bold text-red-600 flex items-start gap-3">
+              <AlertCircle size={16} className="shrink-0 mt-0.5" />
+              <span>{submitError}</span>
+            </div>
+          )}
+
+          {/* Provider tabs */}
+          {connectedProviders.length > 1 && (
+            <div className="flex gap-2 mt-8 p-2 border-2 border-black bg-gray-50">
+              {connectedProviders.map((p) => (
+                <button
+                  key={p}
+                  onClick={() => setActiveTab(p)}
+                  className={`flex-1 py-3 text-[12px] font-black uppercase tracking-widest transition-all ${
+                    activeTab === p ? 'bg-black text-white' : 'text-gray-400 hover:text-black'
+                  }`}
+                >
+                  {PROVIDER_LABELS[p]}
+                </button>
+              ))}
+            </div>
+          )}
+
+          {/* Repo list */}
+          <div className="mt-6 flex-1">
+            {activeTab === 'github' && (
+              <GitHubRepoList
+                repos={availableGithubRepos}
+                connectedRepos={connectedRepos}
+                selected={selected}
+                atLimit={atLimit}
+                loading={loadingRepos}
+                error={repoError}
+                onToggle={toggleRepo}
+                onRetry={loadRepos}
+              />
             )}
-          </button>
+            {activeTab === 'gitlab' && <ComingSoonTab provider="GitLab" />}
+            {activeTab === 'bitbucket' && <ComingSoonTab provider="Bitbucket" />}
+          </div>
 
-          <button
-            onClick={handleSkip}
-            disabled={submitting}
-            className="w-full py-2 text-[13px] transition-colors disabled:opacity-50"
-            style={{ color: '#52525b' }}
-          >
-            Skip for now
-          </button>
+          {/* Footer actions */}
+          <div className="mt-10 space-y-4">
+            <button
+              onClick={handleFinish}
+              disabled={submitting}
+              className="w-full py-5 bg-black text-white font-black uppercase tracking-widest text-[14px] shadow-[4px_4px_0px_0px_rgba(249,115,22,1)] hover:translate-x-[-2px] hover:translate-y-[-2px] hover:shadow-[6px_6px_0px_0px_rgba(249,115,22,1)] active:translate-x-0 active:translate-y-0 active:shadow-[2px_2px_0px_0px_rgba(249,115,22,1)] transition-all flex items-center justify-center gap-3 disabled:opacity-50 disabled:grayscale"
+            >
+              {submitting ? (
+                <Loader2 size={20} className="animate-spin" />
+              ) : totalSelected > 0 ? (
+                <>
+                  Connect {totalSelected} {totalSelected === 1 ? 'repo' : 'repos'}
+                  <ChevronRight size={18} />
+                </>
+              ) : (
+                <>
+                  Enter Dashboard
+                  <ChevronRight size={18} />
+                </>
+              )}
+            </button>
+
+            <div className="flex flex-col items-center gap-4 pt-4">
+              <button
+                onClick={handleSkip}
+                disabled={submitting}
+                className="text-[13px] font-bold uppercase tracking-widest text-gray-400 hover:text-black transition-colors disabled:opacity-50"
+              >
+                Skip configuration for now
+              </button>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -281,29 +283,18 @@ const PROVIDER_LABELS: Record<Provider, string> = {
   bitbucket: 'Bitbucket',
 };
 
-function StepDot({
-  index,
-  label,
-  active,
-  done = false,
-}: {
-  index: number;
-  label: string;
-  active: boolean;
-  done?: boolean;
-}) {
+function StepDot({ index, label, active, completed }: { index: number; label: string; active: boolean; completed: boolean }) {
   return (
-    <div className="flex items-center gap-2">
+    <div className="flex flex-col items-center gap-2">
       <div
-        className="w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-bold"
-        style={{
-          background: active ? '#f8423b' : done ? '#166534' : '#27272a',
-          color: active || done ? '#fff' : '#52525b',
-        }}
+        className={`w-8 h-8 border-2 border-black flex items-center justify-center text-[12px] font-black transition-all ${
+          active ? 'bg-[#f97316] text-white' : completed ? 'bg-black text-white' : 'bg-white text-gray-300'
+        }`}
+        style={{ boxShadow: active || completed ? '2px_2px_0px_0px_rgba(0,0,0,1)' : 'none' }}
       >
-        {done ? <Check size={12} strokeWidth={3} /> : index}
+        {completed ? <Check size={16} strokeWidth={4} /> : index}
       </div>
-      <span className="text-[12px] font-medium" style={{ color: active ? '#e8e8e8' : '#52525b' }}>
+      <span className={`text-[10px] font-black uppercase tracking-widest ${active ? 'text-black' : 'text-gray-300'}`}>
         {label}
       </span>
     </div>
@@ -325,29 +316,26 @@ function PlanBar({
   const atLimit = !unlimited && used >= limit;
 
   return (
-    <div
-      className="mt-5 p-4 rounded-xl border"
-      style={{ background: '#18181b', borderColor: '#27272a' }}
-    >
-      <div className="flex items-center justify-between mb-2">
-        <span className="text-[12px] font-medium capitalize" style={{ color: '#71717a' }}>
-          {plan} plan
+    <div className="mt-8 p-6 border-2 border-black bg-gray-50">
+      <div className="flex items-center justify-between mb-3">
+        <span className="text-[12px] font-black uppercase tracking-widest text-gray-400">
+          {plan} Subscription
         </span>
-        <span className="text-[12px] font-semibold" style={{ color: atLimit ? '#ef4444' : '#e8e8e8' }}>
-          {unlimited ? `${used} repos connected` : `${used} / ${limit} repos`}
+        <span className={`text-[13px] font-black ${atLimit ? 'text-red-600' : 'text-black'}`}>
+          {unlimited ? `${used} Connected` : `${used} / ${limit} Slots Used`}
         </span>
       </div>
       {!unlimited && (
-        <div className="h-1.5 rounded-full overflow-hidden" style={{ background: '#27272a' }}>
+        <div className="h-3 border-2 border-black bg-white overflow-hidden">
           <div
-            className="h-full rounded-full transition-all"
-            style={{ width: `${pct}%`, background: atLimit ? '#ef4444' : '#f8423b' }}
+            className="h-full transition-all"
+            style={{ width: `${pct}%`, background: atLimit ? '#ef4444' : '#f97316' }}
           />
         </div>
       )}
       {atLimit && (
-        <p className="text-[11px] mt-2" style={{ color: '#ef4444' }}>
-          Plan limit reached. Upgrade to add more repositories.
+        <p className="text-[11px] font-bold uppercase mt-3 text-red-600">
+          Quota Exceeded. Please upgrade for more slots.
         </p>
       )}
     </div>
@@ -375,12 +363,11 @@ function GitHubRepoList({
 }) {
   if (loading) {
     return (
-      <div className="space-y-2">
+      <div className="space-y-4">
         {[...Array(6)].map((_, i) => (
           <div
             key={i}
-            className="h-14 rounded-xl animate-pulse"
-            style={{ background: '#18181b' }}
+            className="h-16 border-2 border-black bg-gray-50 animate-pulse"
           />
         ))}
       </div>
@@ -389,15 +376,14 @@ function GitHubRepoList({
 
   if (error) {
     return (
-      <div className="flex flex-col items-center justify-center py-12 gap-4">
-        <AlertCircle size={32} style={{ color: '#71717a' }} />
-        <p className="text-[13px]" style={{ color: '#a1a1aa' }}>{error}</p>
+      <div className="flex flex-col items-center justify-center py-16 gap-5">
+        <AlertCircle size={40} className="text-gray-300" />
+        <p className="text-[14px] font-bold text-gray-500">{error}</p>
         <button
           onClick={onRetry}
-          className="px-4 py-2 rounded-lg text-[13px] font-semibold border transition-colors hover:bg-white/5"
-          style={{ borderColor: '#27272a', color: '#e8e8e8' }}
+          className="px-6 py-3 border-2 border-black text-[12px] font-black uppercase tracking-widest hover:bg-black hover:text-white transition-all"
         >
-          Retry
+          Try Again
         </button>
       </div>
     );
@@ -405,40 +391,33 @@ function GitHubRepoList({
 
   if (repos.length === 0 && connectedRepos.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center py-12 gap-3">
-        <p className="text-[14px] font-medium" style={{ color: '#a1a1aa' }}>No repositories found</p>
-        <p className="text-[13px]" style={{ color: '#52525b' }}>
-          Make sure your GitHub account has repositories.
+      <div className="flex flex-col items-center justify-center py-16 gap-3 border-2 border-dashed border-gray-200">
+        <p className="text-[15px] font-black uppercase tracking-tighter text-gray-400">Empty Environment</p>
+        <p className="text-[13px] font-medium text-gray-400">
+          We couldn't find any repositories in your GitHub account.
         </p>
       </div>
     );
   }
 
   return (
-    <div
-      className="rounded-xl border overflow-hidden"
-      style={{ borderColor: '#27272a' }}
-    >
+    <div className="border-2 border-black bg-white overflow-hidden">
       {/* Already connected */}
       {connectedRepos.map((repo) => (
         <div
           key={repo.id}
-          className="flex items-center px-4 py-3 border-b"
-          style={{ borderColor: '#27272a', background: '#0d1f0f' }}
+          className="flex items-center px-5 py-4 border-b-2 border-black bg-green-50/30"
         >
-          <div
-            className="w-5 h-5 rounded flex items-center justify-center shrink-0 mr-3"
-            style={{ background: '#166534' }}
-          >
-            <Check size={12} strokeWidth={3} className="text-emerald-400" />
+          <div className="w-6 h-6 border-2 border-black bg-black flex items-center justify-center shrink-0 mr-4">
+            <Check size={14} strokeWidth={4} className="text-white" />
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-[13px] font-medium truncate" style={{ color: '#e8e8e8' }}>
+            <p className="text-[14px] font-bold truncate">
               {repo.fullName}
             </p>
           </div>
-          <span className="text-[11px] font-semibold ml-3 shrink-0 text-emerald-500">
-            Connected
+          <span className="text-[10px] font-black uppercase tracking-widest text-green-600">
+            Active
           </span>
         </div>
       ))}
@@ -452,43 +431,39 @@ function GitHubRepoList({
           <div
             key={repo.id}
             onClick={() => !isDisabled && onToggle(repo.id)}
-            className="flex items-center px-4 py-3 transition-colors"
-            style={{
-              borderBottom: idx < repos.length - 1 ? '1px solid #1f1f23' : 'none',
-              background: isSelected ? '#1a1208' : 'transparent',
-              cursor: isDisabled ? 'not-allowed' : 'pointer',
-              opacity: isDisabled ? 0.4 : 1,
-            }}
+            className={`flex items-center px-5 py-4 transition-all ${
+              idx < repos.length - 1 ? 'border-b-2 border-black/5' : ''
+            } ${isSelected ? 'bg-orange-50/50' : 'hover:bg-gray-50'} ${
+              isDisabled ? 'cursor-not-allowed opacity-40 grayscale' : 'cursor-pointer'
+            }`}
           >
             {/* Checkbox */}
             <div
-              className="w-5 h-5 rounded border flex items-center justify-center shrink-0 mr-3 transition-all"
-              style={{
-                borderColor: isSelected ? '#f8423b' : '#3f3f46',
-                background: isSelected ? '#f8423b' : 'transparent',
-              }}
+              className={`w-6 h-6 border-2 border-black flex items-center justify-center shrink-0 mr-4 transition-all ${
+                isSelected ? 'bg-[#f97316]' : 'bg-white'
+              }`}
             >
-              {isSelected && <Check size={12} strokeWidth={3} className="text-white" />}
+              {isSelected && <Check size={14} strokeWidth={4} className="text-white" />}
             </div>
 
             {/* Info */}
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2">
-                <p className="text-[13px] font-medium truncate" style={{ color: '#e8e8e8' }}>
+                <p className={`text-[14px] font-bold truncate ${isSelected ? 'text-black' : 'text-gray-900'}`}>
                   {repo.full_name}
                 </p>
                 {repo.private && (
-                  <Lock size={11} style={{ color: '#71717a' }} className="shrink-0" />
+                  <Lock size={12} className="text-gray-400 shrink-0" />
                 )}
               </div>
-              <div className="flex items-center gap-3 mt-0.5">
+              <div className="flex items-center gap-4 mt-1">
                 {repo.language && (
-                  <span className="text-[11px]" style={{ color: '#71717a' }}>
+                  <span className="text-[11px] font-black uppercase tracking-widest text-gray-400">
                     {repo.language}
                   </span>
                 )}
-                <span className="flex items-center gap-1 text-[11px]" style={{ color: '#71717a' }}>
-                  <Star size={10} />
+                <span className="flex items-center gap-1.5 text-[11px] font-bold text-gray-400">
+                  <Star size={11} />
                   {repo.stargazers_count}
                 </span>
               </div>
@@ -502,19 +477,16 @@ function GitHubRepoList({
 
 function ComingSoonTab({ provider }: { provider: string }) {
   return (
-    <div className="flex flex-col items-center justify-center py-16 gap-3">
-      <div
-        className="w-12 h-12 rounded-xl flex items-center justify-center"
-        style={{ background: '#18181b' }}
-      >
-        <Lock size={20} style={{ color: '#52525b' }} />
+    <div className="flex flex-col items-center justify-center py-20 gap-4 border-2 border-black bg-gray-50">
+      <div className="w-16 h-16 border-2 border-black bg-white flex items-center justify-center shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+        <Lock size={24} className="text-gray-300" />
       </div>
-      <p className="text-[14px] font-medium" style={{ color: '#a1a1aa' }}>
-        {provider} coming soon
-      </p>
-      <p className="text-[13px]" style={{ color: '#52525b' }}>
-        Repo browsing for {provider} is on the roadmap.
-      </p>
+      <div className="text-center">
+        <p className="text-[16px] font-black uppercase tracking-tight">{provider} Integration Locked</p>
+        <p className="text-[13px] font-medium text-gray-400 mt-1">
+          Coming soon to the CodeKang platform.
+        </p>
+      </div>
     </div>
   );
 }
