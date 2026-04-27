@@ -13,12 +13,12 @@ const slideIn = (dir: 'left' | 'right') => ({
 
 function ReviewMockup() {
   return (
-    <div className="rounded-2xl border border-white/8 bg-[#111113] overflow-hidden shadow-[0_30px_80px_-20px_rgba(0,0,0,0.5)]">
-      <div className="flex items-center gap-2 px-4 py-3 border-b border-white/5 bg-[#0d0d0f]">
-        <div className="w-2.5 h-2.5 rounded-full bg-[#ef4444]/50" />
-        <div className="w-2.5 h-2.5 rounded-full bg-[#f59e0b]/50" />
-        <div className="w-2.5 h-2.5 rounded-full bg-[#22c55e]/50" />
-        <span className="ml-2 text-[11px] text-[#444] font-mono">KangBot · PR #412</span>
+    <div className="rounded-none border-2 border-black bg-white overflow-hidden shadow-[12px_12px_0px_0px_rgba(0,0,0,1)]">
+      <div className="flex items-center gap-2 px-4 py-4 border-b-2 border-black bg-black/[0.02]">
+        <div className="w-2.5 h-2.5 rounded-full bg-[#ef4444]/80" />
+        <div className="w-2.5 h-2.5 rounded-full bg-[#f59e0b]/80" />
+        <div className="w-2.5 h-2.5 rounded-full bg-[#22c55e]/80" />
+        <span className="ml-2 text-[11px] text-gray-400 font-mono font-bold uppercase tracking-wider">KangBot · PR #412</span>
       </div>
       <div className="p-5 space-y-3">
         {[
@@ -39,9 +39,9 @@ function ReviewMockup() {
             <p className="mt-1 text-[#777]">{item.msg}</p>
           </motion.div>
         ))}
-        <div className="flex items-center gap-2 pt-1 text-[11px] text-[#555]">
+        <div className="flex items-center gap-2 pt-1 text-[11px] text-gray-500 font-bold uppercase tracking-tight">
           <RiCheckboxCircleLine size={12} className="text-[#22c55e]" />
-          Risk score: <span className="text-[#f59e0b] font-semibold">Medium</span> · 3 issues found
+          Risk score: <span className="text-[#f97316]">Medium</span> · 3 issues found
         </div>
       </div>
     </div>
@@ -52,13 +52,13 @@ function ReviewMockup() {
 
 function AutofixMockup() {
   return (
-    <div className="rounded-2xl border border-white/8 bg-[#111113] overflow-hidden shadow-[0_30px_80px_-20px_rgba(0,0,0,0.5)]">
-      <div className="flex items-center gap-2 px-4 py-3 border-b border-white/5 bg-[#0d0d0f]">
+    <div className="rounded-none border-2 border-black bg-white overflow-hidden shadow-[12px_12px_0px_0px_rgba(0,0,0,1)]">
+      <div className="flex items-center gap-2 px-4 py-4 border-b-2 border-black bg-black/[0.02]">
         <div className="flex items-center gap-1.5">
           <RiGitPullRequestLine size={13} className="text-[#22c55e]" />
-          <span className="text-[12px] font-semibold text-[#e8e8e8]">fix: resolve JWT secret fallback</span>
+          <span className="text-[12px] font-black text-black uppercase">fix: resolve JWT secret fallback</span>
         </div>
-        <span className="ml-auto text-[10px] px-2 py-0.5 rounded-full bg-[#22c55e]/10 border border-[#22c55e]/20 text-[#22c55e] font-semibold">
+        <span className="ml-auto text-[10px] px-2 py-0.5 border border-black bg-[#22c55e] text-white font-black uppercase">
           Opened by KangBot
         </span>
       </div>
@@ -90,11 +90,11 @@ function AutofixMockup() {
           </motion.div>
         ))}
       </div>
-      <div className="flex gap-2 p-4 border-t border-white/5">
-        <button className="flex-1 py-2 rounded-lg bg-[#f8423b] text-[12px] font-bold text-white hover:opacity-90 transition-opacity">
+      <div className="flex gap-2 p-4 border-t-2 border-black">
+        <button className="flex-1 py-2.5 border-2 border-black bg-[#f8423b] text-[12px] font-black text-white hover:translate-x-[-1px] hover:translate-y-[-1px] shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] active:shadow-none transition-all uppercase">
           Merge fix
         </button>
-        <button className="flex-1 py-2 rounded-lg border border-white/10 text-[12px] font-semibold text-[#888]">
+        <button className="flex-1 py-2.5 border-2 border-black bg-white text-[12px] font-black text-black hover:translate-x-[-1px] hover:translate-y-[-1px] shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] active:shadow-none transition-all uppercase">
           View diff
         </button>
       </div>
@@ -109,20 +109,30 @@ const ROWS = [
     tag: 'AI Code Review',
     icon: RiFlashlightLine,
     iconColor: '#f97316',
-    title: 'Every PR reviewed in seconds, not hours',
-    description: 'KangBot reads the full context of your change — not just the diff. It understands architecture, catches logic errors, flags security issues, and leaves inline comments your team actually learns from.',
-    bullets: ['Inline comments on exact lines', 'Risk score per PR', 'Architecture impact analysis', 'Linter & SAST built in'],
+    title: 'Your PR is reviewed before you finish your coffee.',
+    description: "Stop waiting 4 hours for a senior engineer to review a 20-line change. KangBot reads the diff and the codebase around it — not just what changed, but what it affects. You get inline comments on exact lines, a risk score, and security findings in under 30 seconds.",
+    bullets: [
+      'Comments on exact lines, not vague summaries',
+      'Risk score so you know what to prioritize',
+      'Catches issues that pass linting and SAST',
+      'Architecture impact — knows what your change breaks upstream',
+    ],
     href: '/in/pricing',
     Mockup: ReviewMockup,
     direction: 'ltr' as const,
   },
   {
-    tag: 'Autonomous Fix',
+    tag: 'Autonomous Fix Agent',
     icon: RiShieldFlashLine,
     iconColor: '#a78bfa',
-    title: 'Issues fixed before you even read them',
-    description: 'When KangBot finds a fixable bug, it doesn\'t just comment — it opens a ready-to-merge PR with the correct fix. Security vulnerabilities, N+1 queries, missing error handling. Done automatically.',
-    bullets: ['Auto-fix PRs opened instantly', 'Security patches on every PR', 'One-click merge', 'Works on any language'],
+    title: "KangBot finds the bug, writes the fix, opens the PR. You approve.",
+    description: "Most AI tools leave you a comment. KangBot leaves you a ready-to-merge pull request. It identifies the root cause, writes the correct fix, and opens a PR with a clear explanation. You don't write a fix — you review one. That's the difference between a tool and an agent.",
+    bullets: [
+      'Fix PR opened in your repo within seconds',
+      'Handles security patches, null checks, query fixes, and more',
+      'Clear diff so you always know what changed and why',
+      'Works across TypeScript, Python, Go, Rust, and more',
+    ],
     href: '/in/pricing',
     Mockup: AutofixMockup,
     direction: 'rtl' as const,
@@ -148,22 +158,21 @@ export default function FeatureDeepDive() {
                   {row.tag}
                 </span>
               </div>
-              <h3 className="text-3xl md:text-4xl font-bold text-white leading-tight mb-5">
+              <h3 className="text-3xl md:text-5xl font-black text-black leading-tight mb-6 uppercase tracking-tight">
                 {row.title}
               </h3>
-              <p className="text-[15px] text-[#888] leading-relaxed mb-7">{row.description}</p>
-              <ul className="space-y-2.5 mb-8">
+              <p className="text-[17px] text-gray-500 font-medium leading-relaxed mb-8">{row.description}</p>
+              <ul className="space-y-4 mb-10">
                 {row.bullets.map((b) => (
-                  <li key={b} className="flex items-center gap-3 text-[14px] text-[#aaa]">
-                    <div className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: row.iconColor }} />
+                  <li key={b} className="flex items-center gap-3 text-[15px] text-gray-700 font-bold uppercase tracking-tight">
+                    <div className="w-2 h-2 border border-black shrink-0" style={{ background: row.iconColor }} />
                     {b}
                   </li>
                 ))}
               </ul>
               <Link
                 href={row.href}
-                className="inline-flex items-center gap-2 text-[14px] font-semibold transition-colors"
-                style={{ color: row.iconColor }}
+                className="inline-flex items-center gap-3 border-2 border-black bg-white px-8 py-3 text-[14px] font-black text-black uppercase shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[-2px] hover:translate-y-[-2px] hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] transition-all"
               >
                 See pricing <RiArrowRightLine size={16} />
               </Link>

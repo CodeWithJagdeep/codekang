@@ -2,7 +2,7 @@
 
 :root {
   /* === CodeKang CoderRabbit Dark Theme === */
-  --bg: #1c1c1c;
+  --bg: #fbfbfb;
   --bg-subtle: #111111;
   --bg-muted: #1a1a1a;
   --bg-elevated: #222222;
@@ -65,16 +65,33 @@
 
 /* ── Marquee animation ── */
 @keyframes marquee {
-  from { transform: translateX(0) }
-  to   { transform: translateX(-50%) }
+  from {
+    transform: translateX(0)
+  }
+
+  to {
+    transform: translateX(-50%)
+  }
 }
+
 @keyframes marquee-reverse {
-  from { transform: translateX(-50%) }
-  to   { transform: translateX(0) }
+  from {
+    transform: translateX(-50%)
+  }
+
+  to {
+    transform: translateX(0)
+  }
 }
+
 @keyframes shimmer {
-  from { background-position: 200% center; }
-  to { background-position: -200% center; }
+  from {
+    background-position: 200% center;
+  }
+
+  to {
+    background-position: -200% center;
+  }
 }
 
 /* ── Theme specific overrides ── */

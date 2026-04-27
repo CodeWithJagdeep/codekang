@@ -32,9 +32,17 @@ export const metadata: Metadata = {
     'code analysis',
     'AI programming assistant',
     'software development',
+    'autonomous engineering',
+    'code mentoring',
   ],
   authors: [{ name: 'CodeKang Team' }],
   creator: 'CodeKang',
+  publisher: 'CodeKang',
+  formatDetection: {
+    email: false,
+    address: false,
+    telephone: false,
+  },
   openGraph: {
     type: 'website',
     locale: 'en_US',
@@ -45,18 +53,19 @@ export const metadata: Metadata = {
     siteName: 'CodeKang',
     images: [
       {
-        url: 'https://codekang.com/og-image.jpg',
+        url: '/og-image.jpg',
         width: 1200,
         height: 630,
-        alt: 'CodeKang Platform',
+        alt: 'CodeKang — The Future of Code Review',
       },
     ],
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'CodeKang — AI Code Review',
-    description: 'AI-powered code review and issue fixing platform',
+    title: 'CodeKang — AI Code Review & Issue Fixing',
+    description: 'Autonomous AI agents that review your code and fix bugs automatically.',
     creator: '@codekang',
+    images: ['/og-image.jpg'],
   },
   robots: {
     index: true,
@@ -70,14 +79,28 @@ export const metadata: Metadata = {
     },
   },
   icons: {
-    icon: '/logo/favi.png',
-    shortcut: '/logo/favi.png',
-    apple: '/logo/favi.png',
+    icon: '/favicon/favicon.ico',
+    shortcut: '/favicon/favicon.ico',
+    apple: '/favicon/apple-touch-icon.png',
+    other: [
+      {
+        rel: 'icon',
+        type: 'image/png',
+        sizes: '96x96',
+        url: '/favicon/favicon-96x96.png',
+      },
+      {
+        rel: 'icon',
+        type: 'image/svg+xml',
+        url: '/favicon/favicon.svg',
+      },
+    ],
   },
+  manifest: '/favicon/site.webmanifest',
 };
 
 export const viewport = {
-  themeColor: '#121214',
+  themeColor: '#fcfcfc',
   width: 'device-width',
   initialScale: 1,
   maximumScale: 1,
@@ -93,7 +116,7 @@ export default function RootLayout({
       lang="en"
       className={`${geistSans.variable} ${geistMono.variable} ${spaceGrotesk.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col">
+      <body className="min-h-full flex flex-col" suppressHydrationWarning>
         <Providers>{children}</Providers>
       </body>
     </html>

@@ -89,7 +89,7 @@ export default function AIReviewDemo() {
   }
 
   return (
-    <section className="px-6 md:px-10 lg:px-16 py-28 overflow-hidden">
+    <section className="px-6 md:px-10 lg:px-16 py-28 overflow-hidden bg-[#fcfcfc] border-t-2 border-black/10">
       <div className="max-w-7xl mx-auto">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -99,13 +99,13 @@ export default function AIReviewDemo() {
           className="text-center mb-16"
         >
           <span className="inline-block text-[11px] font-bold uppercase tracking-[0.2em] text-[#f97316] mb-4">
-            Live demo
+            See it happen
           </span>
-          <h2 className="text-3xl md:text-5xl font-bold tracking-tight text-white mb-4">
-            Watch KangBot review your PR
+          <h2 className="text-3xl md:text-5xl font-bold tracking-tight text-black mb-4 uppercase">
+            This SQL injection just passed your code review.
           </h2>
-          <p className="text-[#888888] text-lg max-w-xl mx-auto">
-            Real issues, caught in real time — before they reach production.
+          <p className="text-gray-500 text-lg max-w-xl mx-auto font-medium">
+            It wouldn't pass KangBot's. Watch it catch the bug, explain it, and offer to fix it — in seconds.
           </p>
         </motion.div>
 
@@ -115,10 +115,10 @@ export default function AIReviewDemo() {
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.8 }}
-          className="rounded-2xl border border-white/8 bg-[#111113] overflow-hidden shadow-[0_40px_100px_-20px_rgba(0,0,0,0.6)]"
+          className="rounded-none border-2 border-black bg-white overflow-hidden shadow-[12px_12px_0px_0px_rgba(0,0,0,1)]"
         >
           {/* Top bar */}
-          <div className="flex items-center justify-between px-5 py-3 border-b border-white/5 bg-[#0e0e10]">
+          <div className="flex items-center justify-between px-5 py-4 border-b-2 border-black bg-black/[0.02]">
             <div className="flex items-center gap-2">
               <div className="w-3 h-3 rounded-full bg-[#ef4444]/60" />
               <div className="w-3 h-3 rounded-full bg-[#f59e0b]/60" />
@@ -156,14 +156,14 @@ export default function AIReviewDemo() {
 
           <div className="grid lg:grid-cols-2 min-h-[420px]">
             {/* Code panel */}
-            <div className="border-r border-white/5 p-6 font-mono text-[13px] overflow-x-auto">
+            <div className="border-r-2 border-black/10 p-6 font-mono text-[13px] overflow-x-auto bg-[#0d0d0f]">
               <div className="space-y-0.5">
                 {CODE_LINES.map((line) => {
                   const hasDanger = line.type === 'danger' && phase !== 'idle';
                   return (
                     <motion.div
                       key={line.n}
-                      animate={hasDanger ? { backgroundColor: 'rgba(239,68,68,0.08)' } : { backgroundColor: 'transparent' }}
+                      animate={hasDanger ? { backgroundColor: 'rgba(239,68,68,0.08)' } : { backgroundColor: 'rgba(0,0,0,0)' }}
                       transition={{ duration: 0.5, delay: 0.3 }}
                       className="flex rounded px-2 py-0.5 leading-6"
                     >
@@ -188,11 +188,11 @@ export default function AIReviewDemo() {
             {/* Review panel */}
             <div className="flex flex-col p-6 gap-4">
               {/* Header */}
-              <div className="flex items-center gap-2.5 pb-3 border-b border-white/5">
-                <div className="w-6 h-6 rounded-lg bg-[#f8423b]/15 flex items-center justify-center">
+              <div className="flex items-center gap-2.5 pb-3 border-b-2 border-black/5">
+                <div className="w-6 h-6 rounded-lg bg-[#f8423b]/10 flex items-center justify-center">
                   <RiFlashlightLine size={13} className="text-[#f8423b]" />
                 </div>
-                <span className="text-[13px] font-semibold text-white">KangBot Review</span>
+                <span className="text-[13px] font-black text-black uppercase tracking-tight">KangBot Review</span>
                 <AnimatePresence>
                   {phase === 'done' && (
                     <motion.span
@@ -212,7 +212,7 @@ export default function AIReviewDemo() {
                   <motion.div
                     initial={{ opacity: 0, y: 8 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className="text-[12.5px] text-[#888] leading-relaxed font-mono"
+                    className="text-[12.5px] text-gray-500 leading-relaxed font-mono font-medium"
                   >
                     {typedText}
                     <motion.span
@@ -258,11 +258,11 @@ export default function AIReviewDemo() {
                     transition={{ delay: 0.3 }}
                     className="flex gap-2 pt-2 border-t border-white/5"
                   >
-                    <button className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg bg-[#f8423b] text-[12px] font-bold text-white hover:opacity-90 transition-opacity">
+                    <button className="flex-1 flex items-center justify-center gap-1.5 py-2.5 border-2 border-black bg-[#f8423b] text-[12px] font-black text-white hover:translate-x-[-1px] hover:translate-y-[-1px] shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] active:shadow-none active:translate-x-0 active:translate-y-0 transition-all uppercase">
                       <RiFlashlightLine size={12} />
                       Auto-fix
                     </button>
-                    <button className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg border border-white/10 text-[12px] font-semibold text-[#888] hover:bg-white/5 transition-colors">
+                    <button className="flex-1 flex items-center justify-center gap-1.5 py-2.5 border-2 border-black bg-white text-[12px] font-black text-black hover:translate-x-[-1px] hover:translate-y-[-1px] shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] active:shadow-none active:translate-x-0 active:translate-y-0 transition-all uppercase">
                       <RiCheckboxCircleLine size={12} />
                       Approve
                     </button>

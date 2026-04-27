@@ -19,7 +19,7 @@ export default function BottomCTA() {
   }
 
   return (
-    <section className="px-6 md:px-10 lg:px-16 py-28">
+    <section className="px-6 md:px-10 lg:px-16 py-32 bg-[#fcfcfc] border-t-2 border-black/10">
       <div className="max-w-7xl mx-auto">
         <motion.div
           ref={ref}
@@ -28,76 +28,62 @@ export default function BottomCTA() {
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.8 }}
-          className="relative rounded-3xl border border-white/8 overflow-hidden cursor-default"
-          style={{ background: '#0d0d0f' }}
+          className="relative rounded-none border-2 border-black overflow-hidden cursor-default shadow-[16px_16px_0px_0px_rgba(0,0,0,1)] bg-white p-12 md:p-20"
         >
-          {/* Cursor-following glow */}
+          {/* Subtle cursor-following glow */}
           <div
-            className="absolute inset-0 pointer-events-none transition-opacity duration-300"
+            className="absolute inset-0 pointer-events-none transition-opacity duration-300 opacity-40"
             style={{
-              background: `radial-gradient(600px circle at ${glow.x}% ${glow.y}%, rgba(249,115,22,0.12), transparent 50%)`,
+              background: `radial-gradient(600px circle at ${glow.x}% ${glow.y}%, rgba(249,115,22,0.08), transparent 50%)`,
             }}
           />
 
-          {/* Static center glow */}
-          <div className="absolute inset-0 pointer-events-none">
-            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[200px] bg-[#f97316] opacity-[0.05] rounded-full blur-[60px]" />
-          </div>
-
-          {/* Grid texture */}
-          <div
-            className="absolute inset-0 pointer-events-none opacity-[0.03]"
-            style={{
-              backgroundImage: 'linear-gradient(rgba(255,255,255,0.3) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.3) 1px, transparent 1px)',
-              backgroundSize: '40px 40px',
-            }}
-          />
-
-          <div className="relative px-8 py-20 md:py-28 text-center">
+          <div className="relative text-center">
             <motion.div
               initial={{ opacity: 0, scale: 0.8 }}
               whileInView={{ opacity: 1, scale: 1 }}
               viewport={{ once: true }}
               transition={{ delay: 0.1, type: 'spring', stiffness: 200 }}
-              className="inline-flex items-center gap-2 rounded-full border border-[#f97316]/25 bg-[#f97316]/8 px-4 py-1.5 text-[11px] font-bold uppercase tracking-widest text-[#f97316] mb-8"
+              className="inline-flex items-center gap-2 border-2 border-black bg-[#f97316] px-5 py-2 text-[12px] font-black uppercase tracking-widest text-white mb-10 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]"
             >
-              <RiFlashlightLine size={11} />
-              14-day free trial · No credit card required
+              <RiFlashlightLine size={12} />
+              Free to start · 60-second setup
             </motion.div>
 
-            <h2 className="text-4xl md:text-6xl font-black tracking-tight text-white mb-6 leading-[1.05]">
-              Ready to ship
+            <h2 className="text-4xl md:text-7xl font-black tracking-tight text-black mb-8 leading-[1.05] uppercase">
+              Your next PR is already
               <br />
               <span
                 className="bg-clip-text text-transparent"
                 style={{ backgroundImage: 'linear-gradient(135deg, #f97316, #f8423b)' }}
               >
-                perfect PRs?
+                being reviewed.
               </span>
             </h2>
 
-            <p className="text-[16px] text-[#666] max-w-lg mx-auto mb-10 leading-relaxed">
-              Join thousands of engineers who review faster, ship cleaner, and sleep better knowing KangBot has their back.
+            <p className="text-[18px] text-gray-500 font-medium max-w-xl mx-auto mb-12 leading-relaxed">
+              Every engineer who connected KangBot this week found bugs they would have shipped to production.
+              Connect your repo — it takes 60 seconds and zero config.
             </p>
 
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-6">
               <Link
-                href="/in/login"
-                className="group relative flex items-center gap-2 rounded-2xl bg-[#f97316] px-8 py-4 text-[15px] font-bold text-white transition-all hover:bg-[#ea6c0a] shadow-[0_0_40px_rgba(249,115,22,0.3)] hover:shadow-[0_0_60px_rgba(249,115,22,0.4)]"
+                href="/in/signup"
+                className="group relative flex items-center gap-3 border-2 border-black bg-[#f97316] px-10 py-5 text-[16px] font-black text-white transition-all shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[-2px] hover:translate-y-[-2px] hover:shadow-[10px_10px_0px_0px_rgba(0,0,0,1)] active:shadow-none active:translate-x-0 active:translate-y-0"
               >
-                Start free trial
-                <RiArrowRightLine size={18} className="group-hover:translate-x-1 transition-transform" />
+                Connect GitHub — it's free
+                <RiArrowRightLine size={20} className="group-hover:translate-x-1 transition-transform" />
               </Link>
               <Link
                 href="/in/pricing"
-                className="flex items-center gap-2 rounded-2xl border border-white/10 px-8 py-4 text-[15px] font-bold text-white transition-all hover:bg-white/5"
+                className="flex items-center gap-3 border-2 border-black bg-white px-10 py-5 text-[16px] font-black text-black transition-all shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[-2px] hover:translate-y-[-2px] hover:shadow-[10px_10px_0px_0px_rgba(0,0,0,1)] active:shadow-none active:translate-x-0 active:translate-y-0"
               >
-                View pricing
+                See pricing
               </Link>
             </div>
 
-            <p className="mt-6 text-[12px] text-[#444]">
-              Full features for 14 days · No setup required · Cancel anytime
+            <p className="mt-10 text-[12px] text-gray-400 font-bold uppercase tracking-widest">
+              First 50 PRs free · No config required · Cancel anytime
             </p>
           </div>
         </motion.div>
