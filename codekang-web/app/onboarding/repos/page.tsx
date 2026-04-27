@@ -157,6 +157,22 @@ export default function OnboardingReposPage() {
 
   return (
     <div className="min-h-screen bg-[#fcfcfc] flex flex-col items-center font-[family-name:var(--font-space-grotesk)] text-black relative overflow-hidden">
+      <style jsx global>{`
+        .custom-scrollbar::-webkit-scrollbar {
+          width: 8px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+          background: #fff;
+          border-left: 2px solid #000;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+          background: #000;
+          border-radius: 0;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+          background: #f97316;
+        }
+      `}</style>
       {/* Grid background */}
       <div className="absolute inset-0 pointer-events-none opacity-[0.03]"
         style={{ backgroundImage: 'radial-gradient(#000 1px, transparent 1px)', backgroundSize: '32px 32px' }} />
@@ -432,7 +448,7 @@ function GitHubRepoList({
   }
 
   return (
-    <div className="border-2 border-black bg-white overflow-hidden">
+    <div className="border-2 border-black bg-white overflow-y-auto max-h-[420px] custom-scrollbar">
       {/* Already connected */}
       {connectedRepos.map((repo) => (
         <div
