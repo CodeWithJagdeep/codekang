@@ -264,9 +264,9 @@ export default function OnboardingReposPage() {
                     <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
                       <RiMagicFill size={60} />
                     </div>
-                    <h3 className="text-[16px] font-black uppercase tracking-tight mb-2">Analysis Permissions</h3>
+                    <h3 className="text-[16px] font-black uppercase tracking-tight mb-2">MANDATORY: Analysis Permissions</h3>
                     <p className="text-[13px] text-gray-400 mb-6 leading-relaxed font-medium">
-                      To allow Kang to audit your Pull Requests and open automated fixes, you must install the GitHub App on your selected repositories.
+                      CodeKang cannot operate without the GitHub App. You must install it on your selected repositories to proceed to the dashboard.
                     </p>
                     <a
                       href="https://github.com/apps/codekang/installations/new"
@@ -275,7 +275,7 @@ export default function OnboardingReposPage() {
                       className="inline-flex items-center gap-2 px-6 py-3 bg-[#f97316] text-white text-[13px] font-black uppercase tracking-widest hover:bg-[#ea580c] transition-all active:scale-95 shadow-[4px_4px_0px_0px_rgba(255,255,255,0.2)]"
                     >
                       <GitHubIcon size={16} />
-                      Install GitHub App
+                      Install Required App
                     </a>
                   </div>
                 </>
@@ -285,36 +285,21 @@ export default function OnboardingReposPage() {
             </div>
 
           {/* Footer actions */}
-          <div className="mt-10 space-y-4">
+          <div className="mt-10">
             <button
               onClick={handleFinish}
-              disabled={submitting}
+              disabled={submitting || (activeTab === 'github' && totalSelected === 0)}
               className="w-full py-5 bg-black text-white font-black uppercase tracking-widest text-[14px] shadow-[4px_4px_0px_0px_rgba(249,115,22,1)] hover:translate-x-[-2px] hover:translate-y-[-2px] hover:shadow-[6px_6px_0px_0px_rgba(249,115,22,1)] active:translate-x-0 active:translate-y-0 active:shadow-[2px_2px_0px_0px_rgba(249,115,22,1)] transition-all flex items-center justify-center gap-3 disabled:opacity-50 disabled:grayscale"
             >
               {submitting ? (
                 <Loader2 size={20} className="animate-spin" />
-              ) : totalSelected > 0 ? (
-                <>
-                  Connect {totalSelected} {totalSelected === 1 ? 'repo' : 'repos'}
-                  <ChevronRight size={18} />
-                </>
               ) : (
                 <>
-                  Enter Dashboard
+                  {totalSelected > 0 ? `Connect & Activate ${totalSelected} Repos` : 'Select Repos to Continue'}
                   <ChevronRight size={18} />
                 </>
               )}
             </button>
-
-            <div className="flex flex-col items-center gap-4 pt-4">
-              <button
-                onClick={handleSkip}
-                disabled={submitting}
-                className="text-[13px] font-bold uppercase tracking-widest text-gray-400 hover:text-black transition-colors disabled:opacity-50"
-              >
-                Skip configuration for now
-              </button>
-            </div>
           </div>
         </div>
       </div>

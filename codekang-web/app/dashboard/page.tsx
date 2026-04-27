@@ -102,8 +102,11 @@ export default function DashboardPage() {
 
   const isLoading = loading || (!!selectedOrgId && orgReposLoading);
 
+  // Check if any repo is NOT installed
+  const needsInstallation = connected.length > 0 && connected.every(r => !r.isInstalled);
+
   return (
-    <div className="flex h-full w-full">
+    <div className="flex h-full w-full relative">
       <CenterPanel
         activeNav="repos"
         repos={visibleRepos}
@@ -114,6 +117,31 @@ export default function DashboardPage() {
         onRemoveRepo={handleRemoveRepo}
         onLinkAccount={() => router.push('/onboarding')}
       />
+
+      {needsInstallation && (
+        <div className="absolute inset-0 z-[100] bg-white/80 backdrop-blur-sm flex items-center justify-center p-6">
+          <div className="max-w-[500px] w-full bg-white border-4 border-black p-10 shadow-[12px_12px_0px_0px_rgba(0,0,0,1)] text-center">
+            <div className="w-16 h-16 bg-black flex items-center justify-center mx-auto mb-6">
+              <span className="text-white text-3xl font-black italic">!</span>
+            </div>
+            <h2 className="text-3xl font-black uppercase tracking-tighter mb-4">Activation Required</h2>
+            <p className="text-[15px] font-medium text-gray-500 mb-8 leading-relaxed">
+              We've connected your repositories, but CodeKang cannot perform audits until the GitHub App is installed. This is a mandatory security step.
+            </p>
+            <a
+              href="https://github.com/apps/codekang/installations/new"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-3 px-8 py-5 bg-[#f97316] text-white font-black uppercase tracking-widest text-[14px] shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[-2px] hover:translate-y-[-2px] hover:shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] active:translate-x-0 active:translate-y-0 active:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all"
+            >
+              Install GitHub App Now
+            </a>
+            <p className="mt-8 text-[11px] font-black uppercase tracking-widest text-gray-300">
+              Audits will begin automatically after installation.
+            </p>
+          </div>
+        </div>
+      )}
 
       {dialogOpen && (
         <AddRepoDialog
