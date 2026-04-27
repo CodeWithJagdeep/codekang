@@ -31,7 +31,6 @@ import Footer from '@/component/Footer';
 
 const LIVE_EVENTS = [
   { repo: 'fintech-api', fix: 'SQL injection patched in payment handler', icon: RiShieldLine, color: '#ef4444', time: '2s ago' },
-  { repo: 'user-service', fix: 'Race condition caught in auth middleware', icon: RiFlashlightLine, color: '#f97316', time: '14s ago' },
   { repo: 'checkout-flow', fix: 'Fix PR opened for missing null check', icon: RiGitPullRequestLine, color: '#22c55e', time: '31s ago' },
   { repo: 'ml-pipeline', fix: 'Hardcoded secret removed from config', icon: RiShieldLine, color: '#ef4444', time: '48s ago' },
   { repo: 'data-ingestion', fix: 'Memory leak resolved in stream handler', icon: RiFlashlightLine, color: '#f97316', time: '1m ago' },
