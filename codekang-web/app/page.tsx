@@ -29,13 +29,6 @@ import Testimonials from '@/component/landing/Testimonials';
 import BottomCTA from '@/component/landing/BottomCTA';
 import Footer from '@/component/Footer';
 
-const LIVE_EVENTS = [
-  { repo: 'fintech-api', fix: 'SQL injection patched in payment handler', icon: RiShieldLine, color: '#ef4444', time: '2s ago' },
-  { repo: 'checkout-flow', fix: 'Fix PR opened for missing null check', icon: RiGitPullRequestLine, color: '#22c55e', time: '31s ago' },
-  { repo: 'data-ingestion', fix: 'Memory leak resolved in stream handler', icon: RiFlashlightLine, color: '#f97316', time: '1m ago' },
-  { repo: 'api-gateway', fix: 'N+1 query fixed in user resolver', icon: RiTimeLine, color: '#60a5fa', time: '2m ago' },
-];
-
 // ── Feature Bento Data ───────────────────────────────────────────────────────
 
 const FEATURES = [
@@ -79,43 +72,6 @@ const FEATURES = [
 ];
 
 // ── Page ─────────────────────────────────────────────────────────────────────
-
-function LiveActivityTicker() {
-  const [current, setCurrent] = useState(0);
-
-  useEffect(() => {
-    const id = setInterval(() => setCurrent((c) => (c + 1) % LIVE_EVENTS.length), 3000);
-    return () => clearInterval(id);
-  }, []);
-
-  const event = LIVE_EVENTS[current] || LIVE_EVENTS[0];
-  if (!event) return null;
-  const Icon = event.icon;
-
-  return (
-    <div className="flex items-center gap-3 border-2 border-black/10 bg-white px-5 py-2.5 shadow-[4px_4px_0px_0px_rgba(0,0,0,0.08)] max-w-[520px] w-full overflow-hidden">
-      <span className="relative flex h-2.5 w-2.5 shrink-0">
-        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#22c55e] opacity-75" />
-        <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-[#22c55e]" />
-      </span>
-      <span className="text-[11px] font-bold uppercase tracking-[0.15em] text-gray-400 shrink-0">LIVE</span>
-      <AnimatePresence mode="wait">
-        <motion.div
-          key={current}
-          initial={{ opacity: 0, y: 8 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: -8 }}
-          transition={{ duration: 0.25 }}
-          className="flex items-center gap-2 min-w-0"
-        >
-          <Icon size={13} style={{ color: event.color }} className="shrink-0" />
-          <span className="text-[13px] font-semibold text-black truncate">{event.fix}</span>
-          <span className="text-[11px] text-gray-400 shrink-0 ml-auto pl-2">{event.time}</span>
-        </motion.div>
-      </AnimatePresence>
-    </div>
-  );
-}
 
 interface Feature {
   title: string;
@@ -353,7 +309,6 @@ export default function RootPage() {
                    Join 500+ engineers
                  </span>
                </motion.div>
-               <LiveActivityTicker />
             </div>
 
             {/* ── Headline ── */}
