@@ -23,7 +23,7 @@ import { RazorpayService } from './razorpay.service';
         signOptions: { expiresIn: config.get('JWT_EXPIRES_IN', '15m') },
       }),
     }),
-    TypeOrmModule.forFeature([User, RefreshTokenBlacklist, Otp]),
+    TypeOrmModule.forFeature([User, RefreshTokenBlacklist, Otp, UserSession]),
     ScheduleModule.forRoot(),
     MailModule,
   ],

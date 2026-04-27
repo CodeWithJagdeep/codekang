@@ -11,6 +11,7 @@ export interface IUser {
   githubUsername?: string;
   gitlabUsername?: string;
   bitbucketUsername?: string;
+  organizationName?: string;
   plan: PlanTier;
   onboardingCompleted: boolean;
   createdAt: Date;

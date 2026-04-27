@@ -7,6 +7,7 @@ import { User } from './entities/user.entity';
 import { RefreshTokenBlacklist } from './entities/refresh-token-blacklist.entity';
 import { Otp } from './entities/otp.entity';
 import { UserIntegration } from './entities/user-integration.entity';
+import { UserSession } from './entities/user-session.entity';
 
 @Module({
   imports: [
@@ -25,7 +26,13 @@ import { UserIntegration } from './entities/user-integration.entity';
       useFactory: (config: ConfigService) => ({
         type: 'postgres',
         url: config.getOrThrow('DATABASE_URL'),
-        entities: [User, RefreshTokenBlacklist, Otp, UserIntegration],
+        entities: [
+          User,
+          RefreshTokenBlacklist,
+          Otp,
+          UserIntegration,
+          UserSession,
+        ],
         synchronize: config.get('NODE_ENV') !== 'production',
         ssl:
           config.get('NODE_ENV') === 'production'

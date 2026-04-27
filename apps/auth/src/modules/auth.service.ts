@@ -20,7 +20,7 @@ import type {
 } from '../common';
 import { MailService } from './mail/mail.service';
 import { RazorpayService, type RazorpaySubscriptionResult } from './razorpay.service';
-import * as UAParser from 'ua-parser-js';
+import { UAParser } from 'ua-parser-js';
 
 interface OAuthProfile {
   provider: 'google' | 'github';
@@ -449,6 +449,21 @@ export class AuthService {
     const user = await this.userRepo.findOne({ where: { id: userId } });
     if (!user) throw new UnauthorizedException('User not found');
     return this.toPublicUser(user);
+  }
+
+  async updateProfile(
+    userId: string,
+    data: { name?: string; organizationName?: string },
+  ): Promise<IUser> {
+    const user = await this.userRepo.findOne({ where: { id: userId } });
+    if (!user) throw new UnauthorizedException('User not found');
+
+    if (data.name) user.name = data.name;
+    if (data.organizationName) user.organizationName = data.organizationName;
+
+    const saved = await this.userRepo.save(user);
+    this.logger.log(`updateProfile success userId=${userId}`);
+    return this.toPublicUser(saved);
   }
 
   async getGithubToken(userId: string): Promise<string | null> {

@@ -45,16 +45,22 @@ export class MailService {
         this.logger.log(
           `Attempting to send email via Resend to ${payload.to}...`,
         );
-        await this.resend.emails.send({
+        const { data, error } = await this.resend.emails.send({
           from: this.fromAddress,
           to: payload.to,
           subject: payload.subject,
           html: payload.html,
         });
-        this.logger.log(`Resend: Successfully sent email to ${payload.to}`);
+
+        if (error) {
+          this.logger.error(`Resend API returned an error: ${JSON.stringify(error)}`);
+          throw new Error(error.message);
+        }
+
+        this.logger.log(`Resend: Successfully sent email to ${payload.to} (ID: ${data?.id})`);
         return;
       } catch (err) {
-        this.logger.error(`Resend failed, falling back to Zoho: ${err}`);
+        this.logger.error(`Resend failed, falling back to Zoho: ${err instanceof Error ? err.message : String(err)}`);
       }
     }
 

@@ -23,6 +23,9 @@ export class User {
   @Column({ nullable: true })
   avatar: string;
 
+  @Column({ name: 'organization_name', nullable: true })
+  organizationName: string;
+
   @Column({ type: 'varchar', default: 'github' })
   provider: 'google' | 'github' | 'local';
 

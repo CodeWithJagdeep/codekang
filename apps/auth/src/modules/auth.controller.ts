@@ -253,4 +253,10 @@ export class AuthController {
     await this.authService.revokeSession(data.userId, data.sessionId);
     return { success: true };
   }
+
+  @MessagePattern(MESSAGE_PATTERNS.AUTH_UPDATE_PROFILE)
+  async updateProfile(@Payload() data: { userId: string; name?: string; organizationName?: string }) {
+    this.logger.log(`updateProfile userId=${data.userId}`);
+    return this.authService.updateProfile(data.userId, data);
+  }
 }
