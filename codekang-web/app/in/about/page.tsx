@@ -38,8 +38,6 @@ import {
   SiJira, 
   SiLinear, 
   SiNotion, 
-  SiSentry, 
-  SiVercel, 
   SiDatadog
 } from 'react-icons/si';
 import HomeHeader from '@/component/HomeHeader';
@@ -237,8 +235,7 @@ export default function AboutPage() {
                    { name: 'Slack', icon: RiSlackFill, color: '#e01e5a' },
                    { name: 'Linear', icon: SiLinear, color: '#5E6AD2' },
                    { name: 'Notion', icon: SiNotion, color: '#000000' },
-                   { name: 'Sentry', icon: SiSentry, color: '#362D59' },
-                   { name: 'Vercel', icon: SiVercel, color: '#000000' },
+
                    { name: 'Datadog', icon: SiDatadog, color: '#632CA6' },
                    { name: 'PostHog', icon: RiPulseLine, color: '#000000' },
                    { name: 'Segment', icon: RiPieChartLine, color: '#52BD94' },
