@@ -126,7 +126,7 @@ export default function CreateOrgModal({
                 className="px-3 py-2 text-[13px] shrink-0 border-r"
                 style={{ color: '#52525b', borderColor: '#27272a' }}
               >
-                codekang.dev/
+                codekang.com/
               </span>
               <input
                 type="text"
