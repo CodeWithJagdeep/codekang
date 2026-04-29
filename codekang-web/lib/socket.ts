@@ -90,10 +90,10 @@ export function useSocket(): UseSocketReturn {
 
     const socket = io(`${WS_URL}/ws`, {
       auth: { token },
-      transports: ['websocket', 'polling'],
+      transports: ['websocket'],
       reconnection: true,
-      reconnectionDelay: 2000,
-      reconnectionAttempts: 10,
+      reconnectionDelay: 3000,
+      reconnectionAttempts: 5,
     });
     socketRef.current = socket;
 
