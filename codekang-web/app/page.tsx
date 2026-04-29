@@ -1,7 +1,9 @@
 'use client';
 
 import React, { useEffect, useState, useRef } from 'react';
+import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence, useInView } from 'framer-motion';
+import { getAccessToken } from '@/lib/auth';
 import {
   RiArrowRightLine,
   RiFileCopyLine,
@@ -269,7 +271,15 @@ function FeatureVisual({ index }: { index: number }) {
 }
 
 export default function RootPage() {
+  const router = useRouter();
   const [activeIndex, setActiveIndex] = useState(0);
+
+  useEffect(() => {
+    if (getAccessToken()) {
+      router.replace('/dashboard');
+    }
+  }, [router]);
+
   return (
     <div className="min-h-screen text-black  font-[family-name:var(--font-space-grotesk)]">
       <HomeHeader />
@@ -313,23 +323,40 @@ export default function RootPage() {
 
             {/* ── Headline ── */}
             <motion.h1
-
-              className="text-3xl sm:text-5xl lg:text-7xl uppercase font-bold leading-[1.08] text-black mb-8 w-full"
+              className="text-3xl sm:text-5xl lg:text-7xl uppercase font-bold leading-[1.08] text-black mb-6 w-full"
             >
-              Your team ships code. <br />
-              <span className="text-[#f97316]">Kang ships</span> <br />
-              the fix.
+              AI that reviews your PRs,<br />
+              <span className="text-[#f97316]">fixes real bugs,</span><br />
+              opens the fix PR.
             </motion.h1>
+
+            {/* ── Sub-bullets ── */}
+            <motion.div
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.12 }}
+              className="flex flex-wrap items-center justify-center gap-x-8 gap-y-2 mb-6 text-[14px] font-semibold text-gray-500"
+            >
+              {[
+                'Not just comments — actual fix PRs',
+                'Reads codebase context, not just the diff',
+                'Catches SQLi, hardcoded secrets, null bugs, N+1 queries',
+              ].map((b, i) => (
+                <span key={i} className="flex items-center gap-1.5">
+                  <RiCheckLine size={13} className="text-[#22c55e] shrink-0" />
+                  {b}
+                </span>
+              ))}
+            </motion.div>
 
             {/* ── Subtitle ── */}
             <motion.p
               initial={{ opacity: 0, y: 15 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.15 }}
-              className="text-[18px] md:text-[22px] text-gray-500 leading-relaxed mb-10 w-full max-w-3xl font-medium tracking-normal"
+              className="text-[17px] md:text-[20px] text-gray-500 leading-relaxed mb-10 w-full max-w-2xl font-medium tracking-normal"
             >
-              Stop losing sleep over broken reviews. Kang catches logic flaws, secrets, and
-              security holes on every PR — then opens a ready-to-merge fix in under 3 minutes.
+              Kang installs in 60 seconds, attaches to every PR automatically, and opens a ready-to-merge fix when it finds a real bug. You review and approve — it never auto-merges anything.
             </motion.p>
 
 
@@ -380,19 +407,19 @@ export default function RootPage() {
           {/* ── Brutalist Stats Row ── */}
           <div className="flex flex-col sm:flex-row border-t-2 border-black/10">
             {[
-              { label: 'STATUS: BETA', value: '10,000+ PRs FIXED' },
-              { label: 'COMMUNITY', value: '500+ BETA USERS' },
-              { label: 'LATENCY', value: '< 3 MIN FIXES' },
-              { label: 'RELIABILITY', value: '99.9% UPTIME' },
+              { label: 'FIX PR LATENCY', value: '< 3 MIN' },
+              { label: 'BETA ENGINEERS', value: '500+' },
+              { label: 'AUTO-MERGES', value: '0 — EVER' },
+              { label: 'SETUP TIME', value: '< 60 SEC' },
             ].map((stat, i) => (
               <div
                 key={i}
-                className={`flex-1 px-14 py-16 ${i < 3 ? 'border-b-2 sm:border-b-0 sm:border-r-2' : ''} border-black/10 text-center sm:text-left hover:bg-[#f97316]/5 transition-colors group`}
+                className={`flex-1 px-10 py-14 ${i < 3 ? 'border-b-2 sm:border-b-0 sm:border-r-2' : ''} border-black/10 text-center sm:text-left hover:bg-[#f97316]/5 transition-colors group`}
               >
-                <p className="text-[12px] font-bold tracking-[0.3em] text-[#f97316] mb-4 group-hover:translate-x-1 transition-transform">
+                <p className="text-[11px] font-bold tracking-[0.3em] text-[#f97316] mb-4 group-hover:translate-x-1 transition-transform">
                   {stat.label}
                 </p>
-                <p className="text-[2.2rem] lg:text-[3rem] font-bold text-black tracking-normal leading-none">{stat.value}</p>
+                <p className="text-[2rem] lg:text-[2.6rem] font-bold text-black tracking-normal leading-none">{stat.value}</p>
               </div>
             ))}
           </div>
@@ -416,6 +443,41 @@ export default function RootPage() {
           <div className="border-b-2 border-black/10">
             <LogoMarquee />
           </div>
+
+          {/* ── Positioning: Not X, Not Y ── */}
+          <section className="px-6 md:px-14 py-20 bg-white border-b-2 border-black/10">
+            <div className="max-w-5xl mx-auto text-center">
+              <p className="text-[11px] font-bold uppercase tracking-[0.3em] text-[#f97316] mb-6">Clear positioning</p>
+              <h2 className="text-2xl md:text-4xl font-black text-black uppercase tracking-tight mb-10">
+                Kang is not a code generator.<br />Not a scanner. Not a chatbot.
+              </h2>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-left">
+                {[
+                  {
+                    versus: 'vs GitHub Copilot',
+                    theirs: 'Suggests code as you type. Doesn\'t review what you already wrote.',
+                    ours: 'Kang reviews every PR after it\'s written and opens a fix when it finds a real bug.',
+                  },
+                  {
+                    versus: 'vs Snyk / SAST',
+                    theirs: 'Reports vulnerabilities in a dashboard. You still have to fix them manually.',
+                    ours: 'Kang fixes what it finds. The fix PR is ready before you finish reading the alert.',
+                  },
+                  {
+                    versus: 'vs CodeRabbit / PR bots',
+                    theirs: 'Leaves AI-generated comments on your PR. Still just comments.',
+                    ours: 'Kang opens a separate fix PR with a correct code diff. You approve or skip.',
+                  },
+                ].map((item, i) => (
+                  <div key={i} className="border-2 border-black p-6 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+                    <p className="text-[11px] font-black uppercase tracking-widest text-[#f97316] mb-4">{item.versus}</p>
+                    <p className="text-[13px] text-gray-400 mb-3 leading-relaxed line-through decoration-gray-300">{item.theirs}</p>
+                    <p className="text-[14px] text-black font-semibold leading-relaxed">{item.ours}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </section>
 
           <section className="px-6 md:px-14 pb-48 pt-32 bg-[#fcfcfc]">
             <div className="w-full max-w-screen-2xl mx-auto">
@@ -505,6 +567,72 @@ export default function RootPage() {
 
           <PricingTeaser />
           <Testimonials />
+          {/* ── What Kang does NOT do ── */}
+          <section className="px-6 md:px-14 py-24 bg-white border-t-2 border-black/10">
+            <div className="max-w-5xl mx-auto">
+              <div className="text-center mb-14">
+                <p className="text-[11px] font-bold uppercase tracking-[0.3em] text-[#f97316] mb-4">Trust & control</p>
+                <h2 className="text-3xl md:text-5xl font-black text-black uppercase tracking-tight">
+                  What Kang does<br /><span className="text-[#f97316]">not</span> do.
+                </h2>
+                <p className="text-gray-500 text-lg mt-4 font-medium max-w-xl mx-auto">
+                  We think you should know the boundaries before you hand us access to your codebase.
+                </p>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {[
+                  { point: 'Never auto-merges', detail: 'Every fix PR waits for your explicit approval. Kang can\'t merge anything without you.' },
+                  { point: 'Never touches production', detail: 'Kang only opens PRs on your branches. It has no deployment access and can\'t trigger releases.' },
+                  { point: 'Never stores your code', detail: 'We analyze diffs in-memory during review. Your source code is not stored on our servers.' },
+                  { point: 'Never rewrites your architecture', detail: 'Kang fixes bugs and security issues in existing code. It doesn\'t redesign, refactor, or restructure.' },
+                  { point: 'Never learns from your private code', detail: 'Your repos are not used to train or fine-tune any model. Your code is yours.' },
+                  { point: 'Never acts without a trigger', detail: 'Kang only runs when a PR is opened or updated. It doesn\'t run background jobs on your codebase.' },
+                ].map((item, i) => (
+                  <div key={i} className="flex items-start gap-4 p-5 border border-black/10 bg-[#fcfcfc]">
+                    <div className="w-5 h-5 border-2 border-black bg-black flex items-center justify-center shrink-0 mt-0.5">
+                      <span className="text-white text-[10px] font-black">✕</span>
+                    </div>
+                    <div>
+                      <p className="text-[14px] font-black text-black uppercase tracking-tight mb-1">{item.point}</p>
+                      <p className="text-[13px] text-gray-500 leading-relaxed">{item.detail}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </section>
+
+          {/* ── Security & Privacy ── */}
+          <section className="px-6 md:px-14 py-20 bg-black border-t-2 border-black">
+            <div className="max-w-5xl mx-auto">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-14 items-center">
+                <div>
+                  <p className="text-[11px] font-bold uppercase tracking-[0.3em] text-[#f97316] mb-4">Security & Privacy</p>
+                  <h2 className="text-3xl md:text-5xl font-black text-white uppercase tracking-tight mb-6">
+                    You&apos;re handing us<br />access to your code.<br />Here&apos;s what we do with it.
+                  </h2>
+                  <p className="text-gray-400 text-[15px] leading-relaxed font-medium">
+                    We take a minimal-access approach by design. Kang requests only the permissions it needs to read PRs and open fix branches — nothing more.
+                  </p>
+                </div>
+                <div className="space-y-4">
+                  {[
+                    { label: 'GitHub OAuth scope', value: 'Read PRs · Write comments · Open branches. No admin access.' },
+                    { label: 'Code storage', value: 'Diffs are analyzed in-memory. Source code is never persisted.' },
+                    { label: 'Data retention', value: 'PR metadata only. Deleted on disconnect.' },
+                    { label: 'SOC 2', value: 'In progress. Available Q3 2025. Contact us for current posture doc.' },
+                    { label: 'Private code & AI training', value: 'Your code is never used to train any model. Ever.' },
+                  ].map((item, i) => (
+                    <div key={i} className="flex gap-4 border-b border-white/5 pb-4">
+                      <p className="text-[11px] font-bold uppercase tracking-widest text-[#f97316] w-36 shrink-0 mt-0.5">{item.label}</p>
+                      <p className="text-[13px] text-gray-300 leading-relaxed">{item.value}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </section>
+
           <BottomCTA />
           <Footer />
         </div>
