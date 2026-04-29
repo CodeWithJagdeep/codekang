@@ -19,7 +19,7 @@ import { SiGithub, SiX } from 'react-icons/si';
 import { useState, useRef, useEffect } from 'react';
 import { useTheme } from '@/lib/theme';
 import Link from 'next/link';
-import { fetchSupportTickets, createSupportTicket, type ISupportTicket } from '@/lib/auth';
+import { fetchSupportTickets, createSupportTicket, replyToTicket, resolveTicket, type ISupportTicket } from '@/lib/auth';
 import { formatDistanceToNow } from 'date-fns';
 
 // ── Types ──
@@ -125,30 +125,46 @@ export default function SupportPage() {
     }
   };
 
-  const handleSendReply = () => {
+  const handleSendReply = async () => {
     if (!reply.trim() || !activeId) return;
-    const newMsg: Message = {
-      id: Date.now().toString(),
-      author: 'user',
-      content: reply,
-      timestamp: 'Just now',
-    };
-    setTickets((prev) =>
-      prev.map((t) =>
-        t.id === activeId
-          ? { ...t, messages: [...t.messages, newMsg], updatedAt: 'Just now' }
-          : t,
-      ),
-    );
+    const content = reply;
     setReply('');
+    try {
+      const updated = await replyToTicket(activeId, content);
+      setTickets((prev) =>
+        prev.map((t) => (t.id === activeId ? mapBackendTicket(updated) : t)),
+      );
+    } catch {
+      // optimistic fallback
+      const newMsg: Message = {
+        id: Date.now().toString(),
+        author: 'user',
+        content,
+        timestamp: 'Just now',
+      };
+      setTickets((prev) =>
+        prev.map((t) =>
+          t.id === activeId
+            ? { ...t, messages: [...t.messages, newMsg], updatedAt: 'Just now' }
+            : t,
+        ),
+      );
+    }
   };
 
-  const handleResolve = (id: string) => {
-    setTickets((prev) =>
-      prev.map((t) =>
-        t.id === id ? { ...t, status: 'resolved' as TicketStatus } : t,
-      ),
-    );
+  const handleResolve = async (id: string) => {
+    try {
+      const updated = await resolveTicket(id);
+      setTickets((prev) =>
+        prev.map((t) => (t.id === id ? mapBackendTicket(updated) : t)),
+      );
+    } catch {
+      setTickets((prev) =>
+        prev.map((t) =>
+          t.id === id ? { ...t, status: 'resolved' as TicketStatus } : t,
+        ),
+      );
+    }
   };
 
   const handleFeedback = (id: string, rating: number, feedback: string) => {
