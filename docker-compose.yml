@@ -99,33 +99,35 @@ services:
 
   auth:
     build:
-      context: ./apps/auth
-      dockerfile: ../../docker/auth/Dockerfile
+      context: .
+      dockerfile: docker/auth/Dockerfile
     container_name: codekang-auth
     restart: unless-stopped
     environment:
       NODE_ENV: ${NODE_ENV:-production}
       DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-codekang_platform}
-      JWT_SECRET: ${JWT_SECRET:-change-this-to-a-long-random-secret-min-32-chars}
+      JWT_SECRET: ${JWT_SECRET}
       JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-15m}
-      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:-change-this-to-a-different-long-random-secret}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET}
       JWT_REFRESH_EXPIRES_IN: ${JWT_REFRESH_EXPIRES_IN:-7d}
       GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
       GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET}
-      GOOGLE_CALLBACK_URL: ${GOOGLE_CALLBACK_URL:-http://localhost:3011/auth/google/callback}
+      GOOGLE_CALLBACK_URL: ${GOOGLE_CALLBACK_URL}
       GITHUB_CLIENT_ID: ${GITHUB_CLIENT_ID}
       GITHUB_CLIENT_SECRET: ${GITHUB_CLIENT_SECRET}
-      GITHUB_CALLBACK_URL: ${GITHUB_CALLBACK_URL:-http://localhost:3011/auth/github/callback}
-      FIREBASE_SERVICE_ACCOUNT_PATH: /app/secrets/firebase-service-account.json
-      FIREBASE_PROJECT_ID: ${FIREBASE_PROJECT_ID:-codekang-6f1b6}
+      GITHUB_CALLBACK_URL: ${GITHUB_CALLBACK_URL}
+      FIREBASE_PROJECT_ID: ${FIREBASE_PROJECT_ID}
       FIREBASE_CLIENT_EMAIL: ${FIREBASE_CLIENT_EMAIL}
       FIREBASE_PRIVATE_KEY: ${FIREBASE_PRIVATE_KEY}
-      AUTH_HTTP_PORT: ${AUTH_HTTP_PORT:-3011}
       AUTH_TCP_PORT: ${AUTH_TCP_PORT:-3001}
-      FRONTEND_URL: ${FRONTEND_URL:-http://localhost:3010}
+      FRONTEND_URL: ${FRONTEND_URL}
       REDIS_URL: redis://redis:6379
-    volumes:
-      - ./${FIREBASE_SERVICE_ACCOUNT_FILE:-codekang-6f1b6-firebase-adminsdk-fbsvc-f7e5055138.json}:/app/secrets/firebase-service-account.json:ro
+      RESEND_API_KEY: ${RESEND_API_KEY}
+      ZOHO_SMTP_HOST: ${ZOHO_SMTP_HOST:-smtp.zoho.com}
+      ZOHO_SMTP_PORT: ${ZOHO_SMTP_PORT:-465}
+      ZOHO_SMTP_USER: ${ZOHO_SMTP_USER}
+      ZOHO_SMTP_PASS: ${ZOHO_SMTP_PASS}
+      MAIL_FROM: ${MAIL_FROM:-CodeKang <noreply@codekang.com>}
     ports:
       - '${AUTH_TCP_PORT:-3001}:3001'
     depends_on:
@@ -145,8 +147,8 @@ services:
 
   ai-agent:
     build:
-      context: ./apps/ai-agent
-      dockerfile: ../../docker/ai-agent/Dockerfile
+      context: .
+      dockerfile: docker/ai-agent/Dockerfile
     container_name: codekang-ai-agent
     restart: unless-stopped
     environment:
@@ -155,7 +157,7 @@ services:
       AI_AGENT_TCP_PORT: ${AI_AGENT_TCP_PORT:-3002}
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
       ANTHROPIC_MODEL: ${ANTHROPIC_MODEL:-claude-sonnet-4-6}
-      AUTH_SERVICE_HOST: ${AUTH_SERVICE_HOST:-auth}
+      AUTH_SERVICE_HOST: auth
       AUTH_TCP_PORT: ${AUTH_TCP_PORT:-3001}
       REDIS_URL: redis://redis:6379
     ports:
@@ -179,8 +181,8 @@ services:
 
   repos:
     build:
-      context: ./apps/repos
-      dockerfile: ../../docker/repos/Dockerfile
+      context: .
+      dockerfile: docker/repos/Dockerfile
     container_name: codekang-repos
     restart: unless-stopped
     environment:
@@ -189,9 +191,18 @@ services:
       REPOS_TCP_PORT: ${REPOS_TCP_PORT:-3003}
       GITHUB_CLIENT_ID: ${GITHUB_CLIENT_ID}
       GITHUB_CLIENT_SECRET: ${GITHUB_CLIENT_SECRET}
-      AUTH_SERVICE_HOST: ${AUTH_SERVICE_HOST:-auth}
+      GITHUB_APP_ID: ${GITHUB_APP_ID}
+      GITHUB_WEBHOOK_SECRET: ${GITHUB_WEBHOOK_SECRET}
+      AUTH_SERVICE_HOST: auth
       AUTH_TCP_PORT: ${AUTH_TCP_PORT:-3001}
       REDIS_URL: redis://redis:6379
+      RAZORPAY_KEY_ID: ${RAZORPAY_KEY_ID}
+      RAZORPAY_KEY_SECRET: ${RAZORPAY_KEY_SECRET}
+      RAZORPAY_WEBHOOK_SECRET: ${RAZORPAY_WEBHOOK_SECRET}
+      RAZORPAY_PLAN_STARTER_MONTHLY_ID: ${RAZORPAY_PLAN_STARTER_MONTHLY_ID}
+      RAZORPAY_PLAN_STARTER_ANNUAL_ID: ${RAZORPAY_PLAN_STARTER_ANNUAL_ID}
+      RAZORPAY_PLAN_TEAM_MONTHLY_ID: ${RAZORPAY_PLAN_TEAM_MONTHLY_ID}
+      RAZORPAY_PLAN_TEAM_ANNUAL_ID: ${RAZORPAY_PLAN_TEAM_ANNUAL_ID}
     ports:
       - '${REPOS_TCP_PORT:-3003}:3003'
     depends_on:
@@ -213,23 +224,39 @@ services:
 
   gateway:
     build:
-      context: ./apps/gateway
-      dockerfile: ../../docker/gateway/Dockerfile
+      context: .
+      dockerfile: docker/gateway/Dockerfile
     container_name: codekang-gateway
     restart: unless-stopped
     environment:
       NODE_ENV: ${NODE_ENV:-production}
       GATEWAY_PORT: ${GATEWAY_PORT:-3000}
-      AUTH_SERVICE_HOST: ${AUTH_SERVICE_HOST:-auth}
+      AUTH_SERVICE_HOST: auth
       AUTH_TCP_PORT: ${AUTH_TCP_PORT:-3001}
-      AI_AGENT_SERVICE_HOST: ${AI_AGENT_SERVICE_HOST:-ai-agent}
+      AI_AGENT_SERVICE_HOST: ai-agent
       AI_AGENT_TCP_PORT: ${AI_AGENT_TCP_PORT:-3002}
-      REPOS_SERVICE_HOST: ${REPOS_SERVICE_HOST:-repos}
+      REPOS_SERVICE_HOST: repos
       REPOS_TCP_PORT: ${REPOS_TCP_PORT:-3003}
-      JWT_SECRET: ${JWT_SECRET:-change-this-to-a-long-random-secret-min-32-chars}
+      JWT_SECRET: ${JWT_SECRET}
       JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-15m}
-      FRONTEND_URL: ${FRONTEND_URL:-http://localhost:3010}
+      FRONTEND_URL: ${FRONTEND_URL}
       REDIS_URL: redis://redis:6379
+      INTERNAL_SECRET: ${INTERNAL_SECRET}
+      SENTRY_DSN: ${SENTRY_DSN}
+      DISCORD_CLIENT_ID: ${DISCORD_CLIENT_ID}
+      DISCORD_CLIENT_SECRET: ${DISCORD_CLIENT_SECRET}
+      SLACK_CLIENT_ID: ${SLACK_CLIENT_ID}
+      SLACK_CLIENT_SECRET: ${SLACK_CLIENT_SECRET}
+      LINEAR_CLIENT_ID: ${LINEAR_CLIENT_ID}
+      LINEAR_CLIENT_SECRET: ${LINEAR_CLIENT_SECRET}
+      NOTION_CLIENT_ID: ${NOTION_CLIENT_ID}
+      NOTION_CLIENT_SECRET: ${NOTION_CLIENT_SECRET}
+      JIRA_CLIENT_ID: ${JIRA_CLIENT_ID}
+      JIRA_CLIENT_SECRET: ${JIRA_CLIENT_SECRET}
+      GITLAB_CLIENT_ID: ${GITLAB_CLIENT_ID}
+      GITLAB_CLIENT_SECRET: ${GITLAB_CLIENT_SECRET}
+      BITBUCKET_CLIENT_ID: ${BITBUCKET_CLIENT_ID}
+      BITBUCKET_CLIENT_SECRET: ${BITBUCKET_CLIENT_SECRET}
     ports:
       - '${GATEWAY_PORT:-3000}:3000'
     depends_on:
@@ -260,16 +287,38 @@ services:
     environment:
       NODE_ENV: ${NODE_ENV:-production}
       PORT: ${AUTONOMOUS_PORT:-4000}
-      GITHUB_APP_ID: ${GITHUB_APP_ID}
-      GITHUB_WEBHOOK_SECRET: ${GITHUB_WEBHOOK_SECRET}
-      GITHUB_APP_PRIVATE_KEY_PATH: ./github-app-private-key.pem
-      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
-      ANTHROPIC_MODEL: ${ANTHROPIC_MODEL:-claude-sonnet-4-6}
+      # Database
       DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-codekang_platform}
+      DB_POOL_MIN: ${DB_POOL_MIN:-2}
+      DB_POOL_MAX: ${DB_POOL_MAX:-10}
+      # Redis
       REDIS_HOST: redis
       REDIS_PORT: 6379
-      GATEWAY_URL: ${GATEWAY_URL:-http://gateway:3000}
+      # Anthropic
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
+      ANTHROPIC_MODEL_CLASSIFIER: ${ANTHROPIC_MODEL_CLASSIFIER:-claude-haiku-4-5-20251001}
+      ANTHROPIC_MODEL_AGENT: ${ANTHROPIC_MODEL_AGENT:-claude-sonnet-4-6}
+      # GitHub
+      GITHUB_APP_ID: ${GITHUB_APP_ID}
+      GITHUB_WEBHOOK_SECRET: ${GITHUB_WEBHOOK_SECRET}
+      GITHUB_APP_PRIVATE_KEY_PATH: /app/github-app-private-key.pem
+      GITHUB_TOKEN: ${GITHUB_TOKEN}
+      # Worker tuning
+      INDEX_WORKER_CONCURRENCY: ${INDEX_WORKER_CONCURRENCY:-2}
+      FIX_WORKER_CONCURRENCY: ${FIX_WORKER_CONCURRENCY:-1}
+      JOB_ATTEMPTS: ${JOB_ATTEMPTS:-3}
+      JOB_BACKOFF_DELAY: ${JOB_BACKOFF_DELAY:-5000}
+      INDEX_JOB_TIMEOUT: ${INDEX_JOB_TIMEOUT:-300000}
+      FIX_JOB_TIMEOUT: ${FIX_JOB_TIMEOUT:-600000}
+      # Vector / embeddings
+      EMBEDDING_PROVIDER: ${EMBEDDING_PROVIDER:-anthropic}
+      OLLAMA_URL: ${OLLAMA_URL:-http://localhost:11434}
+      # Gateway
+      GATEWAY_URL: http://gateway:3000
+      GATEWAY_INTERNAL_URL: http://gateway:3000
+      INTERNAL_SECRET: ${INTERNAL_SECRET}
       WEBHOOK_URL: ${WEBHOOK_URL:-http://autonomous:4000/webhook}
+      SENTRY_DSN: ${SENTRY_DSN}
     ports:
       - '${AUTONOMOUS_PORT:-4000}:4000'
     depends_on:
@@ -296,7 +345,7 @@ services:
     container_name: codekang-pgadmin
     restart: unless-stopped
     environment:
-      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_EMAIL:-admin@codekang.dev}
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_EMAIL:-admin@codekang.com}
       PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_PASSWORD:-admin}
       PGADMIN_CONFIG_SERVER_MODE: 'False'
       PGADMIN_CONFIG_MASTER_PASSWORD_REQUIRED: 'False'
@@ -342,7 +391,7 @@ services:
       REDIS_USE_TLS: 'false'
       BULL_PREFIX: 'bull'
     ports:
-      - '${BULL_BOARD_PORT:-3001}:3000'
+      - '${BULL_BOARD_PORT:-3099}:3000'
     depends_on:
       redis:
         condition: service_healthy
