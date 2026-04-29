@@ -25,6 +25,8 @@ export const MESSAGE_PATTERNS = {
   AUTH_GET_SESSIONS: 'auth.get_sessions',
   AUTH_REVOKE_SESSION: 'auth.revoke_session',
   AUTH_UPDATE_PROFILE: 'auth.update_profile',
+  AUTH_ARCHIVE_ACCOUNT: 'auth.archive_account',
+  AUTH_DELETE_ACCOUNT: 'auth.delete_account',
 
   // AI Agent
   AGENT_CREATE_CONVERSATION: 'agent.create_conversation',
