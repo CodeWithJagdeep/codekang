@@ -23,6 +23,8 @@ import {
 import { firstValueFrom } from 'rxjs';
 import { SERVICES, MESSAGE_PATTERNS, CurrentUser, JwtAuthGuard } from '../../common';
 import type { IUser } from '../../common';
+import { WebhookDispatchService } from '../events/webhook-dispatch.service';
+import { IntegrationValidationService } from './integration-validation.service';
 
 class ConnectIntegrationDto {
   @IsObject()
@@ -49,6 +51,8 @@ class UpdateConfigDto {
 export class IntegrationsProxyController {
   constructor(
     @Inject(SERVICES.AUTH) private readonly authClient: ClientProxy,
+    private readonly webhookDispatch: WebhookDispatchService,
+    private readonly validation: IntegrationValidationService,
   ) {}
 
   @Get()
@@ -61,11 +65,12 @@ export class IntegrationsProxyController {
 
   @Post(':provider')
   @ApiOperation({ summary: 'Connect an integration' })
-  connect(
+  async connect(
     @CurrentUser() user: IUser,
     @Param('provider') provider: string,
     @Body() body: ConnectIntegrationDto,
   ) {
+    await this.validation.validate(provider, body.config ?? {});
     return firstValueFrom(
       this.authClient.send(MESSAGE_PATTERNS.INTEGRATION_CONNECT, {
         userId: user.id,
@@ -120,5 +125,15 @@ export class IntegrationsProxyController {
         config: body.config,
       }),
     );
+  }
+
+  @Post(':provider/test')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Send a test payload to verify the integration works' })
+  async testIntegration(
+    @CurrentUser() user: IUser,
+    @Param('provider') provider: string,
+  ) {
+    return this.webhookDispatch.test(user.id, provider);
   }
 }
