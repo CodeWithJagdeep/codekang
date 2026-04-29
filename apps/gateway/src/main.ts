@@ -54,6 +54,7 @@ async function bootstrap() {
   const allowedOrigins = [
     'https://codekang.com',
     'https://www.codekang.com',
+    'https://staging.codekang.com',
     ...envOrigins,
   ];
 
