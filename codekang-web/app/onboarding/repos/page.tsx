@@ -8,6 +8,8 @@ import {
   fetchConnectedRepos,
   connectRepo,
   completeOnboarding,
+  getGitHubAppInstallUrl,
+  getGitHubAppSetupUrl,
   type User,
   type IGitHubRepo,
   type IRepository,
@@ -47,6 +49,11 @@ export default function OnboardingReposPage() {
   const router = useRouter();
   const [user, setUser] = useState<User | null>(null);
   const [activeTab, setActiveTab] = useState<Provider>('github');
+  const [installUrl, setInstallUrl] = useState('https://github.com/apps/codekang/installations/new');
+
+  useEffect(() => {
+    setInstallUrl(getGitHubAppInstallUrl() ?? getGitHubAppSetupUrl());
+  }, []);
 
   const [githubRepos, setGithubRepos] = useState<IGitHubRepo[]>([]);
   const [connectedRepos, setConnectedRepos] = useState<IRepository[]>([]);
@@ -270,9 +277,7 @@ export default function OnboardingReposPage() {
                     </p>
                     <div className="flex flex-col md:flex-row gap-3">
                       <a
-                        href="https://github.com/apps/codekang/installations/new"
-                        target="_blank"
-                        rel="noopener noreferrer"
+                        href={installUrl}
                         className="flex-1 inline-flex items-center justify-center gap-2 px-6 py-3 bg-[#f97316] text-white text-[13px] font-black uppercase tracking-widest hover:bg-[#ea580c] transition-all active:scale-95 shadow-[4px_4px_0px_0px_rgba(255,255,255,0.2)]"
                       >
                         <GitHubIcon size={16} />
