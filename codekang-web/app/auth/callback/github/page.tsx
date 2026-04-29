@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import {
   signInWithGitHubDirect,
@@ -9,7 +9,7 @@ import {
 } from '@/lib/auth';
 import { Loader2, AlertCircle } from 'lucide-react';
 
-export default function GitHubCallbackPage() {
+function GitHubCallbackHandler() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [error, setError] = useState<string | null>(null);
@@ -27,7 +27,7 @@ export default function GitHubCallbackPage() {
       return;
     }
 
-    let mode: 'login' | 'link' = 'login';
+    let mode: 'login' | 'signup' | 'link' = 'login';
     let returnTo = '/dashboard';
     if (stateStr) {
       try {
@@ -41,7 +41,7 @@ export default function GitHubCallbackPage() {
 
     async function handleCallback() {
       try {
-        if (mode === 'login') {
+        if (mode === 'login' || mode === 'signup') {
           const result = await signInWithGitHubDirect(code!);
           saveTokens(result.accessToken, result.refreshToken);
           localStorage.setItem('user', JSON.stringify(result.user));
@@ -91,5 +91,17 @@ export default function GitHubCallbackPage() {
         )}
       </div>
     </div>
+  );
+}
+
+export default function GitHubCallbackPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-[#09090b] flex items-center justify-center text-white">
+        <Loader2 size={48} className="animate-spin text-white opacity-50 mb-6" />
+      </div>
+    }>
+      <GitHubCallbackHandler />
+    </Suspense>
   );
 }
