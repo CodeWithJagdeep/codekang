@@ -1,17 +1,13 @@
 'use client';
 
-import { useState } from 'react';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
 import {
   RiArrowRightLine,
   RiSearchEyeLine,
   RiShieldFlashLine,
-  RiCheckboxCircleLine,
   RiExchangeLine,
-  RiTestTubeLine,
-  RiStarFill
-} from 'react-icons/ri';
+  RiTestTubeLine} from 'react-icons/ri';
 import HomeHeader from '@/component/HomeHeader';
 import Footer from '@/component/Footer';
 
