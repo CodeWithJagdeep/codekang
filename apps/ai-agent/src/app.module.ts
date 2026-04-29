@@ -20,7 +20,9 @@ import { UsageLog } from './entities/usage-log.entity';
         entities: [Conversation, UsageLog],
         synchronize: config.get('NODE_ENV') !== 'production',
         ssl:
-          config.get('NODE_ENV') === 'production'
+          config.get('DB_SSL') === 'false'
+            ? false
+            : config.get('NODE_ENV') === 'production'
             ? { rejectUnauthorized: false }
             : false,
         extra: {

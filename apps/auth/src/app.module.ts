@@ -35,7 +35,9 @@ import { UserSession } from './entities/user-session.entity';
         ],
         synchronize: config.get('NODE_ENV') !== 'production',
         ssl:
-          config.get('NODE_ENV') === 'production'
+          config.get('DB_SSL') === 'false'
+            ? false
+            : config.get('NODE_ENV') === 'production'
             ? { rejectUnauthorized: false }
             : false,
         extra: {
