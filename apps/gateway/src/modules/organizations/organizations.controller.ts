@@ -14,7 +14,7 @@ import {
 } from '@nestjs/common';
 import { ClientProxy } from '@nestjs/microservices';
 import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
-import { IsString, IsNotEmpty, IsOptional, Matches, MaxLength } from 'class-validator';
+import { IsString, IsNotEmpty, IsOptional, IsBoolean, Matches, MaxLength } from 'class-validator';
 import { firstValueFrom } from 'rxjs';
 import { SERVICES, MESSAGE_PATTERNS, CurrentUser, JwtAuthGuard, PLANS } from '../../common';
 import type { IUser } from '../../common';
@@ -48,6 +48,15 @@ class UpdateOrgDto {
   @IsString()
   @MaxLength(200)
   description?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(100)
+  timezone?: string;
+
+  @IsOptional()
+  @IsBoolean()
+  internalVisibility?: boolean;
 }
 
 class AddRepoDto {
@@ -149,6 +158,14 @@ export class OrganizationsProxyController {
   delete(@CurrentUser() user: IUser, @Param('orgId') orgId: string) {
     return firstValueFrom(
       this.reposClient.send(MESSAGE_PATTERNS.ORG_DELETE, { orgId, userId: user.id }),
+    );
+  }
+
+  @Patch(':orgId/archive')
+  @ApiOperation({ summary: 'Toggle archive state of organization (owner only)' })
+  archive(@CurrentUser() user: IUser, @Param('orgId') orgId: string) {
+    return firstValueFrom(
+      this.reposClient.send(MESSAGE_PATTERNS.ORG_ARCHIVE, { orgId, userId: user.id }),
     );
   }
 
