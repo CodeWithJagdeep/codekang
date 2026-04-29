@@ -36,6 +36,7 @@ const PERMISSION_FOOTER = `
 
 // ─── Guide generator ──────────────────────────────────────────────────────────
 
+/*
 async function generateGuide(
   issueTitle: string,
   issueBody: string,
@@ -89,9 +90,11 @@ Write as if you are a senior maintainer responding to the issue.`;
     ].join('\n');
   }
 }
+*/
 
 // ─── Comment builders ─────────────────────────────────────────────────────────
 
+/*
 function buildDiscussionComment(
   classification: ClassificationResult,
   admins: string[],
@@ -111,7 +114,9 @@ function buildDiscussionComment(
     PERMISSION_FOOTER,
   ].join('\n');
 }
+*/
 
+/*
 function buildClarificationComment(issueBody: string): string {
   const missing: string[] = [];
   if (
@@ -153,6 +158,7 @@ function buildClarificationComment(issueBody: string): string {
     PERMISSION_FOOTER,
   ].join('\n');
 }
+*/
 
 // ─── AI Response Generator ───────────────────────────────────────────────────
 

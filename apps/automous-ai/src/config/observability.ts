@@ -102,7 +102,7 @@ export function createAgentTrace(params: {
         name,
         model,
         input,
-        modelParameters,
+        modelParameters: modelParameters as any,
         startTime: new Date(),
       });
       return {
@@ -114,7 +114,6 @@ export function createAgentTrace(params: {
               output: outputTokens ?? 0,
               totalCost: totalCostUsd,
             } : undefined,
-            endTime: new Date(),
           });
         },
       };
@@ -124,7 +123,7 @@ export function createAgentTrace(params: {
       const span = trace.span({ name, input, startTime: new Date() });
       return {
         end: (output, error) => {
-          span.end({ output, statusMessage: error, endTime: new Date() });
+          span.end({ output, statusMessage: error });
         },
       };
     },
