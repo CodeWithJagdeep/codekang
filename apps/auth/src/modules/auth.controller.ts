@@ -259,4 +259,18 @@ export class AuthController {
     this.logger.log(`updateProfile userId=${data.userId}`);
     return this.authService.updateProfile(data.userId, data);
   }
+
+  @MessagePattern(MESSAGE_PATTERNS.AUTH_ARCHIVE_ACCOUNT)
+  async archiveAccount(@Payload() data: { userId: string }) {
+    this.logger.log(`archiveAccount userId=${data.userId}`);
+    await this.authService.archiveAccount(data.userId);
+    return { success: true };
+  }
+
+  @MessagePattern(MESSAGE_PATTERNS.AUTH_DELETE_ACCOUNT)
+  async deleteAccount(@Payload() data: { userId: string }) {
+    this.logger.log(`deleteAccount userId=${data.userId}`);
+    await this.authService.deleteAccount(data.userId);
+    return { success: true };
+  }
 }
