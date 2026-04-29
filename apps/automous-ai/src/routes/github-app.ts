@@ -89,29 +89,17 @@ router.get('/callback', async (req: Request, res: Response): Promise<void> => {
     const keyPath = path.resolve(process.cwd(), 'github-app-private-key.pem');
     fs.writeFileSync(keyPath, privateKey, { mode: 0o600 });
 
-    logger.info('GitHub App registered', { appId, keyPath });
+    logger.info('GitHub App registered', { appId, slug: data.slug, keyPath });
 
-    res.send(`
-      <!DOCTYPE html>
-      <html>
-      <head><title>CodeKang App Installed</title></head>
-      <body>
-        <h1>GitHub App Created Successfully!</h1>
-        <p>Update your <code>.env.development</code> with these values:</p>
-        <pre>
-GITHUB_APP_ID=${appId}
-GITHUB_APP_PRIVATE_KEY_PATH=./github-app-private-key.pem
-GITHUB_WEBHOOK_SECRET=${webhookSecret}
-        </pre>
-        <p>Private key saved to: <code>${keyPath}</code></p>
-        <p>
-          Now <a href="https://github.com/apps/${data.slug}/installations/new" target="_blank">
-            install the app on your repositories
-          </a>
-        </p>
-      </body>
-      </html>
-    `);
+    // Redirect to frontend so the user can install the app immediately.
+    // The frontend reads the slug and shows the install button.
+    const frontendUrl = process.env.FRONTEND_URL ?? 'http://localhost:3010';
+    const params = new URLSearchParams({
+      github_app_slug: data.slug,
+      app_id: appId,
+      webhook_secret: webhookSecret,
+    });
+    res.redirect(`${frontendUrl}/auth/callback/github-app-created?${params.toString()}`);
   } catch (err: unknown) {
     const e = err as { message: string };
     logger.error('GitHub App manifest conversion failed', { error: e.message });
