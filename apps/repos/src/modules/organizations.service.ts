@@ -12,6 +12,9 @@ import {
   OrgRepository,
 } from '../entities/organization.entity';
 import { Repository } from '../entities/repository.entity';
+import { Notification } from '../entities/notification.entity';
+import { SupportTicket, SupportMessage } from '../entities/support.entity';
+import { AuditLog } from '../entities/audit.entity';
 import type {
   IOrganization,
   IOrganizationMember,
@@ -29,6 +32,14 @@ export class OrganizationsService {
     private readonly orgRepoRepo: TypeOrmRepository<OrgRepository>,
     @InjectRepository(Repository)
     private readonly repoRepo: TypeOrmRepository<Repository>,
+    @InjectRepository(Notification)
+    private readonly notifRepo: TypeOrmRepository<Notification>,
+    @InjectRepository(SupportTicket)
+    private readonly supportTicketRepo: TypeOrmRepository<SupportTicket>,
+    @InjectRepository(SupportMessage)
+    private readonly supportMessageRepo: TypeOrmRepository<SupportMessage>,
+    @InjectRepository(AuditLog)
+    private readonly auditRepo: TypeOrmRepository<AuditLog>,
   ) {}
 
   // ── Called on first dashboard load to guarantee a personal org exists ──────
@@ -50,7 +61,18 @@ export class OrganizationsService {
       slug: finalSlug,
       isPersonal: true,
     });
-    await this.orgRepo.save(org);
+    try {
+      await this.orgRepo.save(org);
+    } catch (err: any) {
+      if (err?.code === '23505') {
+        // Race condition: concurrent request already created the org
+        const created = await this.orgRepo.findOne({
+          where: { ownerId: userId, isPersonal: true },
+        });
+        if (created) return created as unknown as IOrganization;
+      }
+      throw err;
+    }
 
     const member = this.memberRepo.create({
       organizationId: org.id,
@@ -116,13 +138,24 @@ export class OrganizationsService {
   async updateOrganization(
     orgId: string,
     userId: string,
-    updates: { name?: string; description?: string },
+    updates: { name?: string; description?: string; timezone?: string; internalVisibility?: boolean },
   ): Promise<IOrganization> {
     const org = await this.orgRepo.findOne({ where: { id: orgId } });
     if (!org) throw new NotFoundException('Organization not found');
     if (org.ownerId !== userId) throw new ForbiddenException('Only owner can update');
 
     Object.assign(org, updates);
+    await this.orgRepo.save(org);
+    return org as unknown as IOrganization;
+  }
+
+  async archiveOrganization(orgId: string, userId: string): Promise<IOrganization> {
+    const org = await this.orgRepo.findOne({ where: { id: orgId } });
+    if (!org) throw new NotFoundException('Organization not found');
+    if (org.ownerId !== userId) throw new ForbiddenException('Only owner can archive');
+    if (org.isPersonal) throw new ForbiddenException('Cannot archive your personal organization');
+
+    org.isArchived = !org.isArchived;
     await this.orgRepo.save(org);
     return org as unknown as IOrganization;
   }
@@ -136,6 +169,37 @@ export class OrganizationsService {
     await this.orgRepoRepo.delete({ orgId });
     await this.memberRepo.delete({ organizationId: orgId });
     await this.orgRepo.delete({ id: orgId });
+  }
+
+  async deleteUserData(userId: string): Promise<void> {
+    // Repos
+    const repos = await this.repoRepo.find({ where: { userId } });
+    const repoIds = repos.map((r) => r.id);
+    if (repoIds.length > 0) {
+      await this.orgRepoRepo.delete({ repoId: In(repoIds) });
+    }
+    await this.repoRepo.delete({ userId });
+
+    // Orgs owned by user — delete all links/members/org first
+    const ownedOrgs = await this.orgRepo.find({ where: { ownerId: userId } });
+    for (const org of ownedOrgs) {
+      await this.orgRepoRepo.delete({ orgId: org.id });
+      await this.memberRepo.delete({ organizationId: org.id });
+    }
+    await this.orgRepo.delete({ ownerId: userId });
+
+    // Memberships in other orgs
+    await this.memberRepo.delete({ userId });
+
+    // Notifications, support, audit
+    await this.notifRepo.delete({ userId });
+
+    const tickets = await this.supportTicketRepo.find({ where: { userId } });
+    if (tickets.length > 0) {
+      await this.supportMessageRepo.delete({ ticketId: In(tickets.map((t) => t.id)) });
+    }
+    await this.supportTicketRepo.delete({ userId });
+    await this.auditRepo.delete({ userId });
   }
 
   async listOrgRepos(orgId: string, userId: string): Promise<IRepository[]> {
