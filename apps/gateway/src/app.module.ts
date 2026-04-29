@@ -3,6 +3,7 @@ import { ConfigModule } from '@nestjs/config';
 import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
 import { APP_GUARD } from '@nestjs/core';
 import { SharedAuthClientModule } from './modules/shared/shared-auth-client.module';
+import { SharedAgentClientModule } from './modules/shared/shared-agent-client.module';
 import { AuthProxyModule } from './modules/auth/auth.module';
 import { AgentProxyModule } from './modules/agent/agent.module';
 import { ReposProxyModule } from './modules/repos/repos.module';
@@ -37,6 +38,7 @@ import { CareersProxyModule } from './modules/careers/careers.module';
     ]),
 
     SharedAuthClientModule,
+    SharedAgentClientModule,
     AuthProxyModule,
     AgentProxyModule,
     ReposProxyModule,
