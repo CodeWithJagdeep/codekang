@@ -404,7 +404,7 @@ async function raiseIssuesForFindings(
         finding.body,
         '',
         '---',
-        '_Automatically raised by [CodeKang](https://codekang.dev) during PR review._',
+        '_Automatically raised by [CodeKang](https://codekang.com) during PR review._',
       ].join('\n');
 
       const labels = ['codekang-auto', finding.issueType];
