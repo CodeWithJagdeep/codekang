@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, UseGuards, Inject } from '@nestjs/common';
+import { Controller, Get, Post, Patch, Param, Body, UseGuards, Inject } from '@nestjs/common';
 import { ClientProxy } from '@nestjs/microservices';
 import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
 import { firstValueFrom } from 'rxjs';
@@ -28,6 +28,33 @@ export class SupportProxyController {
   ) {
     return firstValueFrom(
       this.reposClient.send(MESSAGE_PATTERNS.SUPPORT_CREATE, { userId: user.id, ...dto }),
+    );
+  }
+
+  @Post(':ticketId/messages')
+  @ApiOperation({ summary: 'Reply to a support ticket' })
+  reply(
+    @CurrentUser() user: IUser,
+    @Param('ticketId') ticketId: string,
+    @Body() dto: { content: string },
+  ) {
+    return firstValueFrom(
+      this.reposClient.send(MESSAGE_PATTERNS.SUPPORT_REPLY, {
+        userId: user.id,
+        ticketId,
+        content: dto.content,
+      }),
+    );
+  }
+
+  @Patch(':ticketId/resolve')
+  @ApiOperation({ summary: 'Mark a support ticket as resolved' })
+  resolve(@CurrentUser() user: IUser, @Param('ticketId') ticketId: string) {
+    return firstValueFrom(
+      this.reposClient.send(MESSAGE_PATTERNS.SUPPORT_RESOLVE, {
+        userId: user.id,
+        ticketId,
+      }),
     );
   }
 }
