@@ -16,4 +16,14 @@ export class SupportController {
   list(@Payload() data: { userId: string }) {
     return this.supportService.listTickets(data.userId);
   }
+
+  @MessagePattern(MESSAGE_PATTERNS.SUPPORT_REPLY)
+  reply(@Payload() data: { userId: string; ticketId: string; content: string }) {
+    return this.supportService.replyToTicket(data.userId, data.ticketId, data.content);
+  }
+
+  @MessagePattern(MESSAGE_PATTERNS.SUPPORT_RESOLVE)
+  resolve(@Payload() data: { userId: string; ticketId: string }) {
+    return this.supportService.resolveTicket(data.userId, data.ticketId);
+  }
 }
