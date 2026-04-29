@@ -178,15 +178,25 @@ export default function IntegrationsPage() {
         {/* ── Bottom CTA ── */}
         <section className="py-32 px-10 text-center bg-[#fcfcfc]">
           <h2 className="text-4xl md:text-6xl font-black uppercase tracking-tighter leading-none mb-10">
-            Don't see your <span className="text-[#f97316]">tool?</span>
+            Need help or want to <span className="text-[#f97316]">expand?</span>
           </h2>
-          <Link
-            href="/in/contact"
-            className="inline-flex items-center gap-3 border-2 border-black bg-white text-black px-16 py-8 text-[20px] font-black transition-all shadow-[10px_10px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[-4px] hover:translate-y-[-4px] hover:shadow-[16px_16px_0px_0px_rgba(0,0,0,1)] active:translate-x-0 active:translate-y-0 active:shadow-none"
-          >
-            REQUEST AN INTEGRATION <RiArrowRightLine size={28} />
-          </Link>
+          <div className="flex flex-col sm:flex-row gap-6 justify-center items-center">
+            <Link
+              href="/in/docs"
+              className="inline-flex items-center gap-3 border-2 border-black bg-white text-black px-12 py-6 text-[18px] font-black uppercase transition-all shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[-4px] hover:translate-y-[-4px] hover:shadow-[12px_12px_0px_0px_rgba(0,0,0,1)] active:translate-x-0 active:translate-y-0 active:shadow-none"
+            >
+              VIEW DOCUMENTATION
+            </Link>
+            <Link
+              href="/in/integrations/request"
+              className="inline-flex items-center gap-3 border-2 border-black bg-[#f97316] text-white px-12 py-6 text-[18px] font-black uppercase transition-all shadow-[8px_8px_0px_0px_rgba(249,115,22,1)] hover:translate-x-[-4px] hover:translate-y-[-4px] hover:shadow-[12px_12px_0px_0px_rgba(249,115,22,1)] active:translate-x-0 active:translate-y-0 active:shadow-none"
+            >
+              REQUEST INTEGRATION <RiArrowRightLine size={24} />
+            </Link>
+          </div>
         </section>
+
+
       </main>
 
       <Footer />
