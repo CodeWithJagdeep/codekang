@@ -118,6 +118,8 @@ export class AuthProxyController {
 
   constructor(
     @Inject(SERVICES.AUTH) private readonly authClient: ClientProxy,
+    @Inject(SERVICES.REPOS) private readonly reposClient: ClientProxy,
+    @Inject(SERVICES.AI_AGENT) private readonly agentClient: ClientProxy,
   ) {}
 
   @Get('me')
@@ -384,5 +386,38 @@ export class AuthProxyController {
       this.logger.error(`updateProfile failed userId=${user.id}`, err instanceof Error ? err.stack : String(err));
       throw err;
     }
+  }
+
+  @Post('account/archive')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({ summary: 'Deactivate the authenticated user account' })
+  async archiveAccount(@CurrentUser() user: IUser) {
+    this.logger.log(`archiveAccount userId=${user.id}`);
+    await firstValueFrom(
+      this.authClient.send(MESSAGE_PATTERNS.AUTH_ARCHIVE_ACCOUNT, { userId: user.id }),
+    );
+  }
+
+  @Delete('account')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({ summary: 'Permanently delete the authenticated user account and all data' })
+  async deleteAccount(@CurrentUser() user: IUser) {
+    this.logger.log(`deleteAccount userId=${user.id}`);
+    // Run repos + AI agent cleanup in parallel, then delete the auth record last
+    await Promise.all([
+      firstValueFrom(
+        this.reposClient.send(MESSAGE_PATTERNS.REPOS_DELETE_USER_DATA, { userId: user.id }),
+      ),
+      firstValueFrom(
+        this.agentClient.send(MESSAGE_PATTERNS.AGENT_DELETE_USER_DATA, { userId: user.id }),
+      ),
+    ]);
+    await firstValueFrom(
+      this.authClient.send(MESSAGE_PATTERNS.AUTH_DELETE_ACCOUNT, { userId: user.id }),
+    );
   }
 }
