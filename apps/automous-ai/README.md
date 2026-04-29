@@ -383,7 +383,7 @@ docker-compose --profile monitoring up -d
 
 | Tool            | URL                     | Credentials                    |
 | --------------- | ----------------------- | ------------------------------ |
-| pgAdmin         | `http://localhost:5050` | `admin@codekang.dev` / `admin` |
+| pgAdmin         | `http://localhost:5050` | `admin@codekang.com` / `admin` |
 | Redis Commander | `http://localhost:8081` | `admin` / `admin`              |
 | Grafana         | `http://localhost:3002` | `admin` / `admin`              |
 | Prometheus      | `http://localhost:9090` | —                              |
