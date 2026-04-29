@@ -6,9 +6,8 @@ import { motion } from 'framer-motion';
 import {
   RiArrowRightLine,
   RiArrowLeftLine,
-  RiZapFill,
-  RiSparklesFill,
 } from 'react-icons/ri';
+import { Zap, Sparkles } from 'lucide-react';
 import HomeHeader from '@/component/HomeHeader';
 import Footer from '@/component/Footer';
 
@@ -46,7 +45,7 @@ export default function RequestIntegrationPage() {
           {submitted ? (
             <div className="border-2 border-black bg-white p-12 shadow-[12px_12px_0px_0px_rgba(0,0,0,1)] text-center">
               <div className="w-16 h-16 border-2 border-black bg-[#f97316] text-white flex items-center justify-center shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] mx-auto mb-8 animate-bounce">
-                <RiSparklesFill size={32} />
+                <Sparkles size={32} fill="currentColor" />
               </div>
               <h2 className="text-3xl md:text-4xl font-black uppercase tracking-tighter mb-4">
                 Request Received!
@@ -65,7 +64,7 @@ export default function RequestIntegrationPage() {
             <>
               <div className="flex items-center gap-4 mb-12">
                 <div className="w-16 h-16 border-2 border-black bg-[#f97316] flex items-center justify-center shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] text-white">
-                  <RiZapFill size={32} />
+                  <Zap size={32} fill="currentColor" />
                 </div>
                 <div>
                   <span className="text-[#f97316] text-[12px] font-black uppercase tracking-[0.3em]">Expand Ecosystem</span>
