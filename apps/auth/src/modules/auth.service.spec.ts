@@ -6,6 +6,11 @@ import { UnauthorizedException } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { User } from '../entities/user.entity';
 import { RefreshTokenBlacklist } from '../entities/refresh-token-blacklist.entity';
+import { Otp } from '../entities/otp.entity';
+import { UserSession } from '../entities/user-session.entity';
+import { UserIntegration } from '../entities/user-integration.entity';
+import { MailService } from './mail/mail.service';
+import { RazorpayService } from './razorpay.service';
 
 // ─── Shared mocks ─────────────────────────────────────────────────────────────
 
@@ -48,6 +53,15 @@ const mockBlacklistRepo = () => ({
   delete: jest.fn(),
 });
 
+const mockGenericRepo = () => ({
+  findOne: jest.fn(),
+  create: jest.fn().mockImplementation((d) => d),
+  save: jest.fn(),
+  update: jest.fn(),
+  delete: jest.fn(),
+  find: jest.fn(),
+});
+
 const mockJwtService = () => ({
   sign: jest.fn().mockReturnValue('signed-token'),
   verify: jest.fn(),
@@ -61,18 +75,39 @@ const mockConfigService = () => ({
   getOrThrow: jest.fn().mockReturnValue('test-secret'),
 });
 
+const mockMailService = () => ({
+  sendWelcomeEmail: jest.fn(),
+  sendLoginEmail: jest.fn(),
+  sendOtpEmail: jest.fn(),
+});
+
+const mockRazorpayService = () => ({
+  createSubscription: jest.fn(),
+  cancelSubscription: jest.fn(),
+});
+
 // ─── Tests ────────────────────────────────────────────────────────────────────
 
 describe('AuthService', () => {
   let service: AuthService;
   let userRepo: ReturnType<typeof mockUserRepo>;
   let blacklistRepo: ReturnType<typeof mockBlacklistRepo>;
+  let otpRepo: ReturnType<typeof mockGenericRepo>;
+  let sessionRepo: ReturnType<typeof mockGenericRepo>;
+  let integrationRepo: ReturnType<typeof mockGenericRepo>;
   let jwtService: ReturnType<typeof mockJwtService>;
+  let mailService: ReturnType<typeof mockMailService>;
+  let razorpayService: ReturnType<typeof mockRazorpayService>;
 
   beforeEach(async () => {
     userRepo = mockUserRepo();
     blacklistRepo = mockBlacklistRepo();
+    otpRepo = mockGenericRepo();
+    sessionRepo = mockGenericRepo();
+    integrationRepo = mockGenericRepo();
     jwtService = mockJwtService();
+    mailService = mockMailService();
+    razorpayService = mockRazorpayService();
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -82,8 +117,13 @@ describe('AuthService', () => {
           provide: getRepositoryToken(RefreshTokenBlacklist),
           useValue: blacklistRepo,
         },
+        { provide: getRepositoryToken(Otp), useValue: otpRepo },
+        { provide: getRepositoryToken(UserSession), useValue: sessionRepo },
+        { provide: getRepositoryToken(UserIntegration), useValue: integrationRepo },
         { provide: JwtService, useValue: jwtService },
         { provide: ConfigService, useFactory: mockConfigService },
+        { provide: MailService, useValue: mailService },
+        { provide: RazorpayService, useValue: razorpayService },
       ],
     }).compile();
 
@@ -98,6 +138,7 @@ describe('AuthService', () => {
       const created = mockUser();
       userRepo.create.mockReturnValue(created);
       userRepo.save.mockResolvedValue(created);
+      userRepo.findOne.mockResolvedValueOnce(null).mockResolvedValueOnce(null).mockResolvedValueOnce(created);
 
       const result = await service.findOrCreateUser({
         provider: 'github',
@@ -115,7 +156,9 @@ describe('AuthService', () => {
 
     it('returns existing user and updates access token', async () => {
       const existing = mockUser();
-      userRepo.findOne.mockResolvedValueOnce(existing).mockResolvedValue(null);
+      userRepo.findOne
+        .mockResolvedValueOnce(existing)
+        .mockResolvedValueOnce(existing);
       userRepo.save.mockResolvedValue(existing);
 
       const result = await service.findOrCreateUser({
@@ -142,7 +185,7 @@ describe('AuthService', () => {
       expect(tokens).toMatchObject({
         accessToken: 'signed-token',
         refreshToken: 'signed-token',
-        expiresIn: 900,
+        expiresIn: 3600,
       });
     });
   });
