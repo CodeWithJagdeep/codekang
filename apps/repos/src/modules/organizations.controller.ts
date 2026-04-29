@@ -41,6 +41,11 @@ export class OrganizationsController {
     return this.orgsService.deleteOrganization(data.orgId, data.userId);
   }
 
+  @MessagePattern(MESSAGE_PATTERNS.ORG_ARCHIVE)
+  archive(@Payload() data: { orgId: string; userId: string }) {
+    return this.orgsService.archiveOrganization(data.orgId, data.userId);
+  }
+
   @MessagePattern(MESSAGE_PATTERNS.ORG_LIST_REPOS)
   listRepos(@Payload() data: { orgId: string; userId: string }) {
     return this.orgsService.listOrgRepos(data.orgId, data.userId);
@@ -78,5 +83,11 @@ export class OrganizationsController {
     @Payload() data: { orgId: string; userId: string; memberId: string; role: 'admin' | 'member' },
   ) {
     return this.orgsService.updateMemberRole(data.orgId, data.userId, data.memberId, data.role);
+  }
+
+  @MessagePattern(MESSAGE_PATTERNS.REPOS_DELETE_USER_DATA)
+  async deleteUserData(@Payload() data: { userId: string }) {
+    await this.orgsService.deleteUserData(data.userId);
+    return { success: true };
   }
 }
