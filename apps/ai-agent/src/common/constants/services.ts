@@ -31,6 +31,7 @@ export const MESSAGE_PATTERNS = {
   AGENT_STREAM_MESSAGE: 'agent.stream_message',
   AGENT_FIX_ISSUE: 'agent.fix_issue',
   AGENT_GET_USAGE: 'agent.get_usage',
+  AGENT_DELETE_USER_DATA: 'agent.delete_user_data',
 
   // Repos
   REPOS_LIST: 'repos.list',
