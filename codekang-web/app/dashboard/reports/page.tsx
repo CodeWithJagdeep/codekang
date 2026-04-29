@@ -207,7 +207,7 @@ function EmptyState() {
         Connect a repository and open a pull request — KangBot will review it automatically and the stats will appear here.
       </p>
       <Link
-        href="/dashboard/repositories"
+        href="/dashboard"
         className="mt-6 inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-[#27272a] text-[13px] font-medium text-[#a1a1aa] hover:text-[#f4f4f5] transition-colors"
       >
         Connect a repo
