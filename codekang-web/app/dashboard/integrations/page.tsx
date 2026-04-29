@@ -1,7 +1,9 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import Image from 'next/image';
+import Link from 'next/link';
+
 import {
   X,
   Loader2,
@@ -13,6 +15,9 @@ import {
   ExternalLink,
   Eye,
   EyeOff,
+  CheckCircle2,
+  XCircle,
+  Zap,
 } from 'lucide-react';
 import {
   SiGithub,
@@ -22,20 +27,22 @@ import {
   SiLinear,
   SiJira,
   SiNotion,
-  SiVercel,
-  SiSentry,
   SiBitbucket,
 } from 'react-icons/si';
 import { IconType } from 'react-icons';
 import CodeKangIcon from '@/public/logo/favi.png';
+import { useSearchParams, useRouter } from 'next/navigation';
 import {
   fetchIntegrations,
   connectIntegration,
   disconnectIntegration,
   updateIntegrationStatus,
   updateIntegrationConfig,
+  testIntegration,
+  getOAuthUrl,
   type UserIntegration,
 } from '@/lib/integrations';
+import { getGitHubAppInstallUrl, getGitHubAppSetupUrl } from '@/lib/auth';
 
 // ── Types ──
 
@@ -59,6 +66,7 @@ interface Integration {
   bgColor: string;
   docsUrl: string;
   fields: ProviderField[];
+  oauth?: boolean; // uses OAuth flow instead of manual credential form
 }
 
 // ── Provider field definitions ──
@@ -66,129 +74,71 @@ interface Integration {
 const PROVIDER_FIELDS: Record<string, ProviderField[]> = {
   slack: [
     {
-      key: 'webhook_url',
-      label: 'Incoming Webhook URL',
-      placeholder: 'https://hooks.slack.com/services/...',
-      type: 'url',
-      hint: 'Create one at api.slack.com → Your Apps → Incoming Webhooks',
+      key: 'channel',
+      label: 'Notification Channel',
+      placeholder: '#dev-alerts',
+      hint: 'The Slack channel where CodeKang posts PR and agent updates. Must start with #.',
     },
   ],
   discord: [
     {
-      key: 'webhook_url',
-      label: 'Discord Webhook URL',
-      placeholder: 'https://discord.com/api/webhooks/...',
-      type: 'url',
-      hint: 'Channel Settings → Integrations → Webhooks → New Webhook',
+      key: 'channel_id',
+      label: 'Channel ID',
+      placeholder: '123456789012345678',
+      hint: 'Right-click the channel in Discord → Copy Channel ID. Enable Developer Mode in Discord Settings → Advanced first.',
+    },
+    {
+      key: 'channel_name',
+      label: 'Channel Name (display only)',
+      placeholder: '#code-reviews',
+      hint: 'Just for your reference — shown in the dashboard so you know which channel is active.',
     },
   ],
   linear: [
     {
-      key: 'api_key',
-      label: 'API Key',
-      placeholder: 'lin_api_...',
-      type: 'password',
-      hint: 'Settings → API → Personal API keys',
-    },
-    {
       key: 'team_id',
       label: 'Team ID',
-      placeholder: 'Your Linear team ID',
+      placeholder: 'e.g. ENG',
+      hint: 'Linear → Settings → Teams — copy the team identifier shown next to the team name.',
+    },
+    {
+      key: 'project_name',
+      label: 'Project (optional)',
+      placeholder: 'e.g. Backend',
+      hint: 'If set, CodeKang issues will be created inside this Linear project.',
     },
   ],
   jira: [
     {
-      key: 'domain',
-      label: 'Jira Domain',
-      placeholder: 'yourcompany.atlassian.net',
-    },
-    {
-      key: 'email',
-      label: 'Account Email',
-      placeholder: 'you@company.com',
-    },
-    {
-      key: 'api_token',
-      label: 'API Token',
-      placeholder: 'Your Atlassian API token',
-      type: 'password',
-      hint: 'id.atlassian.com → Security → API tokens',
-    },
-    {
       key: 'project_key',
       label: 'Project Key',
       placeholder: 'e.g. PROJ',
+      hint: 'Found next to every issue in Jira — e.g. PROJ in PROJ-123',
     },
   ],
   notion: [
     {
-      key: 'token',
-      label: 'Integration Token',
-      placeholder: 'secret_...',
-      type: 'password',
-      hint: 'notion.so/my-integrations → New integration → Internal Integration Token',
-    },
-    {
       key: 'database_id',
       label: 'Database ID',
       placeholder: '32-char Notion database ID',
-      hint: 'Found in the database URL: notion.so/.../<database-id>?v=...',
+      hint: 'Open the database in browser — copy the ID from the URL between the last / and ?',
     },
   ],
-  sentry: [
-    {
-      key: 'dsn',
-      label: 'Sentry DSN',
-      placeholder: 'https://...@sentry.io/...',
-      type: 'url',
-      hint: 'Project → Settings → Client Keys (DSN)',
-    },
-  ],
-  vercel: [
-    {
-      key: 'deploy_hook_url',
-      label: 'Deploy Hook URL',
-      placeholder: 'https://api.vercel.com/v1/integrations/deploy/...',
-      type: 'url',
-      hint: 'Project → Settings → Git → Deploy Hooks',
-    },
-    {
-      key: 'project_name',
-      label: 'Project Name',
-      placeholder: 'my-vercel-project',
-    },
-  ],
+
   gitlab: [
     {
-      key: 'access_token',
-      label: 'Personal Access Token',
-      placeholder: 'glpat-...',
-      type: 'password',
-      hint: 'Profile → Preferences → Access Tokens → Add new token (api scope)',
-    },
-    {
-      key: 'instance_url',
-      label: 'GitLab Instance URL',
-      placeholder: 'https://gitlab.com',
+      key: 'default_branch',
+      label: 'Default Branch',
+      placeholder: 'main',
+      hint: 'The branch CodeKang targets for reviews. Defaults to main if left blank.',
     },
   ],
   bitbucket: [
     {
-      key: 'username',
-      label: 'Bitbucket Username',
-      placeholder: 'your-username',
-    },
-    {
-      key: 'app_password',
-      label: 'App Password',
-      placeholder: 'Your Bitbucket app password',
-      type: 'password',
-      hint: 'Account → Personal settings → App passwords',
-    },
-    {
       key: 'workspace',
       label: 'Workspace Slug',
-      placeholder: 'your-workspace-slug',
+      placeholder: 'my-workspace',
+      hint: 'Your Bitbucket workspace slug — visible in the URL: bitbucket.org/{workspace}/...',
     },
   ],
   github: [],
@@ -205,7 +155,7 @@ const INTEGRATIONS: Integration[] = [
     icon: SiGithub,
     color: '#e8e8e8',
     bgColor: 'rgba(232,232,232,0.08)',
-    docsUrl: 'https://docs.codekang.dev/integrations/github',
+    docsUrl: 'https://docs.codekang.com/integrations/github',
     fields: [],
   },
   {
@@ -216,8 +166,9 @@ const INTEGRATIONS: Integration[] = [
     icon: SiGitlab,
     color: '#FC6D26',
     bgColor: 'rgba(252,109,38,0.08)',
-    docsUrl: 'https://docs.codekang.dev/integrations/gitlab',
+    docsUrl: 'https://docs.codekang.com/integrations/gitlab',
     fields: PROVIDER_FIELDS.gitlab,
+    oauth: true,
   },
   {
     id: 'bitbucket',
@@ -227,8 +178,9 @@ const INTEGRATIONS: Integration[] = [
     icon: SiBitbucket,
     color: '#0052CC',
     bgColor: 'rgba(0,82,204,0.08)',
-    docsUrl: 'https://docs.codekang.dev/integrations/bitbucket',
+    docsUrl: 'https://docs.codekang.com/integrations/bitbucket',
     fields: PROVIDER_FIELDS.bitbucket,
+    oauth: true,
   },
   {
     id: 'slack',
@@ -238,8 +190,9 @@ const INTEGRATIONS: Integration[] = [
     icon: SiSlack,
     color: '#4A154B',
     bgColor: 'rgba(74,21,75,0.12)',
-    docsUrl: 'https://docs.codekang.dev/integrations/slack',
+    docsUrl: 'https://docs.codekang.com/integrations/slack',
     fields: PROVIDER_FIELDS.slack,
+    oauth: true,
   },
   {
     id: 'discord',
@@ -249,8 +202,9 @@ const INTEGRATIONS: Integration[] = [
     icon: SiDiscord,
     color: '#5865F2',
     bgColor: 'rgba(88,101,242,0.08)',
-    docsUrl: 'https://docs.codekang.dev/integrations/discord',
+    docsUrl: 'https://docs.codekang.com/integrations/discord',
     fields: PROVIDER_FIELDS.discord,
+    oauth: true,
   },
   {
     id: 'linear',
@@ -260,8 +214,9 @@ const INTEGRATIONS: Integration[] = [
     icon: SiLinear,
     color: '#5E6AD2',
     bgColor: 'rgba(94,106,210,0.08)',
-    docsUrl: 'https://docs.codekang.dev/integrations/linear',
+    docsUrl: 'https://docs.codekang.com/integrations/linear',
     fields: PROVIDER_FIELDS.linear,
+    oauth: true,
   },
   {
     id: 'jira',
@@ -271,8 +226,9 @@ const INTEGRATIONS: Integration[] = [
     icon: SiJira,
     color: '#0052CC',
     bgColor: 'rgba(0,82,204,0.08)',
-    docsUrl: 'https://docs.codekang.dev/integrations/jira',
+    docsUrl: 'https://docs.codekang.com/integrations/jira',
     fields: PROVIDER_FIELDS.jira,
+    oauth: true,
   },
   {
     id: 'notion',
@@ -282,31 +238,11 @@ const INTEGRATIONS: Integration[] = [
     icon: SiNotion,
     color: '#ffffff',
     bgColor: 'rgba(255,255,255,0.06)',
-    docsUrl: 'https://docs.codekang.dev/integrations/notion',
+    docsUrl: 'https://docs.codekang.com/integrations/notion',
     fields: PROVIDER_FIELDS.notion,
+    oauth: true,
   },
-  {
-    id: 'sentry',
-    name: 'Sentry',
-    description: 'Send CodeKang errors to Sentry automatically. Identify production issues the moment they surface.',
-    category: 'Observation',
-    icon: SiSentry,
-    color: '#8b5cf6',
-    bgColor: 'rgba(139,92,246,0.08)',
-    docsUrl: 'https://docs.codekang.dev/integrations/sentry',
-    fields: PROVIDER_FIELDS.sentry,
-  },
-  {
-    id: 'vercel',
-    name: 'Vercel',
-    description: 'Trigger preview deploys automatically after CodeKang merges an AI-vetted fix.',
-    category: 'Observation',
-    icon: SiVercel,
-    color: '#ffffff',
-    bgColor: 'rgba(255,255,255,0.06)',
-    docsUrl: 'https://docs.codekang.dev/integrations/vercel',
-    fields: PROVIDER_FIELDS.vercel,
-  },
+
 ];
 
 // ── Toggle ──
@@ -325,14 +261,12 @@ const Toggle = ({
     disabled={disabled}
     aria-checked={enabled}
     role="switch"
-    className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
-      enabled ? 'bg-emerald-500' : 'bg-[#3f3f46]'
-    } ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
+    className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${enabled ? 'bg-emerald-500' : 'bg-[#3f3f46]'
+      } ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
   >
     <span
-      className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
-        enabled ? 'translate-x-4' : 'translate-x-0'
-      }`}
+      className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${enabled ? 'translate-x-4' : 'translate-x-0'
+        }`}
     />
   </button>
 );
@@ -406,7 +340,20 @@ const ConnectModal = ({
 
   const ServiceIcon = integration.icon;
   const fields = integration.fields;
+  const isOAuth = integration.oauth === true;
   const allFilled = fields.every((f) => (formData[f.key] ?? '').trim() !== '');
+
+  const handleOAuth = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const url = await getOAuthUrl(integration.id);
+      window.location.href = url;
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'OAuth setup failed');
+      setLoading(false);
+    }
+  };
 
   const handleSubmit = async () => {
     setLoading(true);
@@ -421,6 +368,8 @@ const ConnectModal = ({
       setLoading(false);
     }
   };
+
+  const iconColor = integration.color === '#ffffff' ? '#1c1c1c' : integration.color;
 
   return (
     <div
@@ -451,50 +400,83 @@ const ConnectModal = ({
               className="w-16 h-16 rounded-2xl shadow-lg border border-gray-100 flex items-center justify-center p-3 z-10"
               style={{ backgroundColor: integration.bgColor }}
             >
-              <ServiceIcon size={34} style={{ color: integration.color === '#ffffff' ? '#1c1c1c' : integration.color }} />
+              <ServiceIcon size={34} style={{ color: iconColor }} />
             </div>
           </div>
 
           <h2 className="text-[20px] font-bold text-[#1c1c1c] mb-1 text-center">
             Connect {integration.name}
           </h2>
-          <p className="text-[13px] text-[#5f6368] mb-6 text-center">
-            Enter your {integration.name} credentials to enable the integration.
-          </p>
 
-          {/* Fields */}
-          {fields.length > 0 ? (
-            <div className="space-y-4 mb-6 bg-[#f0f0f0] rounded-xl p-4">
-              {fields.map((field) => (
-                <FieldInput
-                  key={field.key}
-                  field={field}
-                  value={formData[field.key] ?? ''}
-                  onChange={(val) => setFormData((prev) => ({ ...prev, [field.key]: val }))}
-                />
-              ))}
-            </div>
+          {isOAuth ? (
+            <>
+              <p className="text-[13px] text-[#5f6368] mb-6 text-center">
+                You&apos;ll be redirected to {integration.name} to authorize CodeKang.
+                Pick your workspace and channel — we&apos;ll handle the rest automatically.
+              </p>
+
+              <div className="flex items-start gap-3 p-4 rounded-xl bg-[#f0f0f0] mb-6">
+                <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0 mt-0.5" style={{ backgroundColor: integration.bgColor }}>
+                  <ServiceIcon size={18} style={{ color: iconColor }} />
+                </div>
+                <div className="text-[13px] text-[#5f6368] leading-relaxed">
+                  CodeKang will post notifications to your chosen {integration.name} channel whenever the AI agent completes or fails a fix.
+                </div>
+              </div>
+
+              {error && <p className="text-[13px] text-red-500 mb-4 text-center">{error}</p>}
+
+              <button
+                onClick={handleOAuth}
+                disabled={loading}
+                className="w-full py-3.5 rounded-xl font-semibold text-[15px] transition-all flex items-center justify-center gap-2 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed text-white"
+                style={{ backgroundColor: iconColor === '#1c1c1c' ? '#1c1c1c' : integration.color }}
+              >
+                {loading ? (
+                  <><Loader2 size={18} className="animate-spin" /> Redirecting…</>
+                ) : (
+                  <><ServiceIcon size={18} /> Continue with {integration.name}</>
+                )}
+              </button>
+            </>
           ) : (
-            <p className="text-[13px] text-[#5f6368] mb-6 text-center italic">
-              This integration is managed automatically via your GitHub account.
-            </p>
-          )}
+            <>
+              <p className="text-[13px] text-[#5f6368] mb-6 text-center">
+                Enter your {integration.name} credentials to enable the integration.
+              </p>
 
-          {error && (
-            <p className="text-[13px] text-red-500 mb-4 text-center">{error}</p>
-          )}
+              {fields.length > 0 ? (
+                <div className="space-y-4 mb-6 bg-[#f0f0f0] rounded-xl p-4">
+                  {fields.map((field) => (
+                    <FieldInput
+                      key={field.key}
+                      field={field}
+                      value={formData[field.key] ?? ''}
+                      onChange={(val) => setFormData((prev) => ({ ...prev, [field.key]: val }))}
+                    />
+                  ))}
+                </div>
+              ) : (
+                <p className="text-[13px] text-[#5f6368] mb-6 text-center italic">
+                  This integration is managed automatically via your GitHub account.
+                </p>
+              )}
 
-          <button
-            onClick={fields.length > 0 ? handleSubmit : onClose}
-            disabled={loading || (fields.length > 0 && !allFilled)}
-            className="w-full bg-[#1c1c1c] text-white py-3.5 rounded-xl font-semibold text-[15px] hover:bg-black transition-all flex items-center justify-center gap-2 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {loading ? (
-              <><Loader2 size={18} className="animate-spin" /> Connecting…</>
-            ) : (
-              <><Plug size={16} /> Connect {integration.name}</>
-            )}
-          </button>
+              {error && <p className="text-[13px] text-red-500 mb-4 text-center">{error}</p>}
+
+              <button
+                onClick={fields.length > 0 ? handleSubmit : onClose}
+                disabled={loading || (fields.length > 0 && !allFilled)}
+                className="w-full bg-[#1c1c1c] text-white py-3.5 rounded-xl font-semibold text-[15px] hover:bg-black transition-all flex items-center justify-center gap-2 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {loading ? (
+                  <><Loader2 size={18} className="animate-spin" /> Connecting…</>
+                ) : (
+                  <><Plug size={16} /> Connect {integration.name}</>
+                )}
+              </button>
+            </>
+          )}
 
           <button onClick={onClose} className="mt-4 w-full text-[13px] font-medium text-[#5f6368] hover:text-[#1c1c1c] transition-colors text-center">
             Not now
@@ -592,25 +574,50 @@ const ConfigureModal = ({
   integration,
   currentConfig,
   onSaved,
+  autoTest = false,
 }: {
   isOpen: boolean;
   onClose: () => void;
   integration: Integration | null;
   currentConfig: Record<string, string>;
   onSaved: (updated: UserIntegration) => void;
+  autoTest?: boolean;
 }) => {
   const [formData, setFormData] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [testing, setTesting] = useState(false);
+  const [testResult, setTestResult] = useState<{ ok: boolean; error?: string } | null>(null);
 
   useEffect(() => {
-    if (isOpen) { setFormData({ ...currentConfig }); setError(null); setSaved(false); }
+    if (isOpen) { setFormData({ ...currentConfig }); setError(null); setSaved(false); setTestResult(null); }
   }, [isOpen, currentConfig]);
+
+  useEffect(() => {
+    if (isOpen && autoTest && integration) {
+      const run = async () => {
+        setTesting(true);
+        try {
+          const result = await testIntegration(integration.id);
+          setTestResult(result);
+        } catch {
+          setTestResult({ ok: false, error: 'Could not reach the server' });
+        } finally {
+          setTesting(false);
+        }
+      };
+      const timer = setTimeout(() => void run(), 400);
+      return () => clearTimeout(timer);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen, autoTest]);
 
   if (!isOpen || !integration) return null;
 
   const ServiceIcon = integration.icon;
+  const iconColor = integration.color === '#ffffff' ? '#a1a1aa' : integration.color;
+  const hasFields = integration.fields.length > 0;
 
   const handleSave = async () => {
     setSaving(true);
@@ -619,7 +626,7 @@ const ConfigureModal = ({
       const updated = await updateIntegrationConfig(integration.id, formData);
       onSaved(updated);
       setSaved(true);
-      setTimeout(() => setSaved(false), 2000);
+      setTimeout(() => setSaved(false), 2500);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Save failed');
     } finally {
@@ -627,66 +634,143 @@ const ConfigureModal = ({
     }
   };
 
+  const handleTest = async () => {
+    setTesting(true);
+    setTestResult(null);
+    try {
+      const result = await testIntegration(integration.id);
+      setTestResult(result);
+    } catch {
+      setTestResult({ ok: false, error: 'Could not reach the server' });
+    } finally {
+      setTesting(false);
+    }
+  };
+
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm"
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm"
       onClick={onClose}
     >
       <div
-        className="relative bg-[#18181b] w-full max-w-[480px] rounded-[20px] overflow-hidden shadow-2xl border border-[#27272a] animate-in zoom-in-95 fade-in duration-200"
+        className="relative bg-[#111113] w-full max-w-[500px] rounded-2xl shadow-2xl border border-[#27272a] animate-in zoom-in-95 fade-in duration-200 overflow-hidden"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-center justify-between px-6 py-4 border-b border-[#27272a]">
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-lg flex items-center justify-center shrink-0" style={{ backgroundColor: integration.bgColor }}>
-              <ServiceIcon size={20} style={{ color: integration.color === '#ffffff' ? '#1c1c1c' : integration.color }} />
-            </div>
-            <div>
-              <h2 className="text-[15px] font-semibold text-[#f4f4f5]">{integration.name} Settings</h2>
-              <div className="flex items-center gap-1.5 mt-0.5">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                <span className="text-[12px] text-emerald-400">Connected</span>
-              </div>
+        {/* Header */}
+        <div className="flex items-center gap-4 px-6 py-5">
+          <div
+            className="w-12 h-12 rounded-xl flex items-center justify-center shrink-0"
+            style={{ backgroundColor: integration.bgColor }}
+          >
+            <ServiceIcon size={24} style={{ color: iconColor }} />
+          </div>
+          <div className="flex-1 min-w-0">
+            <h2 className="text-[16px] font-semibold text-[#f4f4f5] leading-tight">
+              {integration.name} Settings
+            </h2>
+            <div className="flex items-center gap-1.5 mt-1">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shadow-[0_0_6px_rgba(16,185,129,0.7)]" />
+              <span className="text-[12px] font-medium text-emerald-400">Connected</span>
+              <span className="text-[#3f3f46] mx-1">·</span>
+              <span className="text-[12px] text-[#52525b]">{integration.category}</span>
             </div>
           </div>
-          <button onClick={onClose} className="p-2 rounded-lg hover:bg-white/5 text-[#71717a] transition-colors">
+          <button
+            onClick={onClose}
+            className="p-2 rounded-lg hover:bg-white/5 text-[#52525b] hover:text-[#a1a1aa] transition-colors shrink-0"
+          >
             <X size={18} />
           </button>
         </div>
 
-        <div className="p-6 space-y-4">
-          {integration.fields.length > 0 ? (
-            integration.fields.map((field) => (
-              <FieldInput
-                key={field.key}
-                field={field}
-                value={formData[field.key] ?? ''}
-                onChange={(val) => setFormData((prev) => ({ ...prev, [field.key]: val }))}
-              />
-            ))
+        <div className="h-px bg-[#1f1f22]" />
+
+        {/* Body */}
+        <div className="px-6 py-5 space-y-6 max-h-[60vh] overflow-y-auto">
+
+          {/* Configuration fields */}
+          {hasFields ? (
+            <div className="space-y-4">
+              <p className="text-[11px] font-semibold text-[#3f3f46] uppercase tracking-widest">Configuration</p>
+              {integration.fields.map((field) => (
+                <FieldInput
+                  key={field.key}
+                  field={field}
+                  value={formData[field.key] ?? ''}
+                  onChange={(val) => setFormData((prev) => ({ ...prev, [field.key]: val }))}
+                />
+              ))}
+            </div>
           ) : (
-            <p className="text-[13px] text-[#52525b] text-center py-4">No configurable settings for this integration.</p>
+            <div className="flex items-center gap-3 p-4 rounded-xl bg-[#18181b] border border-[#27272a]">
+              <div className="w-8 h-8 rounded-lg bg-[#1f1f22] flex items-center justify-center shrink-0">
+                <Settings2 size={15} className="text-[#52525b]" />
+              </div>
+              <p className="text-[13px] text-[#52525b] leading-relaxed">
+                This integration has no additional configuration — it&apos;s managed entirely via OAuth.
+              </p>
+            </div>
           )}
 
-          {error && <p className="text-[13px] text-red-400">{error}</p>}
+          {/* Connection health */}
+          <div className="space-y-3">
+            <p className="text-[11px] font-semibold text-[#3f3f46] uppercase tracking-widest">Connection Health</p>
+            <div className="flex items-center gap-3">
+              <button
+                onClick={handleTest}
+                disabled={testing}
+                className="flex items-center gap-2 px-4 py-2 rounded-lg bg-[#18181b] border border-[#27272a] text-[13px] font-medium text-[#a1a1aa] hover:text-[#f4f4f5] hover:border-[#3f3f46] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {testing ? <Loader2 size={13} className="animate-spin" /> : <Zap size={13} />}
+                {testing ? 'Running test…' : 'Test connection'}
+              </button>
+              {testResult && (
+                <div className={`flex items-center gap-1.5 text-[13px] font-medium ${testResult.ok ? 'text-emerald-400' : 'text-red-400'}`}>
+                  {testResult.ok ? <CheckCircle2 size={14} /> : <XCircle size={14} />}
+                  {testResult.ok ? 'All systems go' : (testResult.error ?? 'Test failed')}
+                </div>
+              )}
+            </div>
+          </div>
 
-          <div className="flex items-center gap-3 pt-2">
-            <a
-              href={integration.docsUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center gap-1.5 text-[13px] text-[#71717a] hover:text-[#a1a1aa] transition-colors"
+          {error && (
+            <p className="text-[12px] text-red-400 flex items-center gap-1.5">
+              <XCircle size={13} /> {error}
+            </p>
+          )}
+        </div>
+
+        <div className="h-px bg-[#1f1f22]" />
+
+        {/* Footer */}
+        <div className="flex items-center justify-between px-6 py-4">
+          <a
+            href={integration.docsUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-1.5 text-[12px] text-[#52525b] hover:text-[#a1a1aa] transition-colors"
+          >
+            <ExternalLink size={12} />
+            View docs
+          </a>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={onClose}
+              className="px-4 py-2 rounded-lg text-[13px] font-medium text-[#71717a] hover:text-[#f4f4f5] hover:bg-white/5 transition-all"
             >
-              <ExternalLink size={13} />
-              View docs
-            </a>
-            {integration.fields.length > 0 && (
+              Close
+            </button>
+            {hasFields && (
               <button
                 onClick={handleSave}
-                disabled={saving}
-                className="ml-auto px-5 py-2 rounded-xl bg-[#f4f4f5] text-[#1c1c1c] text-[14px] font-semibold hover:bg-white transition-all disabled:opacity-60 disabled:cursor-not-allowed flex items-center gap-2"
+                disabled={saving || saved}
+                className="px-5 py-2 rounded-lg bg-white text-[#111113] text-[13px] font-semibold hover:bg-[#e4e4e7] transition-all disabled:opacity-60 disabled:cursor-not-allowed flex items-center gap-2"
               >
-                {saving ? <><Loader2 size={14} className="animate-spin" /> Saving…</> : saved ? '✓ Saved' : 'Save changes'}
+                {saving
+                  ? <><Loader2 size={13} className="animate-spin" /> Saving…</>
+                  : saved
+                    ? <><CheckCircle2 size={13} /> Saved</>
+                    : 'Save changes'}
               </button>
             )}
           </div>
@@ -738,18 +822,47 @@ export default function IntegrationsPage() {
   const [dbIntegrations, setDbIntegrations] = useState<UserIntegration[]>([]);
   const [loadingInit, setLoadingInit] = useState(true);
   const [togglingId, setTogglingId] = useState<string | null>(null);
+  const [oauthBanner, setOauthBanner] = useState<{ type: 'success' | 'error'; provider: string } | null>(null);
 
   const [connectModal, setConnectModal] = useState<Integration | null>(null);
   const [disconnectModal, setDisconnectModal] = useState<Integration | null>(null);
   const [configureModal, setConfigureModal] = useState<Integration | null>(null);
+  const [autoTestOnOpen, setAutoTestOnOpen] = useState(false);
 
-  // Load from API on mount
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const handledOAuth = useRef(false);
+
+  useEffect(() => {
+    if (handledOAuth.current) return;
+    const connected = searchParams.get('connected');
+    const error = searchParams.get('error');
+    const configure = searchParams.get('configure');
+    if (connected) {
+      handledOAuth.current = true;
+      setOauthBanner({ type: 'success', provider: connected });
+      router.replace('/dashboard/integrations');
+      setTimeout(() => setOauthBanner(null), 5000);
+      const configureProvider = configure ?? connected;
+      const integration = INTEGRATIONS.find((i) => i.id === configureProvider);
+      if (integration) {
+        setTimeout(() => { setAutoTestOnOpen(true); setConfigureModal(integration); }, 600);
+      }
+    } else if (error) {
+      handledOAuth.current = true;
+      const provider = error.replace('_denied', '').replace('_failed', '');
+      setOauthBanner({ type: 'error', provider });
+      router.replace('/dashboard/integrations');
+      setTimeout(() => setOauthBanner(null), 5000);
+    }
+  }, [searchParams, router]);
+
   const loadIntegrations = useCallback(async () => {
     try {
       const data = await fetchIntegrations();
       setDbIntegrations(data);
     } catch {
-      // fail silently — page still usable without the server response
+      // fail silently
     } finally {
       setLoadingInit(false);
     }
@@ -758,11 +871,15 @@ export default function IntegrationsPage() {
   useEffect(() => { void loadIntegrations(); }, [loadIntegrations]);
 
   const getDb = (id: string) => dbIntegrations.find((i) => i.provider === id);
-  const isConnected = (id: string) => id === 'github' || !!getDb(id);
+  const isConnected = (id: string) => !!getDb(id);
   const isEnabled = (id: string) => {
-    if (id === 'github') return true;
     const db = getDb(id);
     return db ? db.status === 'connected' : false;
+  };
+
+  const handleGitHubInstall = () => {
+    const url = getGitHubAppInstallUrl() ?? getGitHubAppSetupUrl();
+    window.location.href = url;
   };
 
   const handleConnected = (saved: UserIntegration) => {
@@ -783,147 +900,227 @@ export default function IntegrationsPage() {
   };
 
   const handleToggle = async (item: Integration, nextEnabled: boolean) => {
-    if (item.id === 'github') return;
     setTogglingId(item.id);
     try {
-      const updated = await updateIntegrationStatus(
-        item.id,
-        nextEnabled ? 'connected' : 'disabled',
-      );
-      setDbIntegrations((prev) =>
-        prev.map((i) => (i.provider === item.id ? updated : i)),
-      );
+      const updated = await updateIntegrationStatus(item.id, nextEnabled ? 'connected' : 'disabled');
+      setDbIntegrations((prev) => prev.map((i) => (i.provider === item.id ? updated : i)));
     } finally {
       setTogglingId(null);
     }
   };
 
   const connectedCount = INTEGRATIONS.filter((i) => isConnected(i.id)).length;
+  const activeCount = INTEGRATIONS.filter((i) => isEnabled(i.id)).length;
+  const [activeCategory, setActiveCategory] = useState<IntegrationCategory>('All');
+
+  const categories: IntegrationCategory[] = ['All', 'Source Control', 'Communication', 'Productivity', 'Observation'];
+  const visibleIntegrations = activeCategory === 'All'
+    ? INTEGRATIONS
+    : INTEGRATIONS.filter((i) => i.category === activeCategory);
 
   return (
-    <div className="flex-1 flex flex-col bg-[#1c1c1c] min-h-screen">
-      {/* Header */}
-      <div className="px-4 md:px-8 pt-10 pb-6 shrink-0">
-        <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
+    <div className="min-h-screen bg-[#1c1c1c] text-[#f4f4f5]">
+
+      {/* OAuth banner */}
+      {oauthBanner && (
+        <div className={`mx-6 md:mx-8 mt-6 flex items-center gap-3 px-4 py-3 rounded-xl text-[13px] font-medium animate-in slide-in-from-top-2 duration-300 border ${oauthBanner.type === 'success'
+          ? 'bg-emerald-500/[0.07] border-emerald-500/20 text-emerald-400'
+          : 'bg-red-500/[0.07] border-red-500/20 text-red-400'
+          }`}>
+          {oauthBanner.type === 'success'
+            ? <><CheckCircle2 size={15} className="shrink-0" /> <span><strong>{oauthBanner.provider.charAt(0).toUpperCase() + oauthBanner.provider.slice(1)}</strong> connected successfully.</span></>
+            : <><XCircle size={15} className="shrink-0" /> <span><strong>{oauthBanner.provider.charAt(0).toUpperCase() + oauthBanner.provider.slice(1)}</strong> connection failed or was cancelled.</span></>
+          }
+        </div>
+      )}
+
+      {/* ── Page header ── */}
+      <div className="px-6 md:px-8 pt-8 pb-0">
+        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-6">
           <div>
-            <h1 className="text-[26px] md:text-[32px] font-semibold text-[#f4f4f5] tracking-tight leading-tight">
-              Integrations
-            </h1>
-            <p className="text-[14px] text-[#71717a] mt-1.5 leading-relaxed max-w-xl">
-              Connect CodeKang to your development stack for automated AI reviews, issue tracking, and deployment workflows.
+            <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[#52525b] mb-2">Workspace</p>
+            <h1 className="text-[26px] font-semibold tracking-tight text-[#f4f4f5] leading-tight">Integrations</h1>
+            <p className="mt-1.5 text-[13.5px] text-[#71717a] max-w-lg leading-relaxed">
+              Connect CodeKang to the tools your team already uses — source control, chat, and issue tracking.
             </p>
           </div>
-          <div className="flex items-center gap-3 shrink-0">
-            <div className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#18181b] border border-[#27272a]">
-              {loadingInit ? (
-                <Loader2 size={14} className="animate-spin text-[#52525b]" />
-              ) : (
-                <div className="w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_6px_rgba(16,185,129,0.6)]" />
+
+
+        </div>
+
+        {/* ── Category tabs ── */}
+        <div className="mt-7 flex items-center gap-1 border-b border-[#1f1f22]">
+          {categories.map((cat) => (
+            <button
+              key={cat}
+              onClick={() => setActiveCategory(cat)}
+              className={`relative px-4 py-2.5 text-[13px] font-medium transition-colors whitespace-nowrap ${activeCategory === cat
+                ? 'text-[#f4f4f5]'
+                : 'text-[#52525b] hover:text-[#a1a1aa]'
+                }`}
+            >
+              {cat}
+              {activeCategory === cat && (
+                <span className="absolute bottom-0 left-0 right-0 h-px bg-[#f4f4f5] rounded-full" />
               )}
-              <span className="text-[13px] font-medium text-[#f4f4f5]">{connectedCount}</span>
-              <span className="text-[13px] text-[#52525b]">/ {INTEGRATIONS.length} connected</span>
-            </div>
-          </div>
+            </button>
+          ))}
         </div>
       </div>
 
-      {/* List */}
-      <div className="px-4 md:px-8 pb-10">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          {INTEGRATIONS.map((item) => {
+      {/* ── Integration grid ── */}
+      <div className="px-6 md:px-8 py-7">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+          {visibleIntegrations.map((item) => {
             const connected = isConnected(item.id);
             const enabled = isEnabled(item.id);
             const toggling = togglingId === item.id;
             const Icon = item.icon;
+            const iconColor = item.color === '#ffffff' ? '#a1a1aa' : item.color;
+            const accentColor = item.color === '#ffffff' ? '#52525b' : item.color;
 
             return (
               <div
                 key={item.id}
-                className={`group relative bg-linear-to-br from-[#1c1c1f] to-[#161618] border rounded-xl p-4 flex flex-col md:flex-row md:items-center gap-4 transition-all duration-300 ${
-                  connected
-                    ? 'border-[#27272a] hover:border-[#404040] hover:shadow-[0_8px_30px_rgb(0,0,0,0.4)]'
-                    : 'border-[#27272a]/60 hover:border-[#3b82f6]/40 hover:bg-[#1e1e21] cursor-pointer hover:shadow-[0_8px_30px_rgba(59,130,246,0.05)]'
-                }`}
-                onClick={() => { if (!connected) setConnectModal(item); }}
+                className={`group relative flex flex-col rounded-2xl border overflow-hidden transition-all duration-200 ${connected
+                  ? 'border-[#2a2a2a] bg-white/2 hover:border-[#3a3a3a]'
+                  : 'border-[#1f1f22] bg-white/2 hover:border-[#2a2a2a] hover:bg-[#18181b] cursor-pointer'
+                  }`}
+                onClick={() => {
+                  if (!connected) {
+                    if (item.id === 'github') handleGitHubInstall();
+                    else setConnectModal(item);
+                  }
+                }}
               >
-                <div
-                  className="w-10 h-10 rounded-lg flex items-center justify-center shrink-0 transition-all duration-300 group-hover:scale-110 shadow-lg"
-                  style={{
-                    backgroundColor: item.bgColor,
-                    boxShadow: connected ? `0 0 20px -5px ${item.color === '#ffffff' ? '#ffffff22' : item.color + '33'}` : 'none',
-                  }}
-                >
-                  <Icon size={20} style={{ color: item.color === '#ffffff' ? '#ffffff' : item.color, filter: 'drop-shadow(0 0 8px rgba(0,0,0,0.2))' }} />
-                </div>
+                {/* Top accent line when active */}
+                {connected && enabled && (
+                  <div className="h-[2px] w-full shrink-0" style={{ backgroundColor: accentColor, opacity: 0.8 }} />
+                )}
 
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-1">
-                    <h3 className="text-[16px] font-semibold text-[#f4f4f5] tracking-tight">{item.name}</h3>
-                    <span className="px-2 py-0.5 rounded-full bg-[#27272a]/80 text-[10px] font-medium uppercase tracking-wider text-[#71717a] border border-[#27272a]">
-                      {item.category}
-                    </span>
+                <div className="flex flex-col flex-1 p-5">
+                  {/* Icon + status row */}
+                  <div className="flex items-start justify-between mb-4">
+                    <div
+                      className="w-11 h-11 rounded-xl flex items-center justify-center shrink-0 border border-white/[0.06]"
+                      style={{ backgroundColor: item.bgColor }}
+                    >
+                      <Icon size={20} style={{ color: iconColor }} />
+                    </div>
+
+                    {connected ? (
+                      <Toggle
+                        enabled={enabled}
+                        disabled={toggling}
+                        onChange={(val) => void handleToggle(item, val)}
+                      />
+                    ) : (
+                      <span className="text-[10px] font-semibold uppercase tracking-[0.1em] text-[#3f3f46] px-2 py-1 rounded-md border border-[#27272a]">
+                        Off
+                      </span>
+                    )}
                   </div>
-                  <p className="text-[13px] text-[#71717a] leading-relaxed line-clamp-1 md:line-clamp-2">
+
+                  {/* Name + category */}
+                  <div className="mb-1.5">
+                    <h3 className="text-[14px] font-semibold text-[#f4f4f5] leading-tight">{item.name}</h3>
+                    <p className="text-[11px] text-[#52525b] mt-0.5 font-medium">{item.category}</p>
+                  </div>
+
+                  {/* Description */}
+                  <p className="text-[12.5px] text-[#71717a] leading-relaxed flex-1 line-clamp-3">
                     {item.description}
                   </p>
-                </div>
 
-                <div className="flex items-center justify-between md:justify-end gap-6 shrink-0 pt-3 md:pt-0 border-t md:border-t-0 border-[#27272a]/40">
-                  {connected ? (
-                    <div className="flex items-center gap-6">
-                      <div className="flex items-center gap-3">
-                        <div className="flex flex-col items-end">
-                          <span className="text-[11px] font-medium text-[#71717a] uppercase tracking-tighter">Status</span>
-                          <div className="flex items-center gap-1.5">
-                            <span className={`w-1.5 h-1.5 rounded-full ${enabled ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.8)]' : 'bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.5)]'}`} />
-                            <span className={`text-[12px] font-semibold ${enabled ? 'text-emerald-400' : 'text-amber-400'}`}>
-                              {enabled ? 'Active' : 'Paused'}
-                            </span>
-                          </div>
-                        </div>
-                        <Toggle
-                          enabled={enabled}
-                          disabled={toggling || item.id === 'github'}
-                          onChange={(val) => void handleToggle(item, val)}
-                        />
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <button
-                          onClick={(e) => { e.stopPropagation(); setConfigureModal(item); }}
-                          className="p-2 rounded-lg hover:bg-white/10 text-[#a1a1aa] hover:text-[#f4f4f5] transition-all duration-200"
-                          title="Configure"
-                        >
-                          <Settings2 size={16} />
-                        </button>
-                        {item.id !== 'github' && (
+                  {/* Footer */}
+                  <div className="mt-4 pt-4 border-t border-[#1f1f22] flex items-center justify-between gap-2">
+                    {connected ? (
+                      <>
+                        <span className={`flex items-center gap-1.5 text-[11px] font-medium ${enabled ? 'text-emerald-400' : 'text-[#52525b]'}`}>
+                          <span className={`h-1.5 w-1.5 rounded-full ${enabled ? 'bg-emerald-500' : 'bg-[#3f3f46]'}`} />
+                          {toggling ? 'Updating…' : enabled ? 'Active' : 'Paused'}
+                        </span>
+                        <div className="flex items-center gap-1">
+                          <button
+                            onClick={(e) => { e.stopPropagation(); setConfigureModal(item); }}
+                            className="p-1.5 rounded-lg text-[#52525b] hover:text-[#a1a1aa] hover:bg-white/[0.05] transition-colors"
+                            title="Configure"
+                          >
+                            <Settings2 size={14} />
+                          </button>
                           <CardMenu
                             onConfigure={() => setConfigureModal(item)}
                             onDisconnect={() => setDisconnectModal(item)}
                           />
-                        )}
-                      </div>
-                    </div>
-                  ) : (
-                    <button
-                      onClick={(e) => { e.stopPropagation(); setConnectModal(item); }}
-                      className="flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-600/10 hover:bg-blue-600/20 text-[13px] font-bold text-blue-400 hover:text-blue-300 transition-all duration-300 border border-blue-500/20 hover:border-blue-500/40 shadow-[0_0_15px_rgba(59,130,246,0.1)] hover:shadow-[0_0_20px_rgba(59,130,246,0.2)]"
-                    >
-                      <Plug size={13} />
-                      Connect
-                    </button>
-                  )}
+                        </div>
+                      </>
+                    ) : (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (item.id === 'github') handleGitHubInstall();
+                          else setConnectModal(item);
+                        }}
+                        className="flex items-center gap-1.5 text-[12px] font-semibold text-[#a1a1aa] hover:text-[#f4f4f5] transition-colors"
+                      >
+                        <Plug size={13} className="text-indigo-400" />
+                        {item.id === 'github' ? 'Install App' : 'Connect'}
+                      </button>
+                    )}
+                  </div>
                 </div>
-
-                {connected && enabled && (
-                  <div className="absolute top-0 bottom-0 left-0 w-[2px] rounded-r-full bg-emerald-500/40" />
-                )}
               </div>
             );
           })}
+
+          {/* Empty state for filtered category */}
+          {visibleIntegrations.length === 0 && (
+            <div className="col-span-full flex flex-col items-center justify-center py-20 text-center">
+              <div className="w-12 h-12 rounded-2xl bg-[#1f1f22] flex items-center justify-center mb-4">
+                <Plug size={20} className="text-[#3f3f46]" />
+              </div>
+              <p className="text-[14px] font-medium text-[#52525b]">No integrations in this category yet</p>
+              <p className="text-[13px] text-[#3f3f46] mt-1">More providers coming soon.</p>
+            </div>
+          )}
+        </div>
+
+        {/* ── Bottom support strip ── */}
+        <div className="mt-8 grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="flex items-center gap-5 p-5 rounded-2xl border border-[#1f1f22] bg-[#161618]">
+            <div className="w-10 h-10 rounded-xl bg-[#1f1f22] flex items-center justify-center shrink-0">
+              <ExternalLink size={16} className="text-[#52525b]" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-[13px] font-semibold text-[#d4d4d8]">Documentation</p>
+              <p className="text-[12px] text-[#52525b] mt-0.5">Step-by-step guides for every integration</p>
+            </div>
+            <Link
+              href="/dashboard/integrations/docs"
+              className="shrink-0 px-3.5 py-2 rounded-xl border border-[#27272a] text-[12px] font-medium text-[#a1a1aa] hover:text-[#f4f4f5] hover:border-[#3a3a3a] transition-all"
+            >
+              View docs
+            </Link>
+          </div>
+          <div className="flex items-center gap-5 p-5 rounded-2xl border border-[#1f1f22] bg-[#161618]">
+            <div className="w-10 h-10 rounded-xl bg-[#6366f1]/10 flex items-center justify-center shrink-0">
+              <Zap size={16} className="text-indigo-400" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-[13px] font-semibold text-[#d4d4d8]">Request an integration</p>
+              <p className="text-[12px] text-[#52525b] mt-0.5">Tell us which tool your team needs next</p>
+            </div>
+            <Link
+              href="/dashboard/integrations/request"
+              className="shrink-0 px-3.5 py-2 rounded-xl bg-[#6366f1]/10 border border-[#6366f1]/20 text-[12px] font-semibold text-indigo-400 hover:bg-[#6366f1]/20 transition-all"
+            >
+              Request
+            </Link>
+          </div>
         </div>
       </div>
 
-      {/* Modals */}
+      {/* ── Modals ── */}
       <ConnectModal
         key={connectModal?.id}
         isOpen={!!connectModal}
@@ -943,10 +1140,11 @@ export default function IntegrationsPage() {
       <ConfigureModal
         key={`c-${configureModal?.id}`}
         isOpen={!!configureModal}
-        onClose={() => setConfigureModal(null)}
+        onClose={() => { setConfigureModal(null); setAutoTestOnOpen(false); }}
         integration={configureModal}
         currentConfig={(configureModal ? getDb(configureModal.id)?.config ?? {} : {}) as Record<string, string>}
         onSaved={handleConfigSaved}
+        autoTest={autoTestOnOpen}
       />
     </div>
   );
