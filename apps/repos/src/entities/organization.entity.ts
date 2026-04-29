@@ -28,6 +28,15 @@ export class Organization {
   @Column({ name: 'is_personal', default: false })
   isPersonal: boolean;
 
+  @Column({ name: 'is_archived', default: false })
+  isArchived: boolean;
+
+  @Column({ type: 'varchar', nullable: true, name: 'timezone' })
+  timezone: string | null;
+
+  @Column({ name: 'internal_visibility', default: true })
+  internalVisibility: boolean;
+
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;
 
