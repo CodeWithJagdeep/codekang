@@ -74,4 +74,10 @@ export class AgentController {
   getUsage(@Payload() data: { userId: string }) {
     return this.agentService.getUsage(data.userId);
   }
+
+  @MessagePattern(MESSAGE_PATTERNS.AGENT_DELETE_USER_DATA)
+  async deleteUserData(@Payload() data: { userId: string }) {
+    await this.agentService.deleteAllUserData(data.userId);
+    return { success: true };
+  }
 }
