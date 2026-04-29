@@ -5,6 +5,9 @@ export interface IOrganization {
   name: string;
   description?: string;
   isPersonal: boolean;
+  isArchived: boolean;
+  timezone: string | null;
+  internalVisibility: boolean;
   createdAt: Date;
   updatedAt: Date;
 }
