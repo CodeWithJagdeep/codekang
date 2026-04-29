@@ -13,6 +13,9 @@ initSentry();
 const app = createApp();
 
 async function start() {
+  console.log('--- [Autonomous AI] Environment Variables ---');
+  console.log(process.env);
+  console.log('---------------------------------------------');
   // Ensure pgvector schema before accepting any traffic
   logger.info('Ensuring database schema');
   await ensureSchema();

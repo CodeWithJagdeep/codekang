@@ -16,6 +16,9 @@ if (process.env.SENTRY_DSN) {
 }
 
 async function bootstrap() {
+  console.log('--- [Gateway] Environment Variables ---');
+  console.log(process.env);
+  console.log('---------------------------------------');
   const app = await NestFactory.create(AppModule, {
     rawBody: true,
     logger:

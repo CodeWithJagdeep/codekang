@@ -4,6 +4,9 @@ import { ValidationPipe } from '@nestjs/common';
 import { AppModule } from './app.module';
 
 async function bootstrap() {
+  console.log('--- [AI Agent] Environment Variables ---');
+  console.log(process.env);
+  console.log('----------------------------------------');
   const app = await NestFactory.createMicroservice<MicroserviceOptions>(
     AppModule,
     {

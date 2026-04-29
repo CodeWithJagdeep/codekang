@@ -3,6 +3,9 @@ import { MicroserviceOptions, Transport } from '@nestjs/microservices';
 import { AppModule } from './app.module';
 
 async function bootstrap() {
+  console.log('--- [Auth] Environment Variables ---');
+  console.log(process.env);
+  console.log('------------------------------------');
   const app = await NestFactory.createMicroservice<MicroserviceOptions>(
     AppModule,
     {
