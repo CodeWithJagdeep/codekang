@@ -13,10 +13,14 @@ import {
   Copy,
   CheckCircle2,
   AlertTriangle,
+  Archive,
+  RefreshCcw,
 } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { useTheme } from '@/lib/theme';
 import Image from 'next/image';
+import { archiveAccount, deleteAccount, clearTokens, fetchCurrentUser, type User } from '@/lib/auth';
 
 // ── Toast ──
 
@@ -130,6 +134,7 @@ function RowLabel({ label, sub }: { label: string; sub?: string }) {
 
 export default function SettingsProfilePage() {
   const { theme, setTheme } = useTheme();
+  const router = useRouter();
 
   // Toast
   const [toast, setToast] = useState<{
@@ -139,12 +144,48 @@ export default function SettingsProfilePage() {
   const showToast = (msg: string, type: 'success' | 'error' = 'success') =>
     setToast({ msg, type });
 
+  // Archive / Delete account modals
+  const [showArchiveModal, setShowArchiveModal] = useState(false);
+  const [isArchiving, setIsArchiving] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deleteConfirmEmail, setDeleteConfirmEmail] = useState('');
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [dangerError, setDangerError] = useState('');
+
+  const maskEmail = (email: string) => {
+    const [local, domain] = email.split('@');
+    if (!domain || local.length <= 2) return email;
+    return `${local.slice(0, 2)}${'*'.repeat(Math.min(local.length - 2, 4))}@${domain}`;
+  };
+
+  // Real user data
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [userEmail, setUserEmail] = useState('');
+  useEffect(() => {
+    fetchCurrentUser()
+      .then((u) => {
+        setCurrentUser(u);
+        setUserEmail(u.email ?? '');
+        if (u.name) { setName(u.name); setTempName(u.name); }
+      })
+      .catch(() => {
+        try {
+          const raw = localStorage.getItem('user');
+          if (raw) {
+            const u = JSON.parse(raw) as { email?: string; name?: string };
+            setUserEmail(u.email ?? '');
+            if (u.name) { setName(u.name); setTempName(u.name); }
+          }
+        } catch { /* ignore */ }
+      });
+  }, []);
+
   // Profile
-  const [name, setName] = useState('Jagdeep Singh');
+  const [name, setName] = useState('');
   const [tempName, setTempName] = useState(name);
   const [editingName, setEditingName] = useState(false);
 
-  const [username, setUsername] = useState('jagdeep');
+  const [username, setUsername] = useState('');
   const [tempUsername, setTempUsername] = useState(username);
   const [editingUsername, setEditingUsername] = useState(false);
 
@@ -183,7 +224,7 @@ export default function SettingsProfilePage() {
   // Copied user ID
   const [copied, setCopied] = useState(false);
   const copyId = () => {
-    navigator.clipboard.writeText('google-auth::uid::kang-2125');
+    navigator.clipboard.writeText(currentUser?.id ?? '');
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
@@ -267,7 +308,9 @@ export default function SettingsProfilePage() {
                   className="object-cover w-full h-full"
                 />
               ) : (
-                <span className="text-[18px] font-bold text-white/60">JS</span>
+                <span className="text-[18px] font-bold text-white/60">
+                  {name ? name.split(' ').map((w) => w[0]).join('').slice(0, 2).toUpperCase() : '?'}
+                </span>
               )}
             </div>
             <div className="absolute inset-0 bg-black/50 rounded-full opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
@@ -395,7 +438,7 @@ export default function SettingsProfilePage() {
             sub="Tied to your Google account. Cannot be changed."
           />
           <span className="text-[14px] text-[#71717a] bg-[#121214] px-4 py-2.5 rounded-xl border border-[#27272a] font-mono">
-            jagdeepsnh57@gmail.com
+            {userEmail || '—'}
           </span>
         </Row>
 
@@ -462,7 +505,7 @@ export default function SettingsProfilePage() {
           />
           <div className="flex items-center gap-2">
             <code className="text-[13px] text-[#52525b] font-mono bg-[#121214] px-3 py-2 rounded-xl border border-[#27272a]">
-              google-auth::uid::kang-2125
+              {currentUser?.id ?? '—'}
             </code>
             <button
               onClick={copyId}
@@ -724,27 +767,22 @@ export default function SettingsProfilePage() {
             Irreversible actions. Proceed with caution.
           </p>
         </div>
-        <div className="rounded-[14px] border border-red-500/20 bg-red-500/3 overflow-hidden">
+        <div className="rounded-[14px] border border-red-500/20 bg-red-500/[0.02] overflow-hidden">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between px-5 py-4 gap-4 border-b border-red-500/10">
             <div>
               <p className="text-[14px] font-medium text-[#f4f4f5]">
-                Delete all AI data
+                Archive account
               </p>
               <p className="text-[13px] text-[#71717a] mt-0.5">
-                Permanently removes all KangBot findings, logs, and fix history.
+                Temporarily deactivate your account. All agents and billing will be paused. You can reactivate by contacting support.
               </p>
             </div>
             <button
-              onClick={() =>
-                showToast(
-                  'Please confirm from the email we just sent you',
-                  'error',
-                )
-              }
+              onClick={() => { setDangerError(''); setShowArchiveModal(true); }}
               className="flex items-center gap-2 px-4 py-2 rounded-xl border border-red-500/25 text-[13px] font-medium text-red-400 hover:bg-red-500/10 transition-all shrink-0"
             >
-              <Trash2 size={14} />
-              Delete AI data
+              <Archive size={14} />
+              Archive account
             </button>
           </div>
           <div className="flex flex-col sm:flex-row sm:items-center justify-between px-5 py-4 gap-4">
@@ -753,17 +791,11 @@ export default function SettingsProfilePage() {
                 Delete account
               </p>
               <p className="text-[13px] text-[#71717a] mt-0.5">
-                Permanently delete your account and all associated data. This
-                cannot be undone.
+                Permanently delete your account, all repositories, organizations, reviews, and associated data. This cannot be undone.
               </p>
             </div>
             <button
-              onClick={() =>
-                showToast(
-                  'Confirmation email sent to jagdeepsnh57@gmail.com',
-                  'error',
-                )
-              }
+              onClick={() => { setDeleteConfirmEmail(''); setDangerError(''); setShowDeleteModal(true); }}
               className="flex items-center gap-2 px-4 py-2 rounded-xl bg-red-500/10 border border-red-500/25 text-[13px] font-semibold text-red-400 hover:bg-red-500/20 transition-all shrink-0"
             >
               <Trash2 size={14} />
@@ -772,6 +804,120 @@ export default function SettingsProfilePage() {
           </div>
         </div>
       </section>
+
+      {/* ── Archive Account Modal ── */}
+      {showArchiveModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm px-4">
+          <div className="bg-[#18181b] border border-[#27272a] rounded-2xl w-full max-w-md p-6 shadow-2xl space-y-5">
+            <div className="flex items-start gap-3">
+              <div className="w-10 h-10 rounded-full bg-amber-500/10 flex items-center justify-center flex-shrink-0">
+                <Archive size={18} className="text-amber-400" />
+              </div>
+              <div>
+                <h3 className="text-[15px] font-bold text-[#f8f8f8]">Archive your account?</h3>
+                <p className="text-[13px] text-[#71717a] mt-1 leading-relaxed">
+                  Your account will be deactivated. All agents will stop, billing will pause, and your data will be preserved. Contact support to reactivate.
+                </p>
+              </div>
+            </div>
+            {dangerError && (
+              <p className="text-[12px] text-red-400 bg-red-500/10 rounded-lg px-3 py-2">
+                {dangerError}
+              </p>
+            )}
+            <div className="flex gap-3 justify-end">
+              <button
+                onClick={() => setShowArchiveModal(false)}
+                className="px-4 py-2 rounded-xl border border-[#27272a] text-[13px] text-[#a1a1aa] hover:text-[#e8e8e8] transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={async () => {
+                  setIsArchiving(true);
+                  setDangerError('');
+                  try {
+                    await archiveAccount();
+                    clearTokens();
+                    router.replace('/in/login');
+                  } catch (e) {
+                    setDangerError(e instanceof Error ? e.message : 'Failed to archive account');
+                    setIsArchiving(false);
+                  }
+                }}
+                disabled={isArchiving}
+                className="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 disabled:opacity-50 transition-colors text-[13px] font-semibold text-black flex items-center gap-2"
+              >
+                {isArchiving && <RefreshCcw size={13} className="animate-spin" />}
+                Archive account
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Delete Account Modal ── */}
+      {showDeleteModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm px-4">
+          <div className="bg-[#18181b] border border-red-500/30 rounded-2xl w-full max-w-md p-6 shadow-2xl space-y-5">
+            <div className="flex items-start gap-3">
+              <div className="w-10 h-10 rounded-full bg-red-500/10 flex items-center justify-center flex-shrink-0">
+                <Trash2 size={18} className="text-red-500" />
+              </div>
+              <div>
+                <h3 className="text-[15px] font-bold text-[#f8f8f8]">Delete your account?</h3>
+                <p className="text-[13px] text-[#71717a] mt-1 leading-relaxed">
+                  This will permanently delete your account and all data — repositories, organizations, AI reviews, billing history, and everything else. <span className="text-red-400 font-medium">This cannot be undone.</span>
+                </p>
+              </div>
+            </div>
+            <div className="space-y-2">
+              <label className="text-[12px] text-[#a1a1aa]">
+                Type your email {userEmail && <span className="font-mono text-[#f8f8f8]">{maskEmail(userEmail)}</span>} to confirm
+              </label>
+              <input
+                type="email"
+                value={deleteConfirmEmail}
+                onChange={(e) => setDeleteConfirmEmail(e.target.value)}
+                placeholder="your@email.com"
+                className="w-full bg-black/20 border border-[#27272a] rounded-xl py-2.5 px-4 text-[13px] text-[#f8f8f8] outline-none focus:border-red-500 transition-all"
+              />
+            </div>
+            {dangerError && (
+              <p className="text-[12px] text-red-400 bg-red-500/10 rounded-lg px-3 py-2">
+                {dangerError}
+              </p>
+            )}
+            <div className="flex gap-3 justify-end">
+              <button
+                onClick={() => setShowDeleteModal(false)}
+                className="px-4 py-2 rounded-xl border border-[#27272a] text-[13px] text-[#a1a1aa] hover:text-[#e8e8e8] transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={async () => {
+                  setIsDeleting(true);
+                  setDangerError('');
+                  try {
+                    await deleteAccount();
+                    clearTokens();
+                    router.replace('/in/login');
+                  } catch (e) {
+                    setDangerError(e instanceof Error ? e.message : 'Failed to delete account');
+                    setIsDeleting(false);
+                  }
+                }}
+                disabled={isDeleting || (userEmail ? deleteConfirmEmail !== userEmail : deleteConfirmEmail.trim() === '')}
+                className="px-4 py-2 rounded-xl bg-red-500 hover:bg-red-600 disabled:opacity-50 transition-colors text-[13px] font-bold text-white flex items-center gap-2"
+              >
+                {isDeleting && <RefreshCcw size={13} className="animate-spin" />}
+                Delete permanently
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Toast */}
       {toast && (
