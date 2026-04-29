@@ -9,6 +9,7 @@ import { User } from '../entities/user.entity';
 import { RefreshTokenBlacklist } from '../entities/refresh-token-blacklist.entity';
 import { Otp } from '../entities/otp.entity';
 import { UserSession } from '../entities/user-session.entity';
+import { UserIntegration } from '../entities/user-integration.entity';
 import { BlacklistCleanupService } from './blacklist-cleanup.service';
 import { MailModule } from './mail/mail.module';
 import { RazorpayService } from './razorpay.service';
@@ -20,10 +21,10 @@ import { RazorpayService } from './razorpay.service';
       inject: [ConfigService],
       useFactory: (config: ConfigService) => ({
         secret: config.getOrThrow('JWT_SECRET'),
-        signOptions: { expiresIn: config.get('JWT_EXPIRES_IN', '15m') },
+        signOptions: { expiresIn: config.get('JWT_EXPIRES_IN', '1h') },
       }),
     }),
-    TypeOrmModule.forFeature([User, RefreshTokenBlacklist, Otp, UserSession]),
+    TypeOrmModule.forFeature([User, RefreshTokenBlacklist, Otp, UserSession, UserIntegration]),
     ScheduleModule.forRoot(),
     MailModule,
   ],
