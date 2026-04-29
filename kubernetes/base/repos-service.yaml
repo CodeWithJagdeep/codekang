@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: repos
+  namespace: codekang
+spec:
+  selector:
+    app: repos
+  ports:
+    - name: tcp
+      port: 3003
+      targetPort: 3003
+  type: ClusterIP
