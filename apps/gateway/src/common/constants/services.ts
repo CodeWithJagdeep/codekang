@@ -25,6 +25,8 @@ export const MESSAGE_PATTERNS = {
   AUTH_GET_SESSIONS: 'auth.get_sessions',
   AUTH_REVOKE_SESSION: 'auth.revoke_session',
   AUTH_UPDATE_PROFILE: 'auth.update_profile',
+  AUTH_ARCHIVE_ACCOUNT: 'auth.archive_account',
+  AUTH_DELETE_ACCOUNT: 'auth.delete_account',
 
   // AI Agent
   AGENT_CREATE_CONVERSATION: 'agent.create_conversation',
@@ -35,6 +37,7 @@ export const MESSAGE_PATTERNS = {
   AGENT_STREAM_MESSAGE: 'agent.stream_message',
   AGENT_FIX_ISSUE: 'agent.fix_issue',
   AGENT_GET_USAGE: 'agent.get_usage',
+  AGENT_DELETE_USER_DATA: 'agent.delete_user_data',
 
   // Repos
   REPOS_LIST: 'repos.list',
@@ -50,6 +53,7 @@ export const MESSAGE_PATTERNS = {
 
   REPOS_GET_SETTINGS: 'repos.get_settings',
   REPOS_UPDATE_SETTINGS: 'repos.update_settings',
+  REPOS_DELETE_USER_DATA: 'repos.delete_user_data',
 
   // Organizations
   ORG_CREATE: 'org.create',
@@ -65,6 +69,7 @@ export const MESSAGE_PATTERNS = {
   ORG_INVITE_MEMBER: 'org.invite_member',
   ORG_REMOVE_MEMBER: 'org.remove_member',
   ORG_UPDATE_MEMBER_ROLE: 'org.update_member_role',
+  ORG_ARCHIVE: 'org.archive',
 
   // Integrations
   INTEGRATION_LIST: 'integration.list',
@@ -81,6 +86,8 @@ export const MESSAGE_PATTERNS = {
   // Support
   SUPPORT_CREATE: 'support.create',
   SUPPORT_LIST: 'support.list',
+  SUPPORT_REPLY: 'support.reply',
+  SUPPORT_RESOLVE: 'support.resolve',
 
   // Audit
   AUDIT_LIST: 'audit.list',
