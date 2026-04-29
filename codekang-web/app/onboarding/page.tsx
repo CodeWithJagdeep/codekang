@@ -277,7 +277,7 @@ export default function OnboardingPage() {
             </button>
 
             <p className="text-center text-[11px] font-bold uppercase tracking-tight text-gray-300">
-              Commitment to Security · <a href="#" className="underline">Terms</a> · <a href="#" className="underline">Privacy</a>
+              Commitment to Security · <a href="/in/terms" className="underline">Terms</a> · <a href="/in/privacy" className="underline">Privacy</a>
             </p>
           </div>
         </div>
