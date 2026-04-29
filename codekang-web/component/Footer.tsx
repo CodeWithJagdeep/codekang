@@ -90,6 +90,7 @@ function Footer() {
                 width={160}
                 height={40}
                 className="grayscale hover:grayscale-0 transition-all duration-500"
+                style={{ height: 'auto' }}
               />
             </div>
             <p className="text-[15px] text-gray-500 font-medium leading-tight max-w-xs uppercase tracking-tight">
@@ -179,9 +180,9 @@ function Footer() {
         {/* Legal Bar */}
         <div className="relative z-10 py-10 flex flex-col md:flex-row items-center justify-between border-t-2 border-black/10 gap-6 mt-10">
           <div className="flex gap-10 text-[11px] font-black uppercase tracking-widest text-gray-400">
-            <Link href="#" className="hover:text-black transition-colors">Terms</Link>
-            <Link href="#" className="hover:text-black transition-colors">Privacy</Link>
-            <Link href="#" className="hover:text-black transition-colors">Security</Link>
+            <Link href="/in/terms" className="hover:text-black transition-colors">Terms</Link>
+            <Link href="/in/privacy" className="hover:text-black transition-colors">Privacy</Link>
+            <Link href="/in/security-policy" className="hover:text-black transition-colors">Security</Link>
           </div>
           <span className="text-[11px] text-gray-300 font-black uppercase tracking-[0.2em]">
             © {new Date().getFullYear()} CodeKang Inc.
