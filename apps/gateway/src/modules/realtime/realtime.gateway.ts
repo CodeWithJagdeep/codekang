@@ -12,17 +12,25 @@ import { ClientProxy } from '@nestjs/microservices';
 import { firstValueFrom } from 'rxjs';
 import { SERVICES, MESSAGE_PATTERNS } from '../../common';
 
+const wsAllowedOrigins = [
+  'https://codekang.com',
+  'https://www.codekang.com',
+  'https://staging.codekang.com',
+  ...(process.env.FRONTEND_URL ?? '').split(',').filter(Boolean),
+  ...(process.env.NODE_ENV !== 'production'
+    ? [
+        'http://localhost:3010',
+        'http://localhost:3000',
+        'http://localhost:5173',
+        'http://127.0.0.1:3010',
+      ]
+    : []),
+];
+
 @WebSocketGateway({
   namespace: '/ws',
   cors: {
-    origin: [
-      'http://localhost:3010',
-      'http://localhost:3000',
-      'http://localhost:5173',
-      'http://127.0.0.1:3010',
-      'https://codekang.com',
-      'https://www.codekang.com',
-    ],
+    origin: wsAllowedOrigins,
     credentials: true,
   },
 })
