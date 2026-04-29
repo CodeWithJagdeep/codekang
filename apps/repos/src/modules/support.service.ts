@@ -53,6 +53,26 @@ export class SupportService {
     return enriched;
   }
 
+  async replyToTicket(userId: string, ticketId: string, content: string) {
+    const ticket = await this.ticketRepo.findOne({ where: { id: ticketId, userId } });
+    if (!ticket) throw new NotFoundException('Ticket not found');
+
+    const message = this.messageRepo.create({ ticketId, author: 'user', content });
+    await this.messageRepo.save(message);
+
+    await this.ticketRepo.update(ticketId, { status: TicketStatus.OPEN });
+
+    return this.getTicketWithMessages(ticketId, userId);
+  }
+
+  async resolveTicket(userId: string, ticketId: string) {
+    const ticket = await this.ticketRepo.findOne({ where: { id: ticketId, userId } });
+    if (!ticket) throw new NotFoundException('Ticket not found');
+
+    await this.ticketRepo.update(ticketId, { status: TicketStatus.RESOLVED });
+    return this.getTicketWithMessages(ticketId, userId);
+  }
+
   private async getTicketWithMessages(ticketId: string, userId: string) {
     const ticket = await this.ticketRepo.findOne({ where: { id: ticketId, userId } });
     if (!ticket) throw new NotFoundException('Ticket not found');
