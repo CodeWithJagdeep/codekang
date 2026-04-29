@@ -19,6 +19,7 @@ const spaceGrotesk = Space_Grotesk({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL('https://codekang.com'),
   title: {
     template: '%s | CodeKang',
     default: 'CodeKang — AI Code Review & Issue Fixing Platform',
@@ -67,17 +68,20 @@ export const metadata: Metadata = {
     creator: '@codekang',
     images: ['/og-image.jpg'],
   },
-  robots: {
-    index: true,
-    follow: true,
-    googleBot: {
-      index: true,
-      follow: true,
-      'max-video-preview': -1,
-      'max-image-preview': 'large',
-      'max-snippet': -1,
-    },
-  },
+  robots:
+    process.env.NEXT_PUBLIC_APP_ENV === 'staging'
+      ? { index: false, follow: false }
+      : {
+          index: true,
+          follow: true,
+          googleBot: {
+            index: true,
+            follow: true,
+            'max-video-preview': -1,
+            'max-image-preview': 'large',
+            'max-snippet': -1,
+          },
+        },
   icons: {
     icon: '/favicon/favicon.ico',
     shortcut: '/favicon/favicon.ico',
@@ -115,6 +119,7 @@ export default function RootLayout({
     <html
       lang="en"
       className={`${geistSans.variable} ${geistMono.variable} ${spaceGrotesk.variable} h-full antialiased`}
+      suppressHydrationWarning
     >
       <body className="min-h-full flex flex-col" suppressHydrationWarning>
         <Providers>{children}</Providers>
