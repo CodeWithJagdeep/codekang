@@ -46,6 +46,7 @@ export const MESSAGE_PATTERNS = {
 
   REPOS_GET_SETTINGS: 'repos.get_settings',
   REPOS_UPDATE_SETTINGS: 'repos.update_settings',
+  REPOS_DELETE_USER_DATA: 'repos.delete_user_data',
 
   // Organizations
   ORG_CREATE: 'org.create',
@@ -61,6 +62,7 @@ export const MESSAGE_PATTERNS = {
   ORG_INVITE_MEMBER: 'org.invite_member',
   ORG_REMOVE_MEMBER: 'org.remove_member',
   ORG_UPDATE_MEMBER_ROLE: 'org.update_member_role',
+  ORG_ARCHIVE: 'org.archive',
 
   // Notifications
   NOTIF_LIST: 'notif.list',
@@ -70,6 +72,8 @@ export const MESSAGE_PATTERNS = {
   // Support
   SUPPORT_CREATE: 'support.create',
   SUPPORT_LIST: 'support.list',
+  SUPPORT_REPLY: 'support.reply',
+  SUPPORT_RESOLVE: 'support.resolve',
 
   // Audit
   AUDIT_LIST: 'audit.list',
