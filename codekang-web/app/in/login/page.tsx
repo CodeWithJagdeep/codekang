@@ -379,11 +379,11 @@ export default function LoginPage() {
         {/* Footer */}
         <p className="text-center text-[12px] text-gray-400 mt-8">
           By continuing, you agree to CodeKang&apos;s{' '}
-          <a href="#" className="underline hover:text-black transition-colors">
+          <a href="/in/terms" className="underline hover:text-black transition-colors">
             Terms of Service
           </a>{' '}
           &{' '}
-          <a href="#" className="underline hover:text-black transition-colors">
+          <a href="/in/privacy" className="underline hover:text-black transition-colors">
             Privacy Policy
           </a>
           .
