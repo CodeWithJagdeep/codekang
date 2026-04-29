@@ -237,7 +237,7 @@ export default function SecretsPage() {
 
       <footer className="pt-6 border-t border-[#2a2a2a]/40">
         <a
-          href="#"
+          href="/settings/support"
           className="text-[12px] text-[#71717a] hover:text-[#f4f4f5] transition-colors flex items-center gap-1.5"
         >
           Learn how to use secrets in your CodeKang playbooks
