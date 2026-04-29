@@ -5,40 +5,42 @@ metadata:
   name: codekang-base
   namespace: default
 
-# Common labels for all resources
 commonLabels:
   app: codekang-platform
   version: v1
 
-# Common annotations
 commonAnnotations:
   managed-by: kustomize
-  environment: production
 
-# Namespace
 namespace: codekang
 
-# Base resources
 resources:
   - namespace.yaml
   - configmap.yaml
   - secrets.yaml
+  # Storage
   - postgres-pvc.yaml
   - redis-pvc.yaml
+  # Infrastructure deployments
   - postgres-deployment.yaml
   - redis-deployment.yaml
-  - gateway-deployment.yaml
+  # Microservice deployments
   - auth-deployment.yaml
   - ai-agent-deployment.yaml
   - repos-deployment.yaml
+  - gateway-deployment.yaml
   - autonomous-deployment.yaml
-  - frontend-deployment.yaml
-  - gateway-service.yaml
-  - auth-service.yaml
+  # Services
   - postgres-service.yaml
   - redis-service.yaml
+  - auth-service.yaml
+  - ai-agent-service.yaml
+  - repos-service.yaml
+  - gateway-service.yaml
+  - autonomous-service.yaml
+  # Ingress
+  - ingress.yaml
 
-# Images
 images:
   - name: codekang/gateway
     newTag: latest
@@ -50,14 +52,7 @@ images:
     newTag: latest
   - name: codekang/autonomous
     newTag: latest
-  - name: codekang/frontend
-    newTag: latest
-  - name: postgres
-    newTag: 16-alpine
-  - name: redis
-    newTag: 7-alpine
 
-# Replicas (will be overridden in overlays)
 replicas:
   - name: gateway
     count: 1
@@ -69,18 +64,3 @@ replicas:
     count: 1
   - name: autonomous
     count: 1
-  - name: frontend
-    count: 1
-
-# Patches
-patches:
-  - target:
-      kind: Deployment
-      labelSelector: "app=codekang-platform"
-    patch: |-
-      - op: add
-        path: /spec/template/spec/securityContext
-        value:
-          runAsNonRoot: true
-          runAsUser: 1000
-          fsGroup: 1000
