@@ -9,6 +9,7 @@ import { User } from '../entities/user.entity';
 import { RefreshTokenBlacklist } from '../entities/refresh-token-blacklist.entity';
 import { Otp } from '../entities/otp.entity';
 import { UserSession } from '../entities/user-session.entity';
+import { UserIntegration } from '../entities/user-integration.entity';
 import { PLANS } from '../common';
 import type {
   IAuthTokens,
@@ -55,6 +56,7 @@ export class AuthService {
     private readonly blacklistRepo: Repository<RefreshTokenBlacklist>,
     @InjectRepository(Otp) private readonly otpRepo: Repository<Otp>,
     @InjectRepository(UserSession) private readonly sessionRepo: Repository<UserSession>,
+    @InjectRepository(UserIntegration) private readonly integrationRepo: Repository<UserIntegration>,
     private readonly jwtService: JwtService,
     private readonly config: ConfigService,
     private readonly mailService: MailService,
@@ -368,11 +370,11 @@ export class AuthService {
   generateTokens(user: User): IAuthTokens {
     const payload = { sub: user.id, email: user.email, plan: user.plan };
     const accessToken = this.jwtService.sign(payload, {
-      expiresIn: this.config.get('JWT_EXPIRES_IN', '15m'),
+      expiresIn: this.config.get('JWT_EXPIRES_IN', '1h'),
     });
     const refreshToken = this.jwtService.sign(payload, {
       secret: this.config.getOrThrow('JWT_REFRESH_SECRET'),
-      expiresIn: this.config.get('JWT_REFRESH_EXPIRES_IN', '7d'),
+      expiresIn: this.config.get('JWT_REFRESH_EXPIRES_IN', '30d'),
     });
     return { accessToken, refreshToken, expiresIn: 3600 };
   }
@@ -385,18 +387,21 @@ export class AuthService {
         plan: PlanTier;
       }>(token);
       const user = await this.userRepo.findOne({
-        where: { id: payload.sub, isActive: true },
+        where: { id: payload.sub },
       });
       if (!user) {
-        this.logger.warn(`validateToken user not found or deactivated userId=${payload.sub}`);
-        throw new UnauthorizedException('User not found or deactivated');
+        this.logger.warn(`validateToken user not found userId=${payload.sub}`);
+        throw new UnauthorizedException('User not found');
+      }
+      if (!user.isActive) {
+        this.logger.warn(`validateToken deactivated user userId=${payload.sub}`);
+        throw new UnauthorizedException('User account is deactivated');
       }
       this.logger.log(`validateToken success userId=${user.id}`);
       return this.toPublicUser(user);
     } catch (err) {
-      if (!(err instanceof UnauthorizedException)) {
-        this.logger.warn(`validateToken invalid token: ${err instanceof Error ? err.message : String(err)}`);
-      }
+      if (err instanceof UnauthorizedException) throw err;
+      this.logger.warn(`validateToken invalid token: ${err instanceof Error ? err.message : String(err)}`);
       throw new UnauthorizedException('Invalid or expired token');
     }
   }
@@ -422,12 +427,14 @@ export class AuthService {
       throw new UnauthorizedException('Refresh token has been revoked');
     }
 
-    const user = await this.userRepo.findOne({
-      where: { id: payload.sub, isActive: true },
-    });
+    const user = await this.userRepo.findOne({ where: { id: payload.sub } });
     if (!user) {
       this.logger.warn(`refreshTokens user not found userId=${payload.sub}`);
       throw new UnauthorizedException('User not found');
+    }
+    if (!user.isActive) {
+      this.logger.warn(`refreshTokens deactivated user userId=${payload.sub}`);
+      throw new UnauthorizedException('User account is deactivated');
     }
 
     const decoded = this.jwtService.decode(refreshToken);
@@ -794,5 +801,26 @@ export class AuthService {
 
   async revokeSession(userId: string, sessionId: string) {
     await this.sessionRepo.update({ id: sessionId, userId }, { isValid: false });
+  }
+
+  async archiveAccount(userId: string): Promise<void> {
+    const user = await this.userRepo.findOne({ where: { id: userId } });
+    if (!user) throw new UnauthorizedException('User not found');
+    await this.userRepo.update(userId, { isActive: false });
+    await this.sessionRepo.update({ userId }, { isValid: false });
+    this.logger.log(`archiveAccount userId=${userId}`);
+  }
+
+  async deleteAccount(userId: string): Promise<void> {
+    const user = await this.userRepo.findOne({ where: { id: userId } });
+    if (!user) throw new UnauthorizedException('User not found');
+
+    await this.sessionRepo.delete({ userId });
+    await this.blacklistRepo.delete({ userId });
+    await this.otpRepo.delete({ email: user.email });
+    await this.integrationRepo.delete({ userId });
+    await this.userRepo.delete({ id: userId });
+
+    this.logger.log(`deleteAccount userId=${userId}`);
   }
 }
