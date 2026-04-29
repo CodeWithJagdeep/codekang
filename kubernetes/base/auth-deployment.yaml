@@ -19,8 +19,6 @@ spec:
         - name: auth
           image: codekang/auth:latest
           ports:
-            - containerPort: 3011
-              name: http
             - containerPort: 3001
               name: tcp
           envFrom:
@@ -31,17 +29,16 @@ spec:
           env:
             - name: DATABASE_URL
               value: "postgresql://$(POSTGRES_USER):$(POSTGRES_PASSWORD)@postgres:5432/$(POSTGRES_DB)"
+          # auth is a TCP-only NestJS microservice — use tcpSocket, not httpGet
           readinessProbe:
-            httpGet:
-              path: /health
-              port: 3011
+            tcpSocket:
+              port: 3001
             initialDelaySeconds: 20
             periodSeconds: 10
             failureThreshold: 3
           livenessProbe:
-            httpGet:
-              path: /health
-              port: 3011
+            tcpSocket:
+              port: 3001
             initialDelaySeconds: 40
             periodSeconds: 30
           resources:
