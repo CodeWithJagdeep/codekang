@@ -5,7 +5,7 @@ WORKDIR /app
 COPY package*.json tsconfig.json tsconfig.build.json nest-cli.json ./
 COPY apps/repos/ ./apps/repos/
 
-RUN npm ci --ignore-scripts
+RUN npm install --ignore-scripts
 RUN npm run build:repos
 
 # ── Runtime ────────────────────────────────────────────────────────────────────
@@ -13,7 +13,7 @@ FROM node:22-alpine
 WORKDIR /app
 
 COPY package*.json ./
-RUN npm ci --omit=dev --ignore-scripts
+RUN npm install --omit=dev --ignore-scripts
 
 COPY --from=builder /app/dist/apps/repos/ ./dist/apps/repos/
 
