@@ -7,5 +7,6 @@ import { RealtimeModule } from '../realtime/realtime.module';
   imports: [RealtimeModule],
   controllers: [EventsController],
   providers: [WebhookDispatchService],
+  exports: [WebhookDispatchService],
 })
 export class EventsModule {}
