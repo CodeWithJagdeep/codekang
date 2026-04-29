@@ -63,3 +63,18 @@ export async function updateIntegrationConfig(
   if (!res.ok) throw new Error('Failed to update integration config');
   return res.json() as Promise<UserIntegration>;
 }
+
+export async function testIntegration(provider: string): Promise<{ ok: boolean; error?: string }> {
+  const res = await fetchWithAuth(`${API_URL}/integrations/${provider}/test`, {
+    method: 'POST',
+  });
+  if (!res.ok) throw new Error('Failed to reach test endpoint');
+  return res.json() as Promise<{ ok: boolean; error?: string }>;
+}
+
+export async function getOAuthUrl(provider: string): Promise<string> {
+  const res = await fetchWithAuth(`${API_URL}/integrations/${provider}/oauth`);
+  if (!res.ok) throw new Error(`OAuth not configured for ${provider}`);
+  const data = (await res.json()) as { url: string };
+  return data.url;
+}
