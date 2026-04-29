@@ -75,7 +75,7 @@ function AssetCard({ title, src, bg }: { title: string, src: any, bg: string }) 
   return (
     <div className="border-2 border-black bg-white shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] overflow-hidden flex flex-col group hover:translate-x-[-2px] hover:translate-y-[-2px] hover:shadow-[12px_12px_0px_0px_rgba(0,0,0,1)] transition-all">
       <div className={`h-64 flex items-center justify-center p-12 border-b-2 border-black ${bg} transition-all group-hover:bg-opacity-90`}>
-        <Image src={src} alt={title} width={240} height={60} className="object-contain transition-transform group-hover:scale-105" />
+        <Image src={src} alt={title} width={240} height={60} className="object-contain transition-transform group-hover:scale-105" style={{ height: 'auto' }} />
       </div>
       <div className="p-6 flex justify-between items-center bg-gray-50">
         <div>
