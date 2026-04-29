@@ -68,16 +68,16 @@ export default function Sidebar({
   const { resolved } = useTheme();
   const L = resolved === 'light';
 
-  // Light mode colour tokens for inline styles
-  const sideBg = L ? '#ffffff' : '#1c1c1c';
-  const sideBorder = L ? '#e2e4e7' : '#2a2a2a';
-  const dropBg = L ? '#ffffff' : '#1c1c1c';
-  const textPrimary = L ? '#1c1c1c' : '#e8e8e8';
-  const textMuted = L ? '#5f6368' : '#a1a1aa';
-  const textDim = L ? '#9aa0a6' : '#6d6d6d';
-  const activeItemBg = L ? 'rgba(0,0,0,0.05)' : 'rgba(255,255,255,0.06)';
-  const hoverItemBg = L ? 'rgba(0,0,0,0.04)' : 'rgba(255,255,255,0.06)';
-  const iconBg = L ? '#f1f3f4' : '#2a2a2e';
+  // Force dark background and sleek dark mode colour tokens for the sidebar
+  const sideBg = '#1c1c1c';
+  const sideBorder = '#2a2a2a';
+  const dropBg = '#1c1c1c';
+  const textPrimary = '#e8e8e8';
+  const textMuted = '#a1a1aa';
+  const textDim = '#6d6d6d';
+  const activeItemBg = 'rgba(255,255,255,0.06)';
+  const hoverItemBg = 'rgba(255,255,255,0.06)';
+  const iconBg = '#2a2a2e';
 
   const router = useRouter();
   const { orgs, selectedOrgId, setSelectedOrgId, selectedOrg, refreshOrgs } = useOrg();
