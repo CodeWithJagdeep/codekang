@@ -36,7 +36,7 @@ export class MailService {
       });
     }
 
-    this.fromAddress = this.config.get('MAIL_FROM', 'noreply@codekang.dev');
+    this.fromAddress = this.config.get('MAIL_FROM', 'noreply@codekang.com');
   }
 
   private async send(payload: EmailPayload): Promise<void> {
@@ -219,7 +219,7 @@ export class MailService {
   <li>Use the autonomous agent to fix issues automatically</li>
 </ul>
 <div class="hl"><strong>Free plan active</strong> — 50 credits/month, up to 5 private repos.</div>
-<a class="btn" href="https://codekang.dev/dashboard">Go to Dashboard →</a>`,
+<a class="btn" href="https://codekang.com/dashboard">Go to Dashboard →</a>`,
     );
   }
 
@@ -241,7 +241,7 @@ export class MailService {
 <p>We noticed a new sign-in to your account at <strong>${new Date().toUTCString()}</strong>.</p>
 <p>If this was you, no action is needed.</p>
 <div class="hl">If you did not sign in, please <strong>secure your account immediately</strong>.</div>
-<a class="btn" href="https://codekang.dev/settings">Manage Account →</a>`,
+<a class="btn" href="https://codekang.com/settings">Manage Account →</a>`,
     );
   }
 
@@ -252,7 +252,7 @@ export class MailService {
 <p>Hi ${name},</p>
 <p>Your CodeKang session was ended at <strong>${new Date().toUTCString()}</strong>.</p>
 <div class="hl">If you did not sign out, please <strong>secure your account immediately</strong>.</div>
-<a class="btn" href="https://codekang.dev">Sign In Again →</a>`,
+<a class="btn" href="https://codekang.com">Sign In Again →</a>`,
     );
   }
 
@@ -264,7 +264,7 @@ export class MailService {
 <p>Your <strong>${plan}</strong> plan has been activated successfully.</p>
 <div class="hl"><strong>${plan}</strong> — ${price}/month<br/>Credits reset on the 1st of every month.</div>
 <p>Start using your upgraded features right away.</p>
-<a class="btn" href="https://codekang.dev/dashboard">Go to Dashboard →</a>`,
+<a class="btn" href="https://codekang.com/dashboard">Go to Dashboard →</a>`,
     );
   }
 
@@ -287,7 +287,7 @@ export class MailService {
   </tbody>
 </table>
 <p style="font-size:12px;color:#6b7280">Invoice ID: ${invoiceId}</p>
-<a class="btn" href="https://codekang.dev/settings/billing">View Billing →</a>`,
+<a class="btn" href="https://codekang.com/settings/billing">View Billing →</a>`,
     );
   }
 
@@ -307,7 +307,7 @@ export class MailService {
   <strong>Date:</strong> ${new Date().toDateString()}
 </div>
 <p>Your subscription is active and credits have been reset.</p>
-<a class="btn" href="https://codekang.dev/settings/billing">View Billing →</a>`,
+<a class="btn" href="https://codekang.com/settings/billing">View Billing →</a>`,
     );
   }
 
@@ -322,7 +322,7 @@ export class MailService {
 <p>Hi ${name},</p>
 <p>Your <strong>${plan}</strong> plan has only <strong>${creditsRemaining} credits</strong> remaining this month.</p>
 <div class="hl">Credits reset on the 1st of each month. Upgrade to avoid service interruption.</div>
-<a class="btn" href="https://codekang.dev/settings/billing">Upgrade Plan →</a>`,
+<a class="btn" href="https://codekang.com/settings/billing">Upgrade Plan →</a>`,
     );
   }
 }
