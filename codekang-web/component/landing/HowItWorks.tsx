@@ -8,26 +8,29 @@ const STEPS = [
     number: '01',
     icon: RiGitRepositoryLine,
     title: 'Install once.',
-    subtitle: 'Never configure again.',
-    description: 'Authorize the GitHub App. KangBot silently attaches to every repo — existing and future ones. No YAML, no CI changes, no config file to maintain.',
+    subtitle: 'No YAML. No CI changes.',
+    description: 'Authorize the GitHub App. Kang attaches to every repo — existing and future ones — in under 60 seconds. There is no config file to maintain.',
+    mechanism: 'OAuth scope: read pull requests, write comments, open PRs. Nothing else.',
     color: '#f97316',
-    outcome: '30 seconds to connect',
+    outcome: '< 60s to connect',
   },
   {
     number: '02',
     icon: RiGitPullRequestLine,
-    title: 'Your dev opens a PR.',
-    subtitle: 'KangBot is already on it.',
-    description: "The moment a PR is opened, KangBot reads the diff, the file history, and the broader codebase context. It's not just looking at what changed — it understands why it changed.",
+    title: 'PR opened.',
+    subtitle: 'Kang is already reading it.',
+    description: 'The moment a PR is opened, Kang reads the diff, the file history around every changed line, and the dependency graph. It runs pattern detection — not regex, actual AST analysis — for SQL injection, hardcoded secrets, null dereferences, N+1 queries, and race conditions.',
+    mechanism: 'Analyzes: diff + blame history + import graph + known vulnerability patterns.',
     color: '#a78bfa',
-    outcome: 'Review starts in <3s',
+    outcome: 'Review starts in < 3s',
   },
   {
     number: '03',
     icon: RiFlashlightLine,
-    title: 'Bugs caught. Fix ready.',
+    title: 'Bug found. Fix ready.',
     subtitle: 'You just hit merge.',
-    description: "KangBot leaves inline comments on exact lines, scores the risk, and opens a fix PR for every issue it can resolve. You don't triage bugs — you approve or skip.",
+    description: 'Kang leaves inline comments on exact lines, scores the risk, and opens a fix PR for every issue it can resolve. Not a suggestion — a ready-to-merge pull request with a correct diff and a plain-English explanation of why the bug exists.',
+    mechanism: 'Fix uses AST transforms + your codebase style. You always approve before merge.',
     color: '#34d399',
     outcome: 'Fix PR in your inbox',
   },
@@ -53,15 +56,14 @@ export default function HowItWorks() {
             How it works
           </span>
           <h2 className="text-3xl md:text-5xl font-bold tracking-tight text-black mb-4 uppercase">
-            From first push to first fix<br />in under two minutes.
+            Install. Push. Get a fix PR.<br />That&apos;s the whole workflow.
           </h2>
           <p className="text-gray-500 text-lg max-w-xl mx-auto font-medium">
-            You keep doing exactly what you do. KangBot fits around your workflow — not the other way around.
+            No dashboards to check. No workflow to change. Kang fits around what you already do.
           </p>
         </motion.div>
 
         <div className="relative">
-          {/* Connector line (desktop only) */}
           <div className="hidden lg:block absolute top-[52px] left-[calc(16.66%+32px)] right-[calc(16.66%+32px)] h-px overflow-visible pointer-events-none">
             <motion.svg
               initial="hidden"
@@ -98,7 +100,6 @@ export default function HowItWorks() {
                 }}
                 className="relative flex flex-col items-center text-center group"
               >
-                {/* Icon module */}
                 <motion.div
                   whileHover={{ scale: 1.05, y: -5 }}
                   className="relative w-20 h-20 bg-white border-2 border-black flex items-center justify-center mb-8 z-10 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] transition-all group-hover:shadow-[10px_10px_0px_0px_rgba(0,0,0,1)]"
@@ -114,8 +115,11 @@ export default function HowItWorks() {
 
                 <h3 className="text-[22px] font-black text-black mb-1 uppercase tracking-tight">{step.title}</h3>
                 <p className="text-[13px] font-bold mb-4 uppercase tracking-wider" style={{ color: step.color }}>{step.subtitle}</p>
-                <p className="text-[15px] text-gray-500 leading-relaxed max-w-[300px] mb-6 font-medium">
+                <p className="text-[15px] text-gray-500 leading-relaxed max-w-[300px] mb-4 font-medium">
                   {step.description}
+                </p>
+                <p className="text-[11px] font-mono text-gray-400 max-w-[280px] mb-5 leading-relaxed border-l-2 pl-3 text-left" style={{ borderColor: step.color + '40' }}>
+                  {step.mechanism}
                 </p>
                 <span
                   className="inline-flex items-center gap-1.5 px-4 py-1.5 border-2 border-black text-[11px] font-black uppercase tracking-wider shadow-[3px_3px_0px_0px_rgba(0,0,0,0.1)]"
