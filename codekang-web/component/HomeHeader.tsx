@@ -49,7 +49,7 @@ export default function HomeHeader() {
           {/* Logo */}
           <div className="flex items-center px-8 border-r-2 border-black/10 shrink-0">
             <Link href="/" onClick={closeMenu} className="flex items-center">
-              <Image src={LogoBlackFont} alt="CodeKang" width={150} height={35} priority />
+              <Image src={LogoBlackFont} alt="CodeKang" width={150} height={35} priority style={{ height: 'auto' }} />
             </Link>
           </div>
 
