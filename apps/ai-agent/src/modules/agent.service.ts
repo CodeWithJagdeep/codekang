@@ -332,4 +332,9 @@ A test case (unit or integration) that verifies the fix works. Include the file 
 
 Be precise. Show real code. No vague guidance.`;
   }
+
+  async deleteAllUserData(userId: string): Promise<void> {
+    await this.convRepo.delete({ userId });
+    await this.usageRepo.delete({ userId });
+  }
 }
