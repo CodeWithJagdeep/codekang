@@ -2,7 +2,13 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { getAccessToken, fetchSubscription, type ISubscription, type User } from '@/lib/auth';
+import {
+  getAccessToken,
+  fetchCurrentUser,
+  fetchSubscription,
+  type ISubscription,
+  type User,
+} from '@/lib/auth';
 import { OrgProvider } from '@/lib/org-context';
 import Sidebar from '@/component/dashboard/sidebar';
 import { Menu } from 'lucide-react';
@@ -29,19 +35,30 @@ export default function DashboardLayout({
       return;
     }
 
-    const raw = localStorage.getItem('user');
-    if (raw) {
-      try { setUser(JSON.parse(raw)); } catch { }
-    }
+    let cancelled = false;
 
-    fetchSubscription()
-      .then(setSubscription)
-      .catch(() => { });
+    fetchCurrentUser()
+      .then((currentUser) => {
+        if (cancelled) return;
+        localStorage.setItem('user', JSON.stringify(currentUser));
+        setUser(currentUser);
+        setIsVerified(true);
+        return fetchSubscription()
+          .then((data) => {
+            if (!cancelled) setSubscription(data);
+          })
+          .catch(() => {});
+      })
+      .catch(() => {
+        if (!cancelled) router.replace('/in/login');
+      })
+      .finally(() => {
+        if (!cancelled) setIsLoading(false);
+      });
 
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setIsVerified(true);
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setIsLoading(false);
+    return () => {
+      cancelled = true;
+    };
   }, [router]);
 
   if (isLoading) {
@@ -62,7 +79,7 @@ export default function DashboardLayout({
     <OrgProvider>
       <div
         className="flex h-screen w-screen overflow-hidden"
-        style={{ background: isLight ? '#f4f5f7' : '#1c1c1c' }}
+        style={{ background: '#1c1c1c' }}
       >
         {/* Mobile Backdrop */}
         {isMobileOpen && (
@@ -81,7 +98,7 @@ export default function DashboardLayout({
           onAddCredits={() => router.push('/dashboard/billing?tab=credits')}
         />
 
-        <div className="flex-1 min-w-0 flex flex-col relative z-0 overflow-hidden">
+        <div className="flex-1 min-w-0 flex flex-col relative overflow-hidden">
           {/* Mobile Header Menu Toggle */}
           <div className={`md:hidden flex items-center justify-between px-4 py-3 border-b ${isLight ? 'border-[#e8eaed] bg-white' : 'border-[#2a2a2a] bg-[#1c1c1c]'}`}>
             <div className="font-bold text-[#e8e8e8]">CodeKang</div>
