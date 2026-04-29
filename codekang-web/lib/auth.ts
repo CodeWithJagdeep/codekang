@@ -165,13 +165,28 @@ export async function signInWithGitHub(): Promise<SocialLoginResult> {
 
 // ─── Direct GitHub OAuth (No Firebase) ────────────────────────────────────────
 
+export function getGitHubAppInstallUrl(): string | null {
+  // Prefer env var (baked in at build time), fall back to slug saved in localStorage
+  // after the setup flow (works without restarting Next.js).
+  const appName =
+    process.env.NEXT_PUBLIC_GITHUB_APP_NAME ||
+    (typeof window !== 'undefined' ? localStorage.getItem('github_app_slug') : null);
+  if (!appName) return null;
+  const callbackUri = `${window.location.origin}/auth/callback/github-app`;
+  return `https://github.com/apps/${appName}/installations/new?redirect_uri=${encodeURIComponent(callbackUri)}`;
+}
+
+export function getGitHubAppSetupUrl(): string {
+  return '/github/setup';
+}
+
 export function getGithubAuthUrl(
-  mode: 'login' | 'link' = 'login',
+  mode: 'login' | 'signup' | 'link' = 'login',
   returnTo = '/dashboard',
 ): string {
   const clientId = process.env.NEXT_PUBLIC_GITHUB_CLIENT_ID;
   const redirectUri = `${window.location.origin}/auth/callback/github`;
-  const scope = mode === 'login' ? 'read:user user:email' : 'repo read:user';
+  const scope = mode === 'link' ? 'repo read:user' : 'read:user user:email';
   const state = encodeURIComponent(JSON.stringify({ mode, returnTo }));
 
   return `https://github.com/login/oauth/authorize?client_id=${clientId}&redirect_uri=${encodeURIComponent(
@@ -318,6 +333,12 @@ export async function completeOnboarding(): Promise<void> {
   });
 }
 
+export async function fetchCurrentUser(): Promise<User> {
+  const res = await fetchWithAuth(`${API_URL}/auth/me`);
+  if (!res.ok) throw new Error('Failed to fetch user');
+  return res.json() as Promise<User>;
+}
+
 export async function updateProfile(data: {
   name?: string;
   organizationName?: string;
@@ -461,6 +482,9 @@ export interface IOrganization {
   name: string;
   description?: string;
   isPersonal: boolean;
+  isArchived: boolean;
+  timezone: string | null;
+  internalVisibility: boolean;
   createdAt: string;
   updatedAt: string;
 }
@@ -494,8 +518,35 @@ export async function createOrganization(data: {
   return res.json() as Promise<IOrganization>;
 }
 
+export async function updateOrganization(
+  orgId: string,
+  updates: { name?: string; description?: string; timezone?: string; internalVisibility?: boolean },
+): Promise<IOrganization> {
+  const res = await fetchWithAuth(`${API_URL}/organizations/${orgId}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(updates),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error((err as { message?: string }).message ?? 'Failed to update organization');
+  }
+  return res.json() as Promise<IOrganization>;
+}
+
 export async function deleteOrganization(orgId: string): Promise<void> {
   await fetchWithAuth(`${API_URL}/organizations/${orgId}`, { method: 'DELETE' });
+}
+
+export async function archiveOrganization(orgId: string): Promise<IOrganization> {
+  const res = await fetchWithAuth(`${API_URL}/organizations/${orgId}/archive`, {
+    method: 'PATCH',
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error((err as { message?: string }).message ?? 'Failed to archive organization');
+  }
+  return res.json() as Promise<IOrganization>;
 }
 
 export async function fetchOrgRepos(orgId: string): Promise<IRepository[]> {
@@ -739,9 +790,9 @@ export async function fetchReportStats(days: 7 | 30 | 90 | 0 = 30): Promise<IRep
 
 // Singleton promise — if multiple 401s fire in parallel, only one refresh
 // request is made. All callers await the same promise and get the same token.
-let _refreshPromise: Promise<string | null> | null = null;
+let _refreshPromise: Promise<string | 'INVALID' | 'SERVER_ERROR' | null> | null = null;
 
-export async function refreshAccessToken(): Promise<string | null> {
+export async function refreshAccessToken(): Promise<string | 'INVALID' | 'SERVER_ERROR' | null> {
   if (_refreshPromise) return _refreshPromise;
 
   _refreshPromise = (async () => {
@@ -755,7 +806,10 @@ export async function refreshAccessToken(): Promise<string | null> {
         body: JSON.stringify({ refreshToken }),
       });
 
-      if (!res.ok) return null;
+      // 401/403 = token genuinely rejected → force sign-out
+      // Any other non-ok (5xx, network hiccup during restart) → don't sign out
+      if (res.status === 401 || res.status === 403) return 'INVALID' as const;
+      if (!res.ok) return 'SERVER_ERROR' as const;
 
       const data = (await res.json()) as {
         accessToken?: string;
@@ -765,7 +819,10 @@ export async function refreshAccessToken(): Promise<string | null> {
         saveTokens(data.accessToken, data.refreshToken);
         return data.accessToken;
       }
-    } catch {}
+    } catch {
+      // Network error (server restarting) — don't sign out
+      return 'SERVER_ERROR' as const;
+    }
     return null;
   })();
 
@@ -790,9 +847,12 @@ export async function fetchWithAuth(
 
   if (res.status === 401) {
     const newToken = await refreshAccessToken();
-    if (!newToken) {
+    if (newToken === 'INVALID' || newToken === null) {
       await signOut();
       throw new Error('Session expired');
+    }
+    if (newToken === 'SERVER_ERROR') {
+      throw new Error('Server unavailable, please try again');
     }
     res = await fetch(url, {
       ...opts,
@@ -801,6 +861,14 @@ export async function fetchWithAuth(
   }
 
   return res;
+}
+
+export async function archiveAccount(): Promise<void> {
+  await fetchWithAuth(`${API_URL}/auth/account/archive`, { method: 'POST' });
+}
+
+export async function deleteAccount(): Promise<void> {
+  await fetchWithAuth(`${API_URL}/auth/account`, { method: 'DELETE' });
 }
 
 export async function signOut() {
@@ -924,6 +992,30 @@ export async function fetchSupportTickets(): Promise<ISupportTicket[]> {
   return res.json() as Promise<ISupportTicket[]>;
 }
 
+export async function replyToTicket(ticketId: string, content: string): Promise<ISupportTicket> {
+  const res = await fetchWithAuth(`${API_URL}/support/${ticketId}/messages`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ content }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error((err as { message?: string }).message ?? 'Failed to send reply');
+  }
+  return res.json() as Promise<ISupportTicket>;
+}
+
+export async function resolveTicket(ticketId: string): Promise<ISupportTicket> {
+  const res = await fetchWithAuth(`${API_URL}/support/${ticketId}/resolve`, {
+    method: 'PATCH',
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error((err as { message?: string }).message ?? 'Failed to resolve ticket');
+  }
+  return res.json() as Promise<ISupportTicket>;
+}
+
 export async function createSupportTicket(data: {
   subject: string;
   category: string;
@@ -1005,4 +1097,3 @@ export async function fetchPlans(): Promise<IPlanCatalogItem[]> {
   if (!res.ok) return [];
   return res.json() as Promise<IPlanCatalogItem[]>;
 }
-
