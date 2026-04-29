@@ -58,8 +58,11 @@ export default function PricingTeaser() {
           <h2 className="text-3xl md:text-6xl font-black tracking-tight text-black mb-6 uppercase">
             Start free. Upgrade when<br />your team is hooked.
           </h2>
-          <p className="text-gray-500 text-xl max-w-xl mx-auto mb-10 font-medium">
+          <p className="text-gray-500 text-xl max-w-xl mx-auto mb-4 font-medium">
             No per-seat pricing. No hidden limits. Your first 50 PRs are on us — no card required.
+          </p>
+          <p className="text-[14px] font-bold text-gray-400 uppercase tracking-wide mb-10">
+            Starter plan = less than 1 hour of a senior engineer per month · Saves 2–4 hrs/engineer/week
           </p>
 
           {/* Billing toggle */}
