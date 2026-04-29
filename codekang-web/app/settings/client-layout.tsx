@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useState, useEffect, useRef } from 'react';
-import { getAccessToken } from '@/lib/auth';
+import { fetchCurrentUser, getAccessToken } from '@/lib/auth';
 import {
   ChevronLeft,
   Search,
@@ -122,10 +122,25 @@ export default function SettingsLayout({
       router.replace('/in/login');
       return;
     }
-    setTimeout(() => {
-      setIsVerified(true);
-      setIsLoading(false);
-    }, 0);
+
+    let cancelled = false;
+
+    fetchCurrentUser()
+      .then((currentUser) => {
+        if (cancelled) return;
+        localStorage.setItem('user', JSON.stringify(currentUser));
+        setIsVerified(true);
+      })
+      .catch(() => {
+        if (!cancelled) router.replace('/in/login');
+      })
+      .finally(() => {
+        if (!cancelled) setIsLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
   }, [router]);
 
   useEffect(() => {
@@ -134,12 +149,12 @@ export default function SettingsLayout({
     if (mainRef.current) mainRef.current.scrollTop = 0;
   }, [pathname]);
 
-  const bg = isLight ? '#f4f5f7' : '#1c1c1c';
-  const sideBg = isLight ? '#ffffff' : '#181818';
+  const bg = isLight ? '#f4f5f7' : '#212121';
+  const sideBg = isLight ? '#ffffff' : '#212121';
   const borderColor = isLight ? '#e8eaed' : '#2a2a2a';
   const textPrimary = isLight ? '#1c1c1c' : '#e8e8e8';
-  const textMuted = isLight ? '#5f6368' : '#a1a1aa';
-  const textDim = isLight ? '#9aa0a6' : '#6d6d6d';
+  const textMuted = isLight ? '#666b73' : '#ffffff';
+  const textDim = isLight ? '#9aa0a6' : '#5f5f64';
   const activeItemBg = isLight ? 'rgba(0,0,0,0.05)' : 'rgba(255,255,255,0.06)';
   const inputBg = isLight ? '#f1f3f4' : 'rgba(255,255,255,0.05)';
 
@@ -219,7 +234,7 @@ export default function SettingsLayout({
           {NAV_GROUPS.map((group, i) => (
             <div key={i}>
               <div
-                className="px-3 mb-1 text-[11px] font-semibold uppercase tracking-wider"
+                className="px-3 mb-2 text-[11px] font-semibold uppercase tracking-[0.18em]"
                 style={{ color: textDim }}
               >
                 {group.title}
@@ -232,15 +247,15 @@ export default function SettingsLayout({
                     <Link
                       key={item.id}
                       href={item.href}
-                      className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-[13px] transition-all"
+                      className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-[13px] transition-all"
                       style={{
                         background: isActive ? activeItemBg : 'transparent',
-                        color: isActive ? textPrimary : textMuted,
-                        fontWeight: isActive ? 500 : 400,
+                        color: textMuted,
+                        fontWeight: 400,
                       }}
                     >
                       <Icon
-                        size={14}
+                        size={15}
                         strokeWidth={isActive ? 2 : 1.75}
                         style={{ opacity: isActive ? 1 : 0.65, flexShrink: 0 }}
                       />
@@ -271,8 +286,8 @@ export default function SettingsLayout({
           className="sticky top-0 z-30 flex items-center justify-between px-5 md:px-8 py-3.5 border-b backdrop-blur-md transition-all"
           style={{
             background:
-              sideBg === '#181818'
-                ? 'rgba(24, 24, 27, 0.8)'
+              sideBg === '#212121'
+                ? 'rgba(33, 33, 33, 0.88)'
                 : 'rgba(255, 255, 255, 0.8)',
             borderColor: borderColor,
           }}
