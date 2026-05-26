@@ -1,7 +1,10 @@
+import path from 'path';
 import Anthropic from '@anthropic-ai/sdk';
 import { env } from '../config/env';
 import { logger } from '../utils/logger';
 import { db } from '../config/database';
+import { indexPRInLance } from '../vector/lance/pr-indexer';
+import { searchForReview } from '../vector/lance/search';
 import {
   getPRFiles,
   getPR,
@@ -55,7 +58,12 @@ export async function reviewPullRequest(
 
   const planCheck = await checkPRReview(owner, repo, context);
   if (!planCheck.allowed) {
-    logger.info('PR review skipped', { owner, repo, prNumber, reason: planCheck.reason });
+    logger.info('PR review skipped', {
+      owner,
+      repo,
+      prNumber,
+      reason: planCheck.reason,
+    });
     return;
   }
 
@@ -76,11 +84,38 @@ export async function reviewPullRequest(
     installationId,
   );
 
-  const diffContext = buildDiffContext(files, fileContents);
+  // Fetch files imported by changed files — gives Claude cross-file awareness
+  // (only for standard/thorough depth; quick skips this to stay fast)
+  const importContext =
+    settings.reviewDepth !== 'quick'
+      ? await fetchImportContext(
+          owner,
+          repo,
+          pr.head.sha,
+          files,
+          fileContents,
+          installationId,
+        )
+      : new Map<string, string>();
+
+  const diffContext = buildDiffContext(files, fileContents, importContext);
 
   if (!diffContext) {
     logger.info('No diff to review', { prNumber });
     return;
+  }
+
+  // Retrieve team standards + similar past PRs from LanceDB — wires memory into review
+  let teamContext = '';
+  const repoRow = await db.query<{ id: number }>(
+    `SELECT id FROM repos WHERE full_name = $1`,
+    [`${owner}/${repo}`],
+  );
+  if (repoRow.rows[0]) {
+    teamContext = await searchForReview(
+      `${pr.title} ${pr.body ?? ''}`.slice(0, 500),
+      repoRow.rows[0].id,
+    ).catch(() => '');
   }
 
   const review = await generateReview(
@@ -89,6 +124,7 @@ export async function reviewPullRequest(
     diffContext,
     files,
     settings,
+    teamContext,
   );
 
   // Map extended comments → GitHub API comments (drop severity/issueType fields)
@@ -122,6 +158,29 @@ export async function reviewPullRequest(
     installationId,
   );
 
+  // Index PR into LanceDB for future retrieval (fire-and-forget, non-blocking)
+  void db
+    .query<{ id: number }>(`SELECT id FROM repos WHERE full_name = $1`, [
+      `${owner}/${repo}`,
+    ])
+    .then(({ rows }) => {
+      if (!rows[0]) return;
+      return indexPRInLance({
+        repoId: rows[0].id,
+        owner,
+        repoName: repo,
+        prNumber,
+        prTitle: pr.title,
+        prBody: pr.body ?? '',
+        verdict: review.verdict,
+        headBranch: pr.head.ref,
+        summary: review.summary,
+      });
+    })
+    .catch((err: Error) =>
+      logger.warn('PR lance indexing failed', { error: err.message }),
+    );
+
   // Raise GitHub issues for high/critical findings so they don't get buried in PR comments
   await raiseIssuesForFindings(
     owner,
@@ -148,10 +207,13 @@ export async function reviewPullRequest(
 // ─── File content fetching ────────────────────────────────────────────────────
 
 // Per-file content char limits by depth — quick skips full files entirely
-const FILE_CONTENT_LIMITS: Record<RepoReviewSettings['reviewDepth'], number | null> = {
-  quick: null,       // skip — diff only
-  standard: 4000,   // ~1k tokens per file, max 5 files
-  thorough: 8000,   // ~2k tokens per file, max 10 files
+const FILE_CONTENT_LIMITS: Record<
+  RepoReviewSettings['reviewDepth'],
+  number | null
+> = {
+  quick: null, // skip — diff only
+  standard: 4000, // ~1k tokens per file, max 5 files
+  thorough: 8000, // ~2k tokens per file, max 10 files
 };
 
 const FILE_COUNT_LIMITS: Record<RepoReviewSettings['reviewDepth'], number> = {
@@ -180,7 +242,13 @@ async function fetchFileContents(
 
   await Promise.all(
     candidates.map(async (f) => {
-      const content = await getFileContent(owner, repo, f.filename, headSha, installationId);
+      const content = await getFileContent(
+        owner,
+        repo,
+        f.filename,
+        headSha,
+        installationId,
+      );
       if (content) {
         result.set(f.filename, content.slice(0, charLimit));
       }
@@ -188,19 +256,138 @@ async function fetchFileContents(
   );
 
   logger.debug('Fetched full file contents for review', {
-    owner, repo, count: result.size, depth,
+    owner,
+    repo,
+    count: result.size,
+    depth,
   });
 
   return result;
 }
 
+// ─── Import-context fetcher ───────────────────────────────────────────────────
+// Parses relative imports from changed files and fetches those files as context.
+// This gives Claude cross-file awareness: if auth.ts changed and calls utils.ts,
+// Claude sees utils.ts too — catching issues that span beyond the diff.
+
+const IMPORT_CONTEXT_CHAR_LIMIT = 3000;
+const MAX_IMPORT_CONTEXT_FILES = 5;
+
+function extractRelativeImports(content: string, filename: string): string[] {
+  const ext = path.extname(filename);
+  const imports: string[] = [];
+
+  if (['.ts', '.tsx', '.js', '.jsx', '.mjs'].includes(ext)) {
+    for (const m of content.matchAll(/from\s+['"](\.[^'"]+)['"]/g)) {
+      if (m[1]) imports.push(m[1]);
+    }
+    for (const m of content.matchAll(
+      /require\s*\(\s*['"](\.[^'"]+)['"]\s*\)/g,
+    )) {
+      if (m[1]) imports.push(m[1]);
+    }
+  } else if (ext === '.py') {
+    for (const m of content.matchAll(/from\s+(\.{1,2}[^\s]*)\s+import/g)) {
+      if (m[1]) imports.push(m[1].replace(/^\./, '').replace(/\./g, '/'));
+    }
+  }
+
+  return [...new Set(imports)];
+}
+
+function resolveImportToFile(importPath: string, sourceFile: string): string[] {
+  const dir = path.dirname(sourceFile);
+  const base = path.join(dir, importPath);
+  // Return candidates with common extensions — getFileContent returns null on 404
+  return [
+    base,
+    `${base}.ts`,
+    `${base}.tsx`,
+    `${base}.js`,
+    `${base}.jsx`,
+    `${base}/index.ts`,
+    `${base}/index.tsx`,
+    `${base}/index.js`,
+    `${base}.py`,
+  ];
+}
+
+const MAX_IMPORT_API_ATTEMPTS = 20;
+
+async function fetchImportContext(
+  owner: string,
+  repo: string,
+  headSha: string,
+  changedFiles: { filename: string; status: string }[],
+  fileContents: Map<string, string>,
+  installationId?: number,
+): Promise<Map<string, string>> {
+  const context = new Map<string, string>();
+  // Normalize to forward slashes so lookups work on any OS
+  const changedSet = new Set(
+    changedFiles.map((f) => f.filename.replace(/\\/g, '/')),
+  );
+  const tried = new Set<string>();
+  let apiAttempts = 0;
+
+  outer: for (const file of changedFiles) {
+    if (context.size >= MAX_IMPORT_CONTEXT_FILES) break;
+    if (file.status === 'removed') continue;
+
+    const content = fileContents.get(file.filename);
+    if (!content) continue;
+
+    const imports = extractRelativeImports(content, file.filename);
+
+    for (const imp of imports) {
+      if (context.size >= MAX_IMPORT_CONTEXT_FILES) break;
+      if (apiAttempts >= MAX_IMPORT_API_ATTEMPTS) {
+        logger.debug('fetchImportContext: reached API attempt cap', {
+          cap: MAX_IMPORT_API_ATTEMPTS,
+        });
+        break outer;
+      }
+
+      const candidates = resolveImportToFile(imp, file.filename);
+
+      for (const candidate of candidates) {
+        const normalized = candidate.replace(/\\/g, '/');
+        if (tried.has(normalized) || changedSet.has(normalized)) continue;
+        tried.add(normalized);
+        apiAttempts++;
+
+        const fetched = await getFileContent(
+          owner,
+          repo,
+          normalized,
+          headSha,
+          installationId,
+        );
+        if (fetched) {
+          context.set(normalized, fetched.slice(0, IMPORT_CONTEXT_CHAR_LIMIT));
+          logger.debug('Fetched import context file', { file: normalized });
+          break; // resolved — stop trying other extensions for this import
+        }
+      }
+    }
+  }
+
+  return context;
+}
+
 // ─── Diff + file context builder ──────────────────────────────────────────────
 
 function buildDiffContext(
-  files: { filename: string; patch?: string; additions: number; deletions: number }[],
+  files: {
+    filename: string;
+    patch?: string;
+    additions: number;
+    deletions: number;
+  }[],
   fileContents: Map<string, string>,
+  importContext: Map<string, string>,
 ): string {
-  return files
+  const diffSection = files
     .filter((f) => f.patch)
     .map((f) => {
       const header = `### ${f.filename} (+${f.additions} -${f.deletions})`;
@@ -212,6 +399,17 @@ function buildDiffContext(
       return `${header}\n${diff}${fullSection}`;
     })
     .join('\n\n');
+
+  if (importContext.size === 0) return diffSection;
+
+  const contextSection = [...importContext.entries()]
+    .map(
+      ([filename, content]) =>
+        `### ${filename} (imported by changed file — not modified)\n\`\`\`\n${content}\n\`\`\``,
+    )
+    .join('\n\n');
+
+  return `${diffSection}\n\n---\n## Context files (imported by changed files)\n\n${contextSection}`;
 }
 
 // ─── Severity badge for inline GitHub comment body ────────────────────────────
@@ -241,41 +439,62 @@ const DEPTH_CONFIG = {
   quick: {
     maxComments: 3,
     maxTokens: 1024,
-    instruction: 'Do a fast surface-level scan. Focus only on obvious bugs and critical security issues.',
+    instruction:
+      'Do a fast surface-level scan. Focus only on obvious bugs and critical security issues.',
   },
   standard: {
     maxComments: 10,
     maxTokens: 4096,
-    instruction: 'Do a balanced review. Use the full file content alongside the diff to detect cross-line security and logic issues.',
+    instruction:
+      'Do a balanced review. Use the full file content alongside the diff to detect cross-line security and logic issues.',
   },
   thorough: {
     maxComments: 20,
     maxTokens: 8192,
-    instruction: 'Do an exhaustive deep analysis. Use the full file content to trace data flow, find auth bypasses, injection sinks, and architectural concerns that span beyond the changed lines.',
+    instruction:
+      'Do an exhaustive deep analysis. Use the full file content to trace data flow, find auth bypasses, injection sinks, and architectural concerns that span beyond the changed lines.',
   },
 };
 
-function buildIssueTypeInstructions(issueTypes: RepoReviewSettings['issueTypes']): string {
+function buildIssueTypeInstructions(
+  issueTypes: RepoReviewSettings['issueTypes'],
+): string {
   const enabled: string[] = [];
   const disabled: string[] = [];
 
-  if (issueTypes.bugs) enabled.push('Bugs, logic errors, off-by-one errors, null/undefined issues');
+  if (issueTypes.bugs)
+    enabled.push(
+      'Bugs, logic errors, off-by-one errors, null/undefined issues',
+    );
   else disabled.push('bugs');
 
-  if (issueTypes.security) enabled.push('Security issues (SQL/command injection, auth bypass, exposed secrets, XSS, path traversal, insecure deserialization, CSRF, IDOR, insecure dependencies)');
+  if (issueTypes.security)
+    enabled.push(
+      'Security issues (SQL/command injection, auth bypass, exposed secrets, XSS, path traversal, insecure deserialization, CSRF, IDOR, insecure dependencies)',
+    );
   else disabled.push('security');
 
-  if (issueTypes.performance) enabled.push('Performance problems (N+1 queries, missing indexes, unnecessary loops, memory leaks)');
+  if (issueTypes.performance)
+    enabled.push(
+      'Performance problems (N+1 queries, missing indexes, unnecessary loops, memory leaks)',
+    );
   else disabled.push('performance');
 
-  if (issueTypes.style) enabled.push('Code quality (unclear names, missing error handling, dead code, overly complex logic)');
+  if (issueTypes.style)
+    enabled.push(
+      'Code quality (unclear names, missing error handling, dead code, overly complex logic)',
+    );
   else disabled.push('style');
 
-  if (issueTypes.documentation) enabled.push('Missing or incorrect documentation and comments');
+  if (issueTypes.documentation)
+    enabled.push('Missing or incorrect documentation and comments');
   else disabled.push('documentation');
 
-  const lines = [`Check ONLY for these issue types:\n${enabled.map((e) => `- ${e}`).join('\n')}`];
-  if (disabled.length > 0) lines.push(`Do NOT report on: ${disabled.join(', ')}`);
+  const lines = [
+    `Check ONLY for these issue types:\n${enabled.map((e) => `- ${e}`).join('\n')}`,
+  ];
+  if (disabled.length > 0)
+    lines.push(`Do NOT report on: ${disabled.join(', ')}`);
   return lines.join('\n');
 }
 
@@ -285,16 +504,23 @@ async function generateReview(
   diffContext: string,
   files: { filename: string; patch?: string }[],
   settings: RepoReviewSettings,
+  teamContext = '',
 ): Promise<ReviewResult> {
   const depth = DEPTH_CONFIG[settings.reviewDepth] ?? DEPTH_CONFIG.standard;
   const issueInstructions = buildIssueTypeInstructions(settings.issueTypes);
 
+  const teamContextSection =
+    teamContext && teamContext !== 'No relevant context found.'
+      ? `\n## Team Context (coding standards + similar past PRs)\nUse this to understand team conventions. Flag deviations. Do NOT report issues on context-only code.\n\n${teamContext}\n`
+      : '';
+
   const systemPrompt = `You are CodeKang, an expert code reviewer and security analyst. ${depth.instruction}
 
-${issueInstructions}
+${issueInstructions}${teamContextSection}
 
-For each file you may receive both the diff (what changed) and the full current file content.
-Use the full file to catch issues that span beyond the changed lines — for example, a changed function call that now bypasses an auth check 30 lines away.
+You receive two types of file data:
+1. **Changed files** — the diff (what changed) and optionally the full current file. Review these for issues.
+2. **Context files** (imported by changed files, not modified) — use these ONLY to understand how the changed code is used or what it calls into. Do NOT report issues on context files themselves unless the changed code introduces a problem that affects them.
 
 For each issue, identify the exact file and line number from the diff.
 
@@ -349,7 +575,9 @@ ${body ? `Description:\n${body}\n\n` : ''}${diffContext}`;
     const parsed = JSON.parse(jsonMatch[0]) as ReviewResult;
 
     const validPaths = new Set(files.map((f) => f.filename));
-    const validComments = (parsed.comments ?? []).filter((c) => validPaths.has(c.path));
+    const validComments = (parsed.comments ?? []).filter((c) =>
+      validPaths.has(c.path),
+    );
 
     return {
       summary: parsed.summary ?? 'Reviewed by CodeKang.',
@@ -377,7 +605,12 @@ async function raiseIssuesForFindings(
   const shouldRaise = (c: ExtendedComment): boolean => {
     if (c.severity !== 'critical' && c.severity !== 'high') return false;
     if (c.issueType === 'security' && settings.issueTypes.security) return true;
-    if (c.issueType === 'bug' && c.severity === 'critical' && settings.issueTypes.bugs) return true;
+    if (
+      c.issueType === 'bug' &&
+      c.severity === 'critical' &&
+      settings.issueTypes.bugs
+    )
+      return true;
     return false;
   };
 
@@ -385,12 +618,16 @@ async function raiseIssuesForFindings(
   if (findings.length === 0) return;
 
   logger.info('Raising GitHub issues for critical findings', {
-    owner, repo, prNumber, count: findings.length,
+    owner,
+    repo,
+    prNumber,
+    count: findings.length,
   });
 
   await Promise.all(
     findings.map(async (finding) => {
-      const typeLabel = finding.issueType === 'security' ? '🔒 Security' : '🐛 Bug';
+      const typeLabel =
+        finding.issueType === 'security' ? '🔒 Security' : '🐛 Bug';
       const title = `[CodeKang] ${typeLabel}: ${finding.body.split('\n')[0].slice(0, 80)}`;
       const body = [
         `**Found during PR review of [#${prNumber} ${prTitle}](${prUrl})**`,
@@ -409,10 +646,21 @@ async function raiseIssuesForFindings(
 
       const labels = ['codekang-auto', finding.issueType];
 
-      const created = await createIssueForFinding(owner, repo, title, body, labels, installationId);
+      const created = await createIssueForFinding(
+        owner,
+        repo,
+        title,
+        body,
+        labels,
+        installationId,
+      );
       if (created) {
         logger.info('Issue raised for finding', {
-          owner, repo, prNumber, issueNumber: created.number, severity: finding.severity,
+          owner,
+          repo,
+          prNumber,
+          issueNumber: created.number,
+          severity: finding.severity,
         });
       }
     }),

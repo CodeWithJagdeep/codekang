@@ -40,6 +40,7 @@ export type Repo = {
   issues: number;
   status: 'active' | 'busy' | 'idle';
   branch: string;
+  isInstalled: boolean;
 };
 
 const NAV_ITEMS = [

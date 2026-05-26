@@ -1,7 +1,21 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn } from 'typeorm';
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  CreateDateColumn,
+} from 'typeorm';
 
-export enum ContactStatus { NEW = 'new', READ = 'read', REPLIED = 'replied' }
-export enum InquiryType { SALES = 'Sales & Enterprise', SUPPORT = 'Technical Support', PARTNERSHIP = 'Partnerships', OTHER = 'Other' }
+export enum ContactStatus {
+  NEW = 'new',
+  READ = 'read',
+  REPLIED = 'replied',
+}
+export enum InquiryType {
+  SALES = 'Sales & Enterprise',
+  SUPPORT = 'Technical Support',
+  PARTNERSHIP = 'Partnerships',
+  OTHER = 'Other',
+}
 
 @Entity('contact_inquiries')
 export class ContactInquiry {

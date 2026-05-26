@@ -53,14 +53,20 @@ export class MailService {
         });
 
         if (error) {
-          this.logger.error(`Resend API returned an error: ${JSON.stringify(error)}`);
+          this.logger.error(
+            `Resend API returned an error: ${JSON.stringify(error)}`,
+          );
           throw new Error(error.message);
         }
 
-        this.logger.log(`Resend: Successfully sent email to ${payload.to} (ID: ${data?.id})`);
+        this.logger.log(
+          `Resend: Successfully sent email to ${payload.to} (ID: ${data?.id})`,
+        );
         return;
       } catch (err) {
-        this.logger.error(`Resend failed, falling back to Zoho: ${err instanceof Error ? err.message : String(err)}`);
+        this.logger.error(
+          `Resend failed, falling back to Zoho: ${err instanceof Error ? err.message : String(err)}`,
+        );
       }
     }
 

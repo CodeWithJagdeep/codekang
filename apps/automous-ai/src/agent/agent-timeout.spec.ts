@@ -41,7 +41,12 @@ jest.mock('../config/observability', () => ({
   }),
 }));
 jest.mock('../utils/logger', () => ({
-  logger: { info: jest.fn(), warn: jest.fn(), error: jest.fn(), debug: jest.fn() },
+  logger: {
+    info: jest.fn(),
+    warn: jest.fn(),
+    error: jest.fn(),
+    debug: jest.fn(),
+  },
 }));
 
 import { runAgent } from './index';
@@ -90,7 +95,7 @@ describe('runAgent — per-step timeout', () => {
     // messages.create never resolves — simulates a hung API call
     mockCreate.mockImplementation(() => new Promise(() => {}));
 
-    const resultPromise = runAgent(fixContext as any, toolContext as any, 'fix');
+    const resultPromise = runAgent(fixContext as any, toolContext, 'fix');
 
     // Advance past the 5-minute step timeout
     jest.advanceTimersByTime(FIVE_MINUTES + 100);
@@ -113,7 +118,7 @@ describe('runAgent — per-step timeout', () => {
       usage: { input_tokens: 100, output_tokens: 50 },
     });
 
-    const resultPromise = runAgent(fixContext as any, toolContext as any, 'fix');
+    const resultPromise = runAgent(fixContext as any, toolContext, 'fix');
 
     // Don't advance time — should complete on its own
     const result = await resultPromise;

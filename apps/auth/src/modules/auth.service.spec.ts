@@ -119,7 +119,10 @@ describe('AuthService', () => {
         },
         { provide: getRepositoryToken(Otp), useValue: otpRepo },
         { provide: getRepositoryToken(UserSession), useValue: sessionRepo },
-        { provide: getRepositoryToken(UserIntegration), useValue: integrationRepo },
+        {
+          provide: getRepositoryToken(UserIntegration),
+          useValue: integrationRepo,
+        },
         { provide: JwtService, useValue: jwtService },
         { provide: ConfigService, useFactory: mockConfigService },
         { provide: MailService, useValue: mailService },
@@ -138,7 +141,10 @@ describe('AuthService', () => {
       const created = mockUser();
       userRepo.create.mockReturnValue(created);
       userRepo.save.mockResolvedValue(created);
-      userRepo.findOne.mockResolvedValueOnce(null).mockResolvedValueOnce(null).mockResolvedValueOnce(created);
+      userRepo.findOne
+        .mockResolvedValueOnce(null)
+        .mockResolvedValueOnce(null)
+        .mockResolvedValueOnce(created);
 
       const result = await service.findOrCreateUser({
         provider: 'github',

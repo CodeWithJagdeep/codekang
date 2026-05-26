@@ -34,9 +34,11 @@
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.89.0",
+    "@lancedb/lancedb": "^0.16.0",
     "@octokit/auth-app": "^8.2.0",
     "@octokit/rest": "^22.0.1",
     "@sentry/node": "^8.55.1",
+    "apache-arrow": "^18.1.0",
     "bullmq": "^5.74.1",
     "cors": "^2.8.6",
     "dotenv": "^17.4.2",

@@ -12,13 +12,34 @@ import { GitHubAPIError } from '../utils/errors';
 
 // ─── GitHub App Auth ──────────────────────────────────────────────────────────
 
+export function validateGitHubAppKey(): void {
+  const keyPath = env.GITHUB_APP_PRIVATE_KEY_PATH;
+  if (!keyPath) return;
+  if (!fs.existsSync(keyPath)) {
+    logger.warn('GitHub App private key file not found — App auth disabled', {
+      keyPath,
+    });
+    return;
+  }
+  const stat = fs.statSync(keyPath);
+  if (!stat.isFile()) {
+    // Docker created a directory instead of mounting a file — this is the most common failure mode.
+    throw new Error(
+      `GITHUB_APP_PRIVATE_KEY_PATH (${keyPath}) is a directory, not a file. ` +
+        `Ensure ./github-app-private-key.pem exists as a file on the host before starting Docker.`,
+    );
+  }
+}
+
 function isGitHubAppConfigured(): boolean {
-  return (
-    !!env.GITHUB_APP_ID &&
-    env.GITHUB_APP_ID !== '123456' &&
-    !!env.GITHUB_APP_PRIVATE_KEY_PATH &&
-    fs.existsSync(env.GITHUB_APP_PRIVATE_KEY_PATH)
-  );
+  if (!env.GITHUB_APP_ID || env.GITHUB_APP_ID === '123456') return false;
+  if (!env.GITHUB_APP_PRIVATE_KEY_PATH) return false;
+  try {
+    const stat = fs.statSync(env.GITHUB_APP_PRIVATE_KEY_PATH);
+    return stat.isFile();
+  } catch {
+    return false;
+  }
 }
 
 function getOctokit(token?: string): Octokit {
@@ -26,7 +47,14 @@ function getOctokit(token?: string): Octokit {
 }
 
 function getAppOctokit(installationId: number): Octokit {
-  const privateKey = fs.readFileSync(env.GITHUB_APP_PRIVATE_KEY_PATH, 'utf8');
+  const keyPath = env.GITHUB_APP_PRIVATE_KEY_PATH;
+  const stat = fs.statSync(keyPath);
+  if (!stat.isFile()) {
+    throw new Error(
+      `GitHub App private key path is a directory, not a file: ${keyPath}`,
+    );
+  }
+  const privateKey = fs.readFileSync(keyPath, 'utf8');
   return new Octokit({
     authStrategy: createAppAuth,
     auth: {
@@ -164,7 +192,7 @@ export async function createPullRequest(
       head,
       base,
     });
-    return data as unknown as GitHubPullRequest;
+    return data;
   } catch (err: unknown) {
     const e = err as { message: string; status?: number };
     throw new GitHubAPIError(`Failed to create PR: ${e.message}`, e.status);
@@ -417,7 +445,7 @@ export async function getPR(
       repo,
       pull_number: prNumber,
     });
-    return data as unknown as GitHubPullRequest;
+    return data;
   } catch (err: unknown) {
     const e = err as { message: string; status?: number };
     throw new GitHubAPIError(
@@ -455,7 +483,10 @@ export async function githubListDir(
     }));
   } catch (err: unknown) {
     const e = err as { message: string; status?: number };
-    throw new GitHubAPIError(`Failed to list dir ${dirPath}: ${e.message}`, e.status);
+    throw new GitHubAPIError(
+      `Failed to list dir ${dirPath}: ${e.message}`,
+      e.status,
+    );
   }
 }
 
@@ -466,8 +497,17 @@ export async function githubGetTree(
   installationId?: number,
 ): Promise<string> {
   const IGNORE = new Set([
-    '.git', 'node_modules', 'dist', 'build', '.next',
-    '__pycache__', '.venv', 'vendor', 'target', '.cache', 'coverage',
+    '.git',
+    'node_modules',
+    'dist',
+    'build',
+    '.next',
+    '__pycache__',
+    '.venv',
+    'vendor',
+    'target',
+    '.cache',
+    'coverage',
   ]);
   try {
     const octokit =
@@ -554,7 +594,10 @@ export async function githubCreateBranch(
       logger.debug('Branch already exists', { branchName });
       return;
     }
-    throw new GitHubAPIError(`Failed to create branch ${branchName}: ${e.message}`, e.status);
+    throw new GitHubAPIError(
+      `Failed to create branch ${branchName}: ${e.message}`,
+      e.status,
+    );
   }
 }
 
@@ -571,7 +614,10 @@ export async function githubCommitFiles(
       branch,
       files: files.map((f) => f.path),
     });
-    return { sha: 'test-sha', url: `https://github.com/${owner}/${repo}/commit/test-sha` };
+    return {
+      sha: 'test-sha',
+      url: `https://github.com/${owner}/${repo}/commit/test-sha`,
+    };
   }
   try {
     const octokit =
@@ -666,7 +712,9 @@ export async function getFileContent(
     const { data } = await octokit.repos.getContent({ owner, repo, path, ref });
     if (Array.isArray(data) || data.type !== 'file') return null;
     if (data.encoding === 'base64') {
-      return Buffer.from(data.content.replace(/\n/g, ''), 'base64').toString('utf8');
+      return Buffer.from(data.content.replace(/\n/g, ''), 'base64').toString(
+        'utf8',
+      );
     }
     return null;
   } catch {
@@ -691,7 +739,13 @@ export async function createIssueForFinding(
       installationId && isGitHubAppConfigured()
         ? getAppOctokit(installationId)
         : getOctokit();
-    const { data } = await octokit.issues.create({ owner, repo, title, body, labels });
+    const { data } = await octokit.issues.create({
+      owner,
+      repo,
+      title,
+      body,
+      labels,
+    });
     return { number: data.number, html_url: data.html_url };
   } catch (err: unknown) {
     const e = err as { message: string };

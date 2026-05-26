@@ -19,14 +19,21 @@ jest.mock('../github/api', () => ({
   githubGetTree: jest.fn().mockResolvedValue(''),
   githubSearchCode: jest.fn().mockResolvedValue([]),
   githubCreateBranch: jest.fn().mockResolvedValue(undefined),
-  githubCommitFiles: jest.fn().mockResolvedValue({ url: 'https://github.com/commit/abc' }),
+  githubCommitFiles: jest
+    .fn()
+    .mockResolvedValue({ url: 'https://github.com/commit/abc' }),
   getFileContent: jest.fn().mockResolvedValue(null),
 }));
 jest.mock('../services/pr-service', () => ({
   createPullRequestForFix: jest.fn(),
 }));
 jest.mock('../utils/logger', () => ({
-  logger: { info: jest.fn(), warn: jest.fn(), error: jest.fn(), debug: jest.fn() },
+  logger: {
+    info: jest.fn(),
+    warn: jest.fn(),
+    error: jest.fn(),
+    debug: jest.fn(),
+  },
 }));
 
 import { executeTool } from './tools';
@@ -56,7 +63,7 @@ describe('run_command', () => {
     const { result } = await executeTool(
       'run_command',
       { command: 'cat /etc/passwd', workdir: '../../etc' },
-      makeCtx() as any,
+      makeCtx(),
     );
 
     expect(result.output).toContain('path traversal not allowed');
@@ -67,7 +74,7 @@ describe('run_command', () => {
     const { result } = await executeTool(
       'run_command',
       { command: 'ls', workdir: '/workspace/../../../root' },
-      makeCtx() as any,
+      makeCtx(),
     );
 
     expect(result.output).toContain('path traversal not allowed');
@@ -78,7 +85,7 @@ describe('run_command', () => {
     await executeTool(
       'run_command',
       { command: 'npm test', workdir: '/workspace' },
-      makeCtx() as any,
+      makeCtx(),
     );
 
     expect(mockRunInContainer).toHaveBeenCalledWith(
@@ -91,7 +98,7 @@ describe('run_command', () => {
     await executeTool(
       'run_command',
       { command: 'ls', workdir: '/workspace/src' },
-      makeCtx() as any,
+      makeCtx(),
     );
 
     expect(mockRunInContainer).toHaveBeenCalledWith(
@@ -101,11 +108,7 @@ describe('run_command', () => {
   });
 
   it('defaults workdir to /workspace when not provided', async () => {
-    await executeTool(
-      'run_command',
-      { command: 'npm run build' },
-      makeCtx() as any,
-    );
+    await executeTool('run_command', { command: 'npm run build' }, makeCtx());
 
     expect(mockRunInContainer).toHaveBeenCalledWith(
       'container-abc123',
@@ -117,7 +120,7 @@ describe('run_command', () => {
     const { result } = await executeTool(
       'run_command',
       { command: 'ls' },
-      makeCtx({ containerId: undefined, sandboxReady: false }) as any,
+      makeCtx({ containerId: undefined, sandboxReady: false }),
     );
 
     expect(result.output).toContain('request_sandbox');

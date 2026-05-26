@@ -15,8 +15,14 @@ import { AuditLog } from '../entities/audit.entity';
 @Module({
   imports: [
     TypeOrmModule.forFeature([
-      Organization, OrganizationMember, OrgRepository, Repository,
-      Notification, SupportTicket, SupportMessage, AuditLog,
+      Organization,
+      OrganizationMember,
+      OrgRepository,
+      Repository,
+      Notification,
+      SupportTicket,
+      SupportMessage,
+      AuditLog,
     ]),
   ],
   controllers: [OrganizationsController],

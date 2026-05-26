@@ -156,8 +156,17 @@ export class ReposController {
 
   @MessagePattern(MESSAGE_PATTERNS.REPOS_UPDATE_SETTINGS)
   updateSettings(
-    @Payload() data: { userId: string; repoId: string; settings: Record<string, unknown> },
+    @Payload()
+    data: {
+      userId: string;
+      repoId: string;
+      settings: Record<string, unknown>;
+    },
   ) {
-    return this.reposService.updateRepoSettings(data.userId, data.repoId, data.settings);
+    return this.reposService.updateRepoSettings(
+      data.userId,
+      data.repoId,
+      data.settings,
+    );
   }
 }

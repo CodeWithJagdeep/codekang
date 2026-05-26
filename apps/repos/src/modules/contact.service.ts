@@ -10,7 +10,13 @@ export class ContactService {
     private readonly repo: Repository<ContactInquiry>,
   ) {}
 
-  async submit(data: { name: string; email: string; company?: string; inquiryType: string; message: string }) {
+  async submit(data: {
+    name: string;
+    email: string;
+    company?: string;
+    inquiryType: string;
+    message: string;
+  }) {
     const inquiry = this.repo.create(data);
     await this.repo.save(inquiry);
     return { success: true, id: inquiry.id };

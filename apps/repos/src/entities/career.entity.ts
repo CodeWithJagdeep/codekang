@@ -1,6 +1,17 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn } from 'typeorm';
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  CreateDateColumn,
+} from 'typeorm';
 
-export enum ApplicationStatus { PENDING = 'pending', REVIEWED = 'reviewed', INTERVIEWING = 'interviewing', REJECTED = 'rejected', OFFER = 'offer' }
+export enum ApplicationStatus {
+  PENDING = 'pending',
+  REVIEWED = 'reviewed',
+  INTERVIEWING = 'interviewing',
+  REJECTED = 'rejected',
+  OFFER = 'offer',
+}
 
 @Entity('career_applications')
 export class CareerApplication {
@@ -23,7 +34,7 @@ export class CareerApplication {
   jobTitle: string;
 
   @Column({ nullable: true })
-  resumeUrl: string;  // Firebase Storage URL or any URL
+  resumeUrl: string; // Firebase Storage URL or any URL
 
   @Column({ type: 'text', nullable: true })
   coverNote: string;

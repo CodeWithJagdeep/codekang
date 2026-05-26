@@ -34,7 +34,9 @@ const wsAllowedOrigins = [
     credentials: true,
   },
 })
-export class RealtimeGateway implements OnGatewayConnection, OnGatewayDisconnect {
+export class RealtimeGateway
+  implements OnGatewayConnection, OnGatewayDisconnect
+{
   @WebSocketServer()
   server: Server;
 
@@ -108,34 +110,42 @@ export class RealtimeGateway implements OnGatewayConnection, OnGatewayDisconnect
       const result = await firstValueFrom(
         this.reposClient.send(MESSAGE_PATTERNS.NOTIF_UNREAD_COUNT, { userId }),
       );
-      this.emitToUser(userId, 'notification:count', { count: result?.count ?? result ?? 0 });
+      this.emitToUser(userId, 'notification:count', {
+        count: result?.count ?? result ?? 0,
+      });
     } catch {
       // Ignore errors - repos service may not be running
     }
   }
 
   /** Push a new notification to a user */
-  pushNotification(userId: string, notification: {
-    id: string;
-    type: string;
-    title: string;
-    message: string;
-    link?: string;
-    createdAt: string;
-  }) {
+  pushNotification(
+    userId: string,
+    notification: {
+      id: string;
+      type: string;
+      title: string;
+      message: string;
+      link?: string;
+      createdAt: string;
+    },
+  ) {
     this.emitToUser(userId, 'notification:new', notification);
   }
 
   /** Push an activity event (PR, agent, security) to a user */
-  pushActivity(userId: string, activity: {
-    type: 'pr_review' | 'agent_run' | 'security' | 'issue';
-    status: 'started' | 'completed' | 'failed';
-    title: string;
-    detail?: string;
-    repoName?: string;
-    link?: string;
-    ts: number;
-  }) {
+  pushActivity(
+    userId: string,
+    activity: {
+      type: 'pr_review' | 'agent_run' | 'security' | 'issue';
+      status: 'started' | 'completed' | 'failed';
+      title: string;
+      detail?: string;
+      repoName?: string;
+      link?: string;
+      ts: number;
+    },
+  ) {
     this.emitToUser(userId, 'activity:event', activity);
   }
 }

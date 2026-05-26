@@ -10,7 +10,15 @@ export class CareerService {
     private readonly repo: Repository<CareerApplication>,
   ) {}
 
-  async apply(data: { name: string; email: string; phone?: string; jobSlug: string; jobTitle: string; resumeUrl?: string; coverNote?: string }) {
+  async apply(data: {
+    name: string;
+    email: string;
+    phone?: string;
+    jobSlug: string;
+    jobTitle: string;
+    resumeUrl?: string;
+    coverNote?: string;
+  }) {
     const application = this.repo.create(data);
     await this.repo.save(application);
     return { success: true, id: application.id };

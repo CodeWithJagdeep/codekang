@@ -2,7 +2,12 @@ import { Controller, Get, UseGuards, Inject } from '@nestjs/common';
 import { ClientProxy } from '@nestjs/microservices';
 import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
 import { firstValueFrom } from 'rxjs';
-import { SERVICES, MESSAGE_PATTERNS, CurrentUser, JwtAuthGuard } from '../../common';
+import {
+  SERVICES,
+  MESSAGE_PATTERNS,
+  CurrentUser,
+  JwtAuthGuard,
+} from '../../common';
 import type { IUser } from '../../common';
 
 @ApiTags('audit')
@@ -10,7 +15,9 @@ import type { IUser } from '../../common';
 @UseGuards(JwtAuthGuard)
 @ApiBearerAuth()
 export class AuditProxyController {
-  constructor(@Inject(SERVICES.REPOS) private readonly reposClient: ClientProxy) {}
+  constructor(
+    @Inject(SERVICES.REPOS) private readonly reposClient: ClientProxy,
+  ) {}
 
   @Get()
   @ApiOperation({ summary: 'List user audit logs' })

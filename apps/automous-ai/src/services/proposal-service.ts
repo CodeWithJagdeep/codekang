@@ -228,10 +228,10 @@ export async function postProposalComment(
     ``,
     `| Command | What happens |`,
     `|---|---|`,
-    `| \`/fix\` | CodeKang applies the fix, runs tests, and opens a PR |`,
-    `| \`@codekangai fix\` | Same as above |`,
+    `| \`@codekang fix\` | CodeKang applies the fix, runs tests, and opens a PR |`,
+    `| \`/fix\` | Same as above |`,
     ``,
-    `> ℹ️ Only the issue author or repo maintainers should approve. CodeKang will not act until a command is posted.`,
+    `> ℹ️ Only the issue author or repo maintainers should approve. CodeKang will not act until one of the above commands is posted.`,
   ].join('\n');
 
   await createIssueComment(owner, repo, issueNumber, body, installationId);

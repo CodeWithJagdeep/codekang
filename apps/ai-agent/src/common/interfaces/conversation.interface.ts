@@ -17,6 +17,7 @@ export interface IConversation {
   issueNumber?: number;
   issueTitle?: string;
   context?: string;
+  totalCreditsUsed: number;
   createdAt: Date;
   updatedAt: Date;
 }

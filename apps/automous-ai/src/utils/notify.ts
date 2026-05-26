@@ -7,7 +7,7 @@ export interface AgentJobEvent {
   jobId: string;
   phase: 'propose' | 'execute' | 'fix_pr' | 'review';
   status: 'started' | 'completed' | 'failed';
-  repo: string;       // "owner/repo"
+  repo: string; // "owner/repo"
   issueNumber?: number;
   issueTitle?: string;
   prUrl?: string;

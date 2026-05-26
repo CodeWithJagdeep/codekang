@@ -4,7 +4,7 @@ import { logger } from '../utils/logger';
 import { getActiveTools, executeTool, closeBrowserSession } from './tools';
 import type { ToolContext } from './tools';
 import type { AgentResult, AgentStep, FixContext } from '../types/agent';
-import { getCostStats, resetFixCost } from '../config/ai/index';
+import { getCostStats, resetFixCost, resetCostStats } from '../config/ai/index';
 import { createAgentTrace } from '../config/observability';
 import { notifyGateway } from '../utils/notify';
 
@@ -186,10 +186,16 @@ RULES:
 
   const learningPart = ctx.learningContext ? `\n${ctx.learningContext}\n` : '';
 
+  const retrievedPart =
+    ctx.retrievedContext &&
+    ctx.retrievedContext !== 'No relevant context found.'
+      ? `\n## Retrieved Context (team standards + similar past issues + related code)\nThis was pre-fetched from the repo's memory. Use it to understand conventions and start in the right place — do NOT re-search unless you need something more specific.\n\n${ctx.retrievedContext}\n`
+      : '';
+
   return `You are CodeKang, an elite software engineer tasked with fixing a GitHub issue.
 
 ${issue}
-${analysisPart}${retryPart}${learningPart}
+${analysisPart}${retryPart}${learningPart}${retrievedPart}
 YOUR GOAL: Fix this issue completely. Write the minimal correct change, verify it works,
 and leave the codebase better than you found it.
 
@@ -241,6 +247,7 @@ export async function runAgent(
   let summary = '';
 
   resetFixCost();
+  resetCostStats();
 
   const client = new Anthropic({ apiKey: env.ANTHROPIC_API_KEY });
   const messages: Anthropic.MessageParam[] = [
@@ -268,13 +275,18 @@ export async function runAgent(
   if (fixContext.userId) {
     notifyGateway(fixContext.userId, 'agent:job', {
       jobId: fixContext.jobId ?? 'unknown',
-      phase: mode === 'autonomous' ? 'execute' : mode === 'analyze' ? 'propose' : 'execute',
+      phase:
+        mode === 'autonomous'
+          ? 'execute'
+          : mode === 'analyze'
+            ? 'propose'
+            : 'execute',
       status: 'started',
       repo: `${fixContext.repoOwner}/${fixContext.repoName}`,
       issueNumber: fixContext.issueNumber,
       issueTitle: fixContext.issueTitle,
       ts: Date.now(),
-    }).catch(() => {});
+    });
   }
 
   // ── Langfuse trace ──────────────────────────────────────────────────────
@@ -324,7 +336,12 @@ export async function runAgent(
 
       const stepTimeout = new Promise<never>((_, reject) =>
         setTimeout(
-          () => reject(new Error(`Claude API step timed out after ${STEP_TIMEOUT_MS / 1000}s`)),
+          () =>
+            reject(
+              new Error(
+                `Claude API step timed out after ${STEP_TIMEOUT_MS / 1000}s`,
+              ),
+            ),
           STEP_TIMEOUT_MS,
         ),
       );
@@ -353,8 +370,8 @@ export async function runAgent(
         totalCostUsd: getCostStats().totalCostUsd,
       });
     } catch (err: unknown) {
-      const e = err as { message: string };
-      logger.error('Claude API error', { step: stepCount, error: e.message });
+      const errMsg = err instanceof Error ? err.message : String(err);
+      logger.error('Claude API error', { step: stepCount, error: errMsg });
 
       await closeBrowserSession(toolContext);
       await trace.flush();
@@ -363,7 +380,7 @@ export async function runAgent(
         steps,
         filesModified,
         summary: '',
-        error: e.message,
+        error: errMsg,
         totalCost: getCostStats().totalCostUsd,
         totalTokens: 0,
         durationMs: Date.now() - t0,
@@ -463,7 +480,7 @@ export async function runAgent(
           outputPreview: result.output.slice(0, 200),
           durationMs: step.durationMs,
           ts: Date.now(),
-        }).catch(() => {});
+        });
       }
     }
 
@@ -484,7 +501,12 @@ export async function runAgent(
   if (fixContext.userId) {
     notifyGateway(fixContext.userId, 'agent:job', {
       jobId: fixContext.jobId ?? 'unknown',
-      phase: mode === 'autonomous' ? 'execute' : mode === 'analyze' ? 'propose' : 'execute',
+      phase:
+        mode === 'autonomous'
+          ? 'execute'
+          : mode === 'analyze'
+            ? 'propose'
+            : 'execute',
       status: agentSucceeded ? 'completed' : 'failed',
       repo: `${fixContext.repoOwner}/${fixContext.repoName}`,
       issueNumber: fixContext.issueNumber,
@@ -492,7 +514,7 @@ export async function runAgent(
       prUrl: toolContext.createdPrUrl,
       message: summary.slice(0, 300),
       ts: Date.now(),
-    }).catch(() => {});
+    });
   }
 
   const cost = getCostStats();

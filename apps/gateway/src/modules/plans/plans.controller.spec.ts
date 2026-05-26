@@ -62,49 +62,49 @@ describe('PlansProxyController', () => {
 
     it('free plan has 0 monthly price', () => {
       const plans = controller.listPlans();
-      const free = plans.find((p: any) => p.tier === 'free');
+      const free = plans.find((p: any) => p.tier === 'free')!;
       expect(free.pricing.monthly).toBe(0);
     });
 
     it('team plan shows unlimited repos', () => {
       const plans = controller.listPlans();
-      const team = plans.find((p: any) => p.tier === 'team');
+      const team = plans.find((p: any) => p.tier === 'team')!;
       expect(team.features.repos.privateRepos).toBe('unlimited');
     });
 
     it('team plan shows unlimited credits', () => {
       const plans = controller.listPlans();
-      const team = plans.find((p: any) => p.tier === 'team');
+      const team = plans.find((p: any) => p.tier === 'team')!;
       expect(team.features.ai.creditsPerMonth).toBe('unlimited');
     });
 
     it('pro plan has autonomous fix enabled', () => {
       const plans = controller.listPlans();
-      const pro = plans.find((p: any) => p.tier === 'pro');
+      const pro = plans.find((p: any) => p.tier === 'pro')!;
       expect(pro.features.ai.autonomousFix).toBe(true);
     });
 
     it('free plan does not have autonomous fix', () => {
       const plans = controller.listPlans();
-      const free = plans.find((p: any) => p.tier === 'free');
+      const free = plans.find((p: any) => p.tier === 'free')!;
       expect(free.features.ai.autonomousFix).toBe(false);
     });
 
     it('starter plan does not have autonomous fix', () => {
       const plans = controller.listPlans();
-      const starter = plans.find((p: any) => p.tier === 'starter');
+      const starter = plans.find((p: any) => p.tier === 'starter')!;
       expect(starter.features.ai.autonomousFix).toBe(false);
     });
 
     it('pro plan has unlimited reviews per hour', () => {
       const plans = controller.listPlans();
-      const pro = plans.find((p: any) => p.tier === 'pro');
+      const pro = plans.find((p: any) => p.tier === 'pro')!;
       expect(pro.features.reviews.reviewsPerHour).toBe('unlimited');
     });
 
     it('enterprise plan shows custom pricing', () => {
       const plans = controller.listPlans();
-      const enterprise = plans.find((p: any) => p.tier === 'enterprise');
+      const enterprise = plans.find((p: any) => p.tier === 'enterprise')!;
       expect(enterprise.pricing.monthly).toBe('custom');
     });
   });

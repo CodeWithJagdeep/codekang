@@ -12,6 +12,8 @@ import {
 } from '../repo/manager';
 import { analyzeRepository } from '../parser/analyzer';
 import { indexRepository } from '../vector/indexer';
+import { indexIssueInLance } from '../vector/lance/issue-indexer';
+import { multiSourceSearch } from '../vector/search';
 import { classifyIssue } from '../agent/classifier';
 import { runAgent } from '../agent/index';
 import { createPullRequestForFix } from './pr-service';
@@ -19,15 +21,17 @@ import { postFixComment } from './comment-service';
 import { postGuidanceResponse } from './guidance-service';
 import {
   extractStructuredProposal,
+  savePendingProposal,
   loadPendingProposal,
   markProposalStatus,
+  postProposalComment,
 } from './proposal-service';
 import {
   recordSuccessfulFix,
   findSimilarFixes,
   buildLearningContext,
 } from './learning-service';
-import { getInstallationToken, createIssueComment } from '../github/api';
+import { getInstallationToken } from '../github/api';
 import { generateBranchName } from '../utils/helper';
 import { checkAutonomousFix, consumeFixCredits } from '../guards/plan-check';
 import type { FixJobData, ExecuteFixJobData, JobResult } from '../types/queue';
@@ -79,30 +83,7 @@ export async function proposeFixJob(data: FixJobData): Promise<JobResult> {
       responseType: classification.responseType,
     });
 
-    // ── 1b. Route all fixable issues directly to autonomous agent ─────────
-    if (classification.responseType === 'fix') {
-      logger.info('🚀 Routing to autonomous agent', {
-        issueNumber,
-        confidence: classification.confidence,
-        complexity: classification.estimatedComplexity,
-      });
-
-      await createIssueComment(
-        owner,
-        repo,
-        issueNumber,
-        `On it — analyzing and fixing issue #${issueNumber}. I'll open a PR when done.`,
-        installationId,
-      );
-
-      const fixResult = await runAutonomousFixJob(data, classification, planCheck.userId ?? undefined, data.jobId);
-      if (fixResult.success && planCheck.userId) {
-        await consumeFixCredits(planCheck.userId);
-      }
-      return fixResult;
-    }
-
-    // ── 1c. Route: clarify / discuss — post immediately, no code analysis needed
+    // ── 1b. Route: clarify / discuss — post immediately, no code analysis needed
     if (
       classification.responseType === 'clarify' ||
       classification.responseType === 'discuss'
@@ -198,9 +179,21 @@ export async function proposeFixJob(data: FixJobData): Promise<JobResult> {
     if (!rows[0]) throw new Error('DB upsert for repo returned no rows');
     const repoId = rows[0].id;
 
+    // Index issue now that we have a repoId (fire-and-forget)
+    indexIssueInLance({
+      repoId,
+      owner,
+      repoName: repo,
+      issueNumber,
+      title: issueTitle,
+      body: issueBody,
+      state: 'open',
+      labels: [],
+    }).catch(() => {});
+
     logger.info('🔍 Analyzing and indexing codebase...', { repoId });
     const files = await analyzeRepository(repoPath);
-    await indexRepository(repoId, files);
+    await indexRepository(repoId, files, { owner, repoName: repo, repoPath });
     logger.info('🔍 Codebase indexed', { files: files.length, repoId });
 
     // ── 4. Analysis pass ───────────────────────────────────────────────────
@@ -242,26 +235,57 @@ export async function proposeFixJob(data: FixJobData): Promise<JobResult> {
 
     // ── 5. Extract structured proposal ────────────────────────────────────
     logger.info('📝 Extracting structured proposal...');
-    await extractStructuredProposal(analysis.summary, issueTitle, issueBody);
+    const proposal = await extractStructuredProposal(
+      analysis.summary,
+      issueTitle,
+      issueBody,
+    );
 
-    // ── 6. Post guidance (only guide responses reach here — fix/clarify/discuss route earlier)
-    {
-      await postGuidanceResponse(
+    // ── 6. Post proposal (fix) or guidance (guide) — never auto-execute ───
+    if (classification.responseType === 'fix') {
+      await savePendingProposal(
         owner,
         repo,
         issueNumber,
         issueTitle,
         issueBody,
+        installationId,
         classification,
         analysis.summary,
+        proposal,
+      );
+      await postProposalComment(
+        owner,
+        repo,
+        issueNumber,
+        classification,
+        analysis.summary,
+        proposal,
         installationId,
       );
-
-      return {
-        success: true,
-        message: `Indexed & analyzed — posted technical ${classification.responseType} response`,
-      };
+      logger.info('📝 Proposal posted — waiting for @codekang fix approval', {
+        owner,
+        repo,
+        issueNumber,
+      });
+      return { success: true, message: 'Proposal posted — awaiting approval' };
     }
+
+    await postGuidanceResponse(
+      owner,
+      repo,
+      issueNumber,
+      issueTitle,
+      issueBody,
+      classification,
+      analysis.summary,
+      installationId,
+    );
+
+    return {
+      success: true,
+      message: `Indexed & analyzed — posted technical ${classification.responseType} response`,
+    };
   } catch (err: unknown) {
     const e = err as { message: string };
     logger.error('Propose job error', {
@@ -395,7 +419,7 @@ export async function executeApprovedFix(
 
     logger.info('🔍 Re-indexing codebase...', { repoId });
     const files = await analyzeRepository(repoPath);
-    await indexRepository(repoId, files);
+    await indexRepository(repoId, files, { owner, repoName: repo, repoPath });
     logger.info('🔍 Codebase indexed', { files: files.length, repoId });
 
     // ── 4. Load cross-issue learning patterns ──────────────────────────────
@@ -633,9 +657,14 @@ export async function runAutonomousFixJob(
   userId?: string,
   jobId?: string,
 ): Promise<JobResult> {
-  const { owner, repo, issueNumber, issueTitle, issueBody, installationId } = data;
+  const { owner, repo, issueNumber, issueTitle, issueBody, installationId } =
+    data;
 
-  logger.info('Autonomous fix job started (progressive mode)', { owner, repo, issueNumber });
+  logger.info('Autonomous fix job started (progressive mode)', {
+    owner,
+    repo,
+    issueNumber,
+  });
 
   const classification =
     existingClassification ?? (await classifyIssue(issueTitle, issueBody, []));
@@ -655,7 +684,9 @@ export async function runAutonomousFixJob(
   const priorAttempts: Array<{ summary: string; testOutput: string }> = [];
 
   for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
-    logger.info(`🤖 Autonomous agent — attempt ${attempt}/${MAX_ATTEMPTS}`, { issueNumber });
+    logger.info(`🤖 Autonomous agent — attempt ${attempt}/${MAX_ATTEMPTS}`, {
+      issueNumber,
+    });
 
     // Per-attempt cleanup tracking
     let currentRepoPath: string | undefined;
@@ -690,14 +721,33 @@ export async function runAutonomousFixJob(
         if (!rows[0]) throw new Error('DB upsert returned no rows');
         const repoId = rows[0].id;
         const files = await analyzeRepository(currentRepoPath);
-        await indexRepository(repoId, files);
-        logger.info('✅ Clone + index complete', { owner, repo, repoPath: currentRepoPath });
+        await indexRepository(repoId, files, {
+          owner,
+          repoName: repo,
+          repoPath: currentRepoPath,
+        });
+        // Fetch multi-source context for the agent system prompt
+        const retrieved = await multiSourceSearch(
+          `${issueTitle} ${issueBody}`,
+          repoId,
+          { includeIssues: true, includeStandards: true },
+        ).catch(() => '');
+        if (retrieved) fixContext.retrievedContext = retrieved;
+        logger.info('✅ Clone + index complete', {
+          owner,
+          repo,
+          repoPath: currentRepoPath,
+        });
         return { repoPath: currentRepoPath, repoId };
       },
       // On-demand sandbox: agent calls request_sandbox when it needs to run code
       onRequestSandbox: async () => {
-        if (!toolContext.repoPath) throw new Error('Must clone before requesting sandbox');
-        logger.info('🐳 Agent-requested Docker sandbox starting', { owner, repo });
+        if (!toolContext.repoPath)
+          throw new Error('Must clone before requesting sandbox');
+        logger.info('🐳 Agent-requested Docker sandbox starting', {
+          owner,
+          repo,
+        });
         const repoCtx = { repoPath: toolContext.repoPath, owner, repo };
         const cid = await startDockerContainer(repoCtx);
         currentContainerId = cid;
@@ -727,7 +777,8 @@ export async function runAutonomousFixJob(
       result = await runAgent(fixContext, toolContext, 'autonomous', attempt);
     } finally {
       // Clean up resources this attempt allocated
-      if (currentContainerId) await stopAndRemoveContainer(currentContainerId).catch(() => {});
+      if (currentContainerId)
+        await stopAndRemoveContainer(currentContainerId).catch(() => {});
       if (currentRepoPath) cleanupRepo(currentRepoPath);
     }
 
@@ -740,20 +791,38 @@ export async function runAutonomousFixJob(
     });
 
     if (result.prUrl) {
-      await postFixComment(owner, repo, issueNumber, {
-        success: true,
-        message: result.summary,
-        prUrl: result.prUrl,
-      }, installationId);
-      await recordSuccessfulFix(
-        owner, repo, issueNumber, classification,
-        result.filesModified, result.summary, '', result.prUrl,
+      await postFixComment(
+        owner,
+        repo,
+        issueNumber,
+        {
+          success: true,
+          message: result.summary,
+          prUrl: result.prUrl,
+        },
+        installationId,
       );
-      return { success: true, message: `PR created: ${result.prUrl}`, data: { prUrl: result.prUrl } };
+      await recordSuccessfulFix(
+        owner,
+        repo,
+        issueNumber,
+        classification,
+        result.filesModified,
+        result.summary,
+        '',
+        result.prUrl,
+      );
+      return {
+        success: true,
+        message: `PR created: ${result.prUrl}`,
+        data: { prUrl: result.prUrl },
+      };
     }
 
     if (attempt < MAX_ATTEMPTS) {
-      logger.warn(`Attempt ${attempt} produced no PR — retrying`, { issueNumber });
+      logger.warn(`Attempt ${attempt} produced no PR — retrying`, {
+        issueNumber,
+      });
       priorAttempts.push({
         summary: result.summary,
         testOutput: result.lastTestOutput ?? 'No test output captured',
@@ -761,10 +830,19 @@ export async function runAutonomousFixJob(
     }
   }
 
-  await postFixComment(owner, repo, issueNumber, {
-    success: false,
-    message: `Tried ${MAX_ATTEMPTS} different strategies — none produced a passing fix. Manual review needed.`,
-  }, installationId);
+  await postFixComment(
+    owner,
+    repo,
+    issueNumber,
+    {
+      success: false,
+      message: `Tried ${MAX_ATTEMPTS} different strategies — none produced a passing fix. Manual review needed.`,
+    },
+    installationId,
+  );
 
-  return { success: false, message: `All ${MAX_ATTEMPTS} autonomous attempts failed` };
+  return {
+    success: false,
+    message: `All ${MAX_ATTEMPTS} autonomous attempts failed`,
+  };
 }

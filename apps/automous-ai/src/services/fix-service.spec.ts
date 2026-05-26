@@ -22,13 +22,21 @@ jest.mock('../repo/manager', () => ({
   stopAndRemoveContainer: jest.fn().mockResolvedValue(undefined),
   cleanupRepo: jest.fn(),
 }));
-jest.mock('../parser/analyzer', () => ({ analyzeRepository: jest.fn().mockResolvedValue([]) }));
-jest.mock('../vector/indexer', () => ({ indexRepository: jest.fn().mockResolvedValue(undefined) }));
+jest.mock('../parser/analyzer', () => ({
+  analyzeRepository: jest.fn().mockResolvedValue([]),
+}));
+jest.mock('../vector/indexer', () => ({
+  indexRepository: jest.fn().mockResolvedValue(undefined),
+}));
 jest.mock('../agent/classifier', () => ({ classifyIssue: jest.fn() }));
 jest.mock('../agent/index', () => ({ runAgent: jest.fn() }));
 jest.mock('./pr-service', () => ({ createPullRequestForFix: jest.fn() }));
-jest.mock('./comment-service', () => ({ postFixComment: jest.fn().mockResolvedValue(undefined) }));
-jest.mock('./guidance-service', () => ({ postGuidanceResponse: jest.fn().mockResolvedValue(undefined) }));
+jest.mock('./comment-service', () => ({
+  postFixComment: jest.fn().mockResolvedValue(undefined),
+}));
+jest.mock('./guidance-service', () => ({
+  postGuidanceResponse: jest.fn().mockResolvedValue(undefined),
+}));
 jest.mock('./proposal-service', () => ({
   extractStructuredProposal: jest.fn(),
   loadPendingProposal: jest.fn(),
@@ -43,7 +51,9 @@ jest.mock('../github/api', () => ({
   getInstallationToken: jest.fn().mockResolvedValue('token-123'),
   createIssueComment: jest.fn().mockResolvedValue(undefined),
 }));
-jest.mock('../utils/helper', () => ({ generateBranchName: jest.fn().mockReturnValue('fix/issue-1') }));
+jest.mock('../utils/helper', () => ({
+  generateBranchName: jest.fn().mockReturnValue('fix/issue-1'),
+}));
 jest.mock('../guards/plan-check', () => ({
   checkAutonomousFix: jest.fn(),
   consumeFixCredits: jest.fn().mockResolvedValue(undefined),
@@ -53,7 +63,11 @@ jest.mock('../utils/logger', () => ({
 }));
 
 import { db } from '../config/database';
-import { setupRepo, startDockerContainer, installDependencies } from '../repo/manager';
+import {
+  setupRepo,
+  startDockerContainer,
+  installDependencies,
+} from '../repo/manager';
 import { runAgent } from '../agent/index';
 import { loadPendingProposal, markProposalStatus } from './proposal-service';
 import { checkAutonomousFix } from '../guards/plan-check';

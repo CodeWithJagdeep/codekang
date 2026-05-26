@@ -1,7 +1,12 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository as TypeOrmRepository } from 'typeorm';
-import { SupportTicket, SupportMessage, TicketStatus, TicketPriority } from '../entities/support.entity';
+import {
+  SupportTicket,
+  SupportMessage,
+  TicketStatus,
+  TicketPriority,
+} from '../entities/support.entity';
 
 @Injectable()
 export class SupportService {
@@ -14,7 +19,12 @@ export class SupportService {
 
   async createTicket(
     userId: string,
-    data: { subject: string; category: string; priority: string; message: string },
+    data: {
+      subject: string;
+      category: string;
+      priority: string;
+      message: string;
+    },
   ) {
     const ticket = this.ticketRepo.create({
       userId,
@@ -54,10 +64,16 @@ export class SupportService {
   }
 
   async replyToTicket(userId: string, ticketId: string, content: string) {
-    const ticket = await this.ticketRepo.findOne({ where: { id: ticketId, userId } });
+    const ticket = await this.ticketRepo.findOne({
+      where: { id: ticketId, userId },
+    });
     if (!ticket) throw new NotFoundException('Ticket not found');
 
-    const message = this.messageRepo.create({ ticketId, author: 'user', content });
+    const message = this.messageRepo.create({
+      ticketId,
+      author: 'user',
+      content,
+    });
     await this.messageRepo.save(message);
 
     await this.ticketRepo.update(ticketId, { status: TicketStatus.OPEN });
@@ -66,7 +82,9 @@ export class SupportService {
   }
 
   async resolveTicket(userId: string, ticketId: string) {
-    const ticket = await this.ticketRepo.findOne({ where: { id: ticketId, userId } });
+    const ticket = await this.ticketRepo.findOne({
+      where: { id: ticketId, userId },
+    });
     if (!ticket) throw new NotFoundException('Ticket not found');
 
     await this.ticketRepo.update(ticketId, { status: TicketStatus.RESOLVED });
@@ -74,7 +92,9 @@ export class SupportService {
   }
 
   private async getTicketWithMessages(ticketId: string, userId: string) {
-    const ticket = await this.ticketRepo.findOne({ where: { id: ticketId, userId } });
+    const ticket = await this.ticketRepo.findOne({
+      where: { id: ticketId, userId },
+    });
     if (!ticket) throw new NotFoundException('Ticket not found');
     const messages = await this.messageRepo.find({
       where: { ticketId: ticket.id },

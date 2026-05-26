@@ -16,8 +16,10 @@ import type { IUser } from '../../common';
 import { OAuthIntegrationsService } from './oauth-integrations.service';
 
 const FRONTEND = () => process.env.FRONTEND_URL ?? 'http://localhost:3010';
-const successRedirect = (provider: string) => `${FRONTEND()}/dashboard/integrations?connected=${provider}`;
-const errorRedirect = (provider: string, reason: string) => `${FRONTEND()}/dashboard/integrations?error=${provider}_${reason}`;
+const successRedirect = (provider: string) =>
+  `${FRONTEND()}/dashboard/integrations?connected=${provider}`;
+const errorRedirect = (provider: string, reason: string) =>
+  `${FRONTEND()}/dashboard/integrations?error=${provider}_${reason}`;
 
 @ApiTags('integrations')
 @Controller('integrations')
@@ -226,7 +228,11 @@ export class OAuthIntegrationsController {
 
   // ── Helper ─────────────────────────────────────────────────────────────────
 
-  private store(userId: string, provider: string, config: Record<string, string>) {
+  private store(
+    userId: string,
+    provider: string,
+    config: Record<string, string>,
+  ) {
     return firstValueFrom(
       this.authClient.send('integration.connect', { userId, provider, config }),
     );

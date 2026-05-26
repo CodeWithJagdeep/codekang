@@ -1,7 +1,10 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository as TypeOrmRepository } from 'typeorm';
-import { Notification, NotificationType } from '../entities/notification.entity';
+import {
+  Notification,
+  NotificationType,
+} from '../entities/notification.entity';
 
 export interface INotification {
   id: string;
@@ -39,29 +42,38 @@ export class NotificationsService {
       isRead: false,
     });
     await this.notifRepo.save(notif);
-    return notif as unknown as INotification;
+    return notif;
   }
 
-  async listForUser(userId: string, limit = 50, offset = 0): Promise<INotification[]> {
+  async listForUser(
+    userId: string,
+    limit = 50,
+    offset = 0,
+  ): Promise<INotification[]> {
     const notifs = await this.notifRepo.find({
       where: { userId },
       order: { createdAt: 'DESC' },
       take: Math.min(limit, 100),
       skip: offset,
     });
-    return notifs as unknown as INotification[];
+    return notifs;
   }
 
   async getUnreadCount(userId: string): Promise<number> {
     return this.notifRepo.count({ where: { userId, isRead: false } });
   }
 
-  async markAsRead(userId: string, notificationId: string): Promise<INotification> {
-    const notif = await this.notifRepo.findOne({ where: { id: notificationId, userId } });
+  async markAsRead(
+    userId: string,
+    notificationId: string,
+  ): Promise<INotification> {
+    const notif = await this.notifRepo.findOne({
+      where: { id: notificationId, userId },
+    });
     if (!notif) throw new NotFoundException('Notification not found');
     notif.isRead = true;
     await this.notifRepo.save(notif);
-    return notif as unknown as INotification;
+    return notif;
   }
 
   async markAllAsRead(userId: string): Promise<void> {

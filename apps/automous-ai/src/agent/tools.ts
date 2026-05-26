@@ -8,6 +8,7 @@ import {
   searchSimilarCode,
   searchByFilePath,
   searchBySymbol,
+  multiSourceSearch,
 } from '../vector/search';
 import { runInContainer } from '../repo/manager';
 import { createPage } from '../browser/playwright';
@@ -25,6 +26,77 @@ import { createPullRequestForFix } from '../services/pr-service';
 import type { AgentStep, AgentStepType } from '../types/agent';
 
 const execAsync = promisify(execCallback);
+
+// ─── Related test file finder ─────────────────────────────────────────────────
+
+function findRelatedTestFiles(
+  changedFiles: string[],
+  repoPath: string,
+): string[] {
+  const found: string[] = [];
+
+  for (const file of changedFiles) {
+    const ext = path.extname(file);
+    const dir = path.dirname(file);
+    const base = path.basename(file, ext);
+
+    // Skip files that are already test files
+    if (
+      /\.(test|spec)\.[jt]sx?$/.test(file) ||
+      /^test_/.test(base) ||
+      /_test\.go$/.test(file)
+    ) {
+      found.push(file);
+      continue;
+    }
+
+    const candidates: string[] = [];
+
+    if (['.ts', '.tsx', '.js', '.jsx', '.mjs'].includes(ext)) {
+      const testExts = [
+        '.test.ts',
+        '.test.tsx',
+        '.test.js',
+        '.spec.ts',
+        '.spec.tsx',
+        '.spec.js',
+      ];
+      for (const testExt of testExts) {
+        candidates.push(
+          path.join(dir, `${base}${testExt}`), // same dir
+          path.join(dir, '__tests__', `${base}${testExt}`), // __tests__ sibling
+          path.join('src', '__tests__', `${base}${testExt}`),
+          path.join('tests', `${base}${testExt}`),
+          path.join('test', `${base}${testExt}`),
+        );
+      }
+    } else if (ext === '.py') {
+      candidates.push(
+        path.join(dir, `test_${base}.py`),
+        path.join(dir, `${base}_test.py`),
+        path.join('tests', `test_${base}.py`),
+        path.join('test', `test_${base}.py`),
+      );
+    } else if (ext === '.go') {
+      candidates.push(path.join(dir, `${base}_test.go`));
+    } else if (['.rb'].includes(ext)) {
+      candidates.push(
+        path.join('spec', dir, `${base}_spec.rb`),
+        path.join('test', dir, `${base}_test.rb`),
+      );
+    }
+
+    for (const candidate of candidates) {
+      const full = path.join(repoPath, candidate);
+      if (fs.existsSync(full)) {
+        found.push(candidate);
+        break; // first match per source file is enough
+      }
+    }
+  }
+
+  return [...new Set(found)];
+}
 
 // ─── Browser session ──────────────────────────────────────────────────────────
 
@@ -67,6 +139,10 @@ export interface ToolContext {
   // ── Output tracking ───────────────────────────────────────────────────────
   createdPrUrl?: string;
   lastTestOutput?: string;
+
+  // ── PR context (set when fixing review findings) ──────────────────────────
+  /** Files changed in the PR — used by run_related_tests */
+  changedFiles?: string[];
 }
 
 export interface ToolResult {
@@ -91,7 +167,8 @@ const LIGHTWEIGHT_TOOL_DEFS = [
         path: { type: 'string', description: 'Relative path from repo root' },
         ref: {
           type: 'string',
-          description: 'Branch/tag/sha to read from (defaults to default branch)',
+          description:
+            'Branch/tag/sha to read from (defaults to default branch)',
         },
       },
       required: ['path'],
@@ -108,7 +185,10 @@ const LIGHTWEIGHT_TOOL_DEFS = [
           type: 'string',
           description: 'Directory path (empty string = repo root)',
         },
-        ref: { type: 'string', description: 'Branch/tag/sha (defaults to default branch)' },
+        ref: {
+          type: 'string',
+          description: 'Branch/tag/sha (defaults to default branch)',
+        },
       },
       required: [],
     },
@@ -121,7 +201,10 @@ const LIGHTWEIGHT_TOOL_DEFS = [
     input_schema: {
       type: 'object' as const,
       properties: {
-        ref: { type: 'string', description: 'Branch/tag/sha (defaults to default branch)' },
+        ref: {
+          type: 'string',
+          description: 'Branch/tag/sha (defaults to default branch)',
+        },
       },
       required: [],
     },
@@ -129,14 +212,15 @@ const LIGHTWEIGHT_TOOL_DEFS = [
   {
     name: 'gh_search',
     description:
-      'Search code in the GitHub repo using GitHub\'s search API. ' +
+      "Search code in the GitHub repo using GitHub's search API. " +
       'Good for finding where a function is defined or where a pattern appears.',
     input_schema: {
       type: 'object' as const,
       properties: {
         query: {
           type: 'string',
-          description: 'Search query (e.g. "getUserById", "import auth", "TODO")',
+          description:
+            'Search query (e.g. "getUserById", "import auth", "TODO")',
         },
       },
       required: ['query'],
@@ -157,8 +241,14 @@ const LIGHTWEIGHT_TOOL_DEFS = [
           items: {
             type: 'object',
             properties: {
-              path: { type: 'string', description: 'File path relative to repo root' },
-              content: { type: 'string', description: 'Complete new file content' },
+              path: {
+                type: 'string',
+                description: 'File path relative to repo root',
+              },
+              content: {
+                type: 'string',
+                description: 'Complete new file content',
+              },
             },
             required: ['path', 'content'],
           },
@@ -259,7 +349,10 @@ const LIGHTWEIGHT_TOOL_DEFS = [
     input_schema: {
       type: 'object' as const,
       properties: {
-        summary: { type: 'string', description: 'Full summary of what was found / changed' },
+        summary: {
+          type: 'string',
+          description: 'Full summary of what was found / changed',
+        },
         filesModified: {
           type: 'array',
           items: { type: 'string' },
@@ -273,13 +366,20 @@ const LIGHTWEIGHT_TOOL_DEFS = [
   // ── Browser (always available, lazy init) ────────────────────────────────
   {
     name: 'browser_open',
-    description: 'Open a URL in a real browser. Returns page text, console errors, screenshot path.',
+    description:
+      'Open a URL in a real browser. Returns page text, console errors, screenshot path.',
     input_schema: {
       type: 'object' as const,
       properties: {
         url: { type: 'string', description: 'Full URL to open' },
-        waitForSelector: { type: 'string', description: 'CSS selector to wait for' },
-        waitMs: { type: 'number', description: 'Extra wait time in ms (default 500)' },
+        waitForSelector: {
+          type: 'string',
+          description: 'CSS selector to wait for',
+        },
+        waitMs: {
+          type: 'number',
+          description: 'Extra wait time in ms (default 500)',
+        },
       },
       required: ['url'],
     },
@@ -291,7 +391,10 @@ const LIGHTWEIGHT_TOOL_DEFS = [
       type: 'object' as const,
       properties: {
         selector: { type: 'string', description: 'CSS selector' },
-        waitForSelector: { type: 'string', description: 'Selector to wait for after clicking' },
+        waitForSelector: {
+          type: 'string',
+          description: 'Selector to wait for after clicking',
+        },
       },
       required: ['selector'],
     },
@@ -304,14 +407,18 @@ const LIGHTWEIGHT_TOOL_DEFS = [
       properties: {
         selector: { type: 'string', description: 'CSS selector for input' },
         text: { type: 'string', description: 'Text to type' },
-        pressEnter: { type: 'boolean', description: 'Press Enter after typing (default false)' },
+        pressEnter: {
+          type: 'boolean',
+          description: 'Press Enter after typing (default false)',
+        },
       },
       required: ['selector', 'text'],
     },
   },
   {
     name: 'browser_get_content',
-    description: "Get the current page's visible text, URL, title, console errors.",
+    description:
+      "Get the current page's visible text, URL, title, console errors.",
     input_schema: { type: 'object' as const, properties: {}, required: [] },
   },
   {
@@ -320,7 +427,10 @@ const LIGHTWEIGHT_TOOL_DEFS = [
     input_schema: {
       type: 'object' as const,
       properties: {
-        fullPage: { type: 'boolean', description: 'Capture full scrollable page (default true)' },
+        fullPage: {
+          type: 'boolean',
+          description: 'Capture full scrollable page (default true)',
+        },
       },
       required: [],
     },
@@ -330,7 +440,9 @@ const LIGHTWEIGHT_TOOL_DEFS = [
     description: 'Navigate the current browser session to a new URL.',
     input_schema: {
       type: 'object' as const,
-      properties: { url: { type: 'string', description: 'URL to navigate to' } },
+      properties: {
+        url: { type: 'string', description: 'URL to navigate to' },
+      },
       required: ['url'],
     },
   },
@@ -371,18 +483,25 @@ const CLONE_TOOL_DEFS = [
     input_schema: {
       type: 'object' as const,
       properties: {
-        path: { type: 'string', description: 'Relative path (defaults to repo root)' },
+        path: {
+          type: 'string',
+          description: 'Relative path (defaults to repo root)',
+        },
       },
       required: [],
     },
   },
   {
     name: 'get_file_tree',
-    description: 'Get a nested tree view of the local clone up to N levels deep.',
+    description:
+      'Get a nested tree view of the local clone up to N levels deep.',
     input_schema: {
       type: 'object' as const,
       properties: {
-        path: { type: 'string', description: 'Root path for tree (defaults to repo root)' },
+        path: {
+          type: 'string',
+          description: 'Root path for tree (defaults to repo root)',
+        },
         depth: { type: 'number', description: 'Max depth (default 3, max 6)' },
       },
       required: [],
@@ -396,26 +515,41 @@ const CLONE_TOOL_DEFS = [
       properties: {
         pattern: { type: 'string', description: 'Text or regex pattern' },
         glob: { type: 'string', description: "Optional glob, e.g. '**/*.ts'" },
-        caseSensitive: { type: 'boolean', description: 'Case-sensitive search (default false)' },
+        caseSensitive: {
+          type: 'boolean',
+          description: 'Case-sensitive search (default false)',
+        },
       },
       required: ['pattern'],
     },
   },
   {
     name: 'vector_search',
-    description: 'Semantic similarity search over the indexed codebase. Best for "find where X is done".',
+    description:
+      'Semantic search across code, past PRs, issues, and team standards. ' +
+      'Best for "find where X is done" or "how did we handle Y before".',
     input_schema: {
       type: 'object' as const,
       properties: {
         query: { type: 'string', description: 'Natural language description' },
-        limit: { type: 'number', description: 'Max results (default 5)' },
+        limit: { type: 'number', description: 'Max results (default 8)' },
+        sources: {
+          type: 'array',
+          items: {
+            type: 'string',
+            enum: ['code', 'pr_history', 'issue', 'standards'],
+          },
+          description:
+            'Sources to search (default: all). Use ["code"] for pure code search.',
+        },
       },
       required: ['query'],
     },
   },
   {
     name: 'search_by_symbol',
-    description: 'Find code chunks by function/class/variable name. Faster than vector_search for known names.',
+    description:
+      'Find code chunks by function/class/variable name. Faster than vector_search for known names.',
     input_schema: {
       type: 'object' as const,
       properties: {
@@ -431,7 +565,10 @@ const CLONE_TOOL_DEFS = [
     input_schema: {
       type: 'object' as const,
       properties: {
-        path: { type: 'string', description: "File path fragment, e.g. 'auth', 'login.ts'" },
+        path: {
+          type: 'string',
+          description: "File path fragment, e.g. 'auth', 'login.ts'",
+        },
         limit: { type: 'number', description: 'Max results (default 8)' },
       },
       required: ['path'],
@@ -439,7 +576,8 @@ const CLONE_TOOL_DEFS = [
   },
   {
     name: 'get_package_info',
-    description: 'Read package.json / pyproject.toml / go.mod. Shows scripts, dependencies, entry points.',
+    description:
+      'Read package.json / pyproject.toml / go.mod. Shows scripts, dependencies, entry points.',
     input_schema: { type: 'object' as const, properties: {}, required: [] },
   },
   {
@@ -450,8 +588,14 @@ const CLONE_TOOL_DEFS = [
     input_schema: {
       type: 'object' as const,
       properties: {
-        summary: { type: 'string', description: 'Summary of what was changed and why (PR body)' },
-        base_branch: { type: 'string', description: 'Target branch (default: main)' },
+        summary: {
+          type: 'string',
+          description: 'Summary of what was changed and why (PR body)',
+        },
+        base_branch: {
+          type: 'string',
+          description: 'Target branch (default: main)',
+        },
       },
       required: ['summary'],
     },
@@ -461,14 +605,16 @@ const CLONE_TOOL_DEFS = [
 const SANDBOX_TOOL_DEFS = [
   {
     name: 'run_command',
-    description: 'Run any shell command inside the Docker sandbox (npm test, lint, build, etc.).',
+    description:
+      'Run any shell command inside the Docker sandbox (npm test, lint, build, etc.).',
     input_schema: {
       type: 'object' as const,
       properties: {
         command: { type: 'string', description: 'Shell command to run' },
         workdir: {
           type: 'string',
-          description: 'Working directory inside /workspace (defaults to /workspace)',
+          description:
+            'Working directory inside /workspace (defaults to /workspace)',
         },
       },
       required: ['command'],
@@ -476,7 +622,8 @@ const SANDBOX_TOOL_DEFS = [
   },
   {
     name: 'run_file',
-    description: 'Run a specific file in the Docker sandbox. Auto-detects runtime from extension.',
+    description:
+      'Run a specific file in the Docker sandbox. Auto-detects runtime from extension.',
     input_schema: {
       type: 'object' as const,
       properties: {
@@ -494,7 +641,10 @@ const SANDBOX_TOOL_DEFS = [
     input_schema: {
       type: 'object' as const,
       properties: {
-        filename: { type: 'string', description: "Filename with extension, e.g. 'repro.ts'" },
+        filename: {
+          type: 'string',
+          description: "Filename with extension, e.g. 'repro.ts'",
+        },
         content: { type: 'string', description: 'Script content' },
       },
       required: ['filename', 'content'],
@@ -502,11 +652,35 @@ const SANDBOX_TOOL_DEFS = [
   },
   {
     name: 'run_tests',
-    description: 'Run the full test suite. Auto-detects test command from package.json, pytest, etc.',
+    description:
+      'Run the full test suite. Auto-detects test command from package.json, pytest, etc.',
     input_schema: {
       type: 'object' as const,
       properties: {
-        command: { type: 'string', description: 'Override test command (optional)' },
+        command: {
+          type: 'string',
+          description: 'Override test command (optional)',
+        },
+      },
+      required: [],
+    },
+  },
+  {
+    name: 'run_related_tests',
+    description:
+      'Run ONLY the test files related to the changed/modified source files. ' +
+      'Much faster than run_tests — finds matching test files by naming convention. ' +
+      'Use this instead of run_tests when you know which files were modified.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        files: {
+          type: 'array',
+          items: { type: 'string' },
+          description:
+            'List of changed source file paths (relative to repo root). ' +
+            'If omitted, uses the PR changed files from context.',
+        },
       },
       required: [],
     },
@@ -559,7 +733,13 @@ function buildFileTree(
     if (ignore.has(e.name)) continue;
     if (e.isDirectory()) {
       out += `${indent}📁 ${e.name}/\n`;
-      out += buildFileTree(path.join(dir, e.name), root, depth + 1, maxDepth, ignore);
+      out += buildFileTree(
+        path.join(dir, e.name),
+        root,
+        depth + 1,
+        maxDepth,
+        ignore,
+      );
     } else {
       out += `${indent}📄 ${e.name}\n`;
     }
@@ -568,8 +748,17 @@ function buildFileTree(
 }
 
 const TREE_IGNORE = new Set([
-  'node_modules', '.git', 'dist', 'build', '.next', '__pycache__',
-  '.venv', 'vendor', 'target', '.cache', 'coverage',
+  'node_modules',
+  '.git',
+  'dist',
+  'build',
+  '.next',
+  '__pycache__',
+  '.venv',
+  'vendor',
+  'target',
+  '.cache',
+  'coverage',
 ]);
 
 function detectRuntime(filePath: string): string {
@@ -624,35 +813,57 @@ export async function executeTool(
 
   try {
     switch (toolName) {
-
       // ── Lightweight GitHub API tools ────────────────────────────────────────
 
       case 'gh_read_file': {
         const filePath = toolInput['path'] as string;
-        const ref = (toolInput['ref'] as string | undefined) ?? ctx.defaultBranch;
-        const content = await getFileContent(ctx.owner, ctx.repo, filePath, ref, ctx.installationId);
+        const ref =
+          (toolInput['ref'] as string | undefined) ?? ctx.defaultBranch;
+        const content = await getFileContent(
+          ctx.owner,
+          ctx.repo,
+          filePath,
+          ref,
+          ctx.installationId,
+        );
         if (!content) {
           output = `File not found: ${filePath}`;
           break;
         }
         const lines = content.split('\n');
-        output = lines.map((l, i) => `${String(i + 1).padStart(4, ' ')} | ${l}`).join('\n');
+        output = lines
+          .map((l, i) => `${String(i + 1).padStart(4, ' ')} | ${l}`)
+          .join('\n');
         break;
       }
 
       case 'gh_list_dir': {
         const dirPath = (toolInput['path'] as string | undefined) ?? '';
-        const ref = (toolInput['ref'] as string | undefined) ?? ctx.defaultBranch;
-        const items = await githubListDir(ctx.owner, ctx.repo, dirPath, ref, ctx.installationId);
-        output = items
-          .map((i) => `${i.type === 'dir' ? '📁' : '📄'} ${i.name}`)
-          .join('\n') || '(empty)';
+        const ref =
+          (toolInput['ref'] as string | undefined) ?? ctx.defaultBranch;
+        const items = await githubListDir(
+          ctx.owner,
+          ctx.repo,
+          dirPath,
+          ref,
+          ctx.installationId,
+        );
+        output =
+          items
+            .map((i) => `${i.type === 'dir' ? '📁' : '📄'} ${i.name}`)
+            .join('\n') || '(empty)';
         break;
       }
 
       case 'gh_tree': {
-        const ref = (toolInput['ref'] as string | undefined) ?? ctx.defaultBranch;
-        output = await githubGetTree(ctx.owner, ctx.repo, ref, ctx.installationId);
+        const ref =
+          (toolInput['ref'] as string | undefined) ?? ctx.defaultBranch;
+        output = await githubGetTree(
+          ctx.owner,
+          ctx.repo,
+          ref,
+          ctx.installationId,
+        );
         break;
       }
 
@@ -668,7 +879,10 @@ export async function executeTool(
           break;
         }
         output = results
-          .map((r) => `📄 ${r.path}${r.fragment ? `\n  > ${r.fragment.slice(0, 200)}` : ''}`)
+          .map(
+            (r) =>
+              `📄 ${r.path}${r.fragment ? `\n  > ${r.fragment.slice(0, 200)}` : ''}`,
+          )
           .join('\n\n');
         break;
       }
@@ -680,31 +894,65 @@ export async function executeTool(
           break;
         }
         // Ensure the branch exists (creates from default branch if not)
-        await githubCreateBranch(owner, repo, branchName, defaultBranch, installationId);
+        await githubCreateBranch(
+          owner,
+          repo,
+          branchName,
+          defaultBranch,
+          installationId,
+        );
 
         const files = toolInput['files'] as { path: string; content: string }[];
         const message = toolInput['message'] as string;
-        const result = await githubCommitFiles(owner, repo, branchName, files, message, installationId);
+        const result = await githubCommitFiles(
+          owner,
+          repo,
+          branchName,
+          files,
+          message,
+          installationId,
+        );
         output = `✅ Committed ${files.length} file(s) to branch \`${branchName}\`.\nCommit: ${result.url}\n\nCall gh_open_pr to create the pull request.`;
         break;
       }
 
       case 'gh_open_pr': {
-        const { owner, repo, branchName, defaultBranch, issueNumber, issueTitle, installationId } = ctx;
+        const {
+          owner,
+          repo,
+          branchName,
+          defaultBranch,
+          issueNumber,
+          issueTitle,
+          installationId,
+        } = ctx;
         if (!branchName) {
           output = '❌ No branch name set in context.';
           break;
         }
         const summary = toolInput['summary'] as string;
-        const base = (toolInput['base_branch'] as string | undefined) ?? defaultBranch;
+        const base =
+          (toolInput['base_branch'] as string | undefined) ?? defaultBranch;
         const prTitle = issueTitle
           ? `fix: ${issueTitle}${issueNumber ? ` (closes #${issueNumber})` : ''}`
           : `fix: automated fix for issue #${issueNumber ?? '?'}`;
 
-        const pr = await createPullRequest(owner, repo, prTitle, summary, branchName, base, installationId);
+        const pr = await createPullRequest(
+          owner,
+          repo,
+          prTitle,
+          summary,
+          branchName,
+          base,
+          installationId,
+        );
         ctx.createdPrUrl = pr.html_url;
         output = `✅ PR created: ${pr.html_url}`;
-        logger.info('Agent opened PR via API', { owner, repo, pr: pr.html_url });
+        logger.info('Agent opened PR via API', {
+          owner,
+          repo,
+          pr: pr.html_url,
+        });
         break;
       }
 
@@ -726,7 +974,8 @@ export async function executeTool(
           owner: ctx.owner,
           repo: ctx.repo,
         });
-        output = '⏳ Cloning repository and building vector index (this takes ~30-60s)...';
+        output =
+          '⏳ Cloning repository and building vector index (this takes ~30-60s)...';
         const { repoPath, repoId } = await ctx.onRequestClone();
         ctx.repoPath = repoPath;
         ctx.repoId = repoId;
@@ -742,7 +991,8 @@ export async function executeTool(
 
       case 'request_sandbox': {
         if (ctx.sandboxReady) {
-          output = '✅ Sandbox already running. Tools available: run_command, run_tests, write_and_run.';
+          output =
+            '✅ Sandbox already running. Tools available: run_command, run_tests, write_and_run.';
           break;
         }
         if (!ctx.cloneReady) {
@@ -758,7 +1008,8 @@ export async function executeTool(
           owner: ctx.owner,
           repo: ctx.repo,
         });
-        output = '⏳ Starting Docker sandbox and installing dependencies (~60-90s)...';
+        output =
+          '⏳ Starting Docker sandbox and installing dependencies (~60-90s)...';
         const { containerId } = await ctx.onRequestSandbox();
         ctx.containerId = containerId;
         ctx.sandboxReady = true;
@@ -771,16 +1022,25 @@ export async function executeTool(
       // ── Clone-required tools ─────────────────────────────────────────────────
 
       case 'read_file': {
-        if (!ctx.repoPath) { output = '⚠️ No local clone. Use gh_read_file or call request_clone first.'; break; }
+        if (!ctx.repoPath) {
+          output =
+            '⚠️ No local clone. Use gh_read_file or call request_clone first.';
+          break;
+        }
         const abs = safePath(ctx.repoPath, toolInput['path'] as string);
         const content = fs.readFileSync(abs, 'utf8');
         const lines = content.split('\n');
-        output = lines.map((l, i) => `${String(i + 1).padStart(4, ' ')} | ${l}`).join('\n');
+        output = lines
+          .map((l, i) => `${String(i + 1).padStart(4, ' ')} | ${l}`)
+          .join('\n');
         break;
       }
 
       case 'write_file': {
-        if (!ctx.repoPath) { output = '⚠️ No local clone. Call request_clone first.'; break; }
+        if (!ctx.repoPath) {
+          output = '⚠️ No local clone. Call request_clone first.';
+          break;
+        }
         const abs = safePath(ctx.repoPath, toolInput['path'] as string);
         fs.mkdirSync(path.dirname(abs), { recursive: true });
         fs.writeFileSync(abs, toolInput['content'] as string, 'utf8');
@@ -789,31 +1049,52 @@ export async function executeTool(
       }
 
       case 'list_directory': {
-        if (!ctx.repoPath) { output = '⚠️ No local clone. Use gh_list_dir or call request_clone first.'; break; }
+        if (!ctx.repoPath) {
+          output =
+            '⚠️ No local clone. Use gh_list_dir or call request_clone first.';
+          break;
+        }
         const rel = (toolInput['path'] as string | undefined) ?? '';
         const abs = safePath(ctx.repoPath, rel);
         const entries = fs.readdirSync(abs, { withFileTypes: true });
         output = entries
           .sort((a, b) => {
-            if (a.isDirectory() !== b.isDirectory()) return a.isDirectory() ? -1 : 1;
+            if (a.isDirectory() !== b.isDirectory())
+              return a.isDirectory() ? -1 : 1;
             return a.name.localeCompare(b.name);
           })
-          .map((e) => `${e.isDirectory() ? '📁' : '📄'} ${e.name}${e.isDirectory() ? '/' : ''}`)
+          .map(
+            (e) =>
+              `${e.isDirectory() ? '📁' : '📄'} ${e.name}${e.isDirectory() ? '/' : ''}`,
+          )
           .join('\n');
         break;
       }
 
       case 'get_file_tree': {
-        if (!ctx.repoPath) { output = '⚠️ No local clone. Use gh_tree or call request_clone first.'; break; }
+        if (!ctx.repoPath) {
+          output =
+            '⚠️ No local clone. Use gh_tree or call request_clone first.';
+          break;
+        }
         const rel = (toolInput['path'] as string | undefined) ?? '';
         const abs = safePath(ctx.repoPath, rel);
-        const maxDepth = Math.min((toolInput['depth'] as number | undefined) ?? 3, 6);
-        output = buildFileTree(abs, ctx.repoPath, 0, maxDepth, TREE_IGNORE) || '(empty directory)';
+        const maxDepth = Math.min(
+          (toolInput['depth'] as number | undefined) ?? 3,
+          6,
+        );
+        output =
+          buildFileTree(abs, ctx.repoPath, 0, maxDepth, TREE_IGNORE) ||
+          '(empty directory)';
         break;
       }
 
       case 'search_files': {
-        if (!ctx.repoPath) { output = '⚠️ No local clone. Use gh_search or call request_clone first.'; break; }
+        if (!ctx.repoPath) {
+          output =
+            '⚠️ No local clone. Use gh_search or call request_clone first.';
+          break;
+        }
         const pattern = toolInput['pattern'] as string;
         const glob = (toolInput['glob'] as string | undefined) ?? '';
         const ci = !(toolInput['caseSensitive'] as boolean | undefined);
@@ -823,14 +1104,21 @@ export async function executeTool(
         try {
           rx = new RegExp(pattern, flags);
         } catch {
-          rx = new RegExp(pattern.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), flags);
+          rx = new RegExp(
+            pattern.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'),
+            flags,
+          );
         }
 
         const matches: string[] = [];
         const walked = walkForSearch(ctx.repoPath, glob);
         for (const file of walked) {
           let content: string;
-          try { content = fs.readFileSync(file, 'utf8'); } catch { continue; }
+          try {
+            content = fs.readFileSync(file, 'utf8');
+          } catch {
+            continue;
+          }
           const lines = content.split('\n');
           const hits: string[] = [];
           lines.forEach((line, i) => {
@@ -838,103 +1126,167 @@ export async function executeTool(
             rx.lastIndex = 0;
           });
           if (hits.length > 0) {
-            const rel = path.relative(ctx.repoPath!, file);
+            const rel = path.relative(ctx.repoPath, file);
             matches.push(`📄 ${rel}\n${hits.slice(0, 10).join('\n')}`);
           }
         }
-        output = matches.length > 0
-          ? matches.slice(0, 20).join('\n\n')
-          : `No matches for "${pattern}"`;
+        output =
+          matches.length > 0
+            ? matches.slice(0, 20).join('\n\n')
+            : `No matches for "${pattern}"`;
         break;
       }
 
       case 'vector_search': {
-        if (!ctx.repoId) { output = '⚠️ No vector index. Call request_clone first.'; break; }
-        const results = await searchSimilarCode(
-          toolInput['query'] as string,
-          ctx.repoId,
-          (toolInput['limit'] as number | undefined) ?? 5,
-        );
-        output = results.length === 0
-          ? 'No matching code found.'
-          : results
-              .map(
-                (r) =>
-                  `### ${r.chunk.filePath} (lines ${r.chunk.startLine}-${r.chunk.endLine}, sim=${r.similarity.toFixed(3)})\n\`\`\`${r.chunk.language}\n${r.chunk.content}\n\`\`\``,
-              )
-              .join('\n\n');
+        if (!ctx.repoId) {
+          output = '⚠️ No vector index. Call request_clone first.';
+          break;
+        }
+        const query = toolInput['query'] as string;
+        const limit = (toolInput['limit'] as number | undefined) ?? 8;
+        const requestedSources = toolInput['sources'] as string[] | undefined;
+        const codeOnly =
+          requestedSources?.length === 1 && requestedSources[0] === 'code';
+
+        if (codeOnly) {
+          // Fast path: code-only search returns structured chunk results
+          const results = await searchSimilarCode(query, ctx.repoId, limit);
+          output =
+            results.length === 0
+              ? 'No matching code found.'
+              : results
+                  .map(
+                    (r) =>
+                      `### ${r.chunk.filePath} (lines ${r.chunk.startLine}-${r.chunk.endLine})\n\`\`\`${r.chunk.language}\n${r.chunk.content}\n\`\`\``,
+                  )
+                  .join('\n\n');
+        } else {
+          // Multi-source: code + PR history + issues + team standards
+          output = await multiSourceSearch(query, ctx.repoId, {
+            includePR:
+              !requestedSources || requestedSources.includes('pr_history'),
+            includeIssues:
+              !requestedSources || requestedSources.includes('issue'),
+            includeStandards:
+              !requestedSources || requestedSources.includes('standards'),
+            includeChat: false,
+            limit,
+          });
+        }
         break;
       }
 
       case 'search_by_symbol': {
-        if (!ctx.repoId) { output = '⚠️ No vector index. Call request_clone first.'; break; }
+        if (!ctx.repoId) {
+          output = '⚠️ No vector index. Call request_clone first.';
+          break;
+        }
         const results = await searchBySymbol(
           toolInput['name'] as string,
           ctx.repoId,
           (toolInput['limit'] as number | undefined) ?? 8,
         );
-        output = results.length === 0
-          ? `No symbol matching "${toolInput['name']}" found.`
-          : results
-              .map(
-                (r) =>
-                  `### ${r.chunk.filePath}:${r.chunk.startLine}\n\`\`\`${r.chunk.language}\n${r.chunk.content.slice(0, 600)}\n\`\`\``,
-              )
-              .join('\n\n');
+        output =
+          results.length === 0
+            ? `No symbol matching "${toolInput['name']}" found.`
+            : results
+                .map(
+                  (r) =>
+                    `### ${r.chunk.filePath}:${r.chunk.startLine}\n\`\`\`${r.chunk.language}\n${r.chunk.content.slice(0, 600)}\n\`\`\``,
+                )
+                .join('\n\n');
         break;
       }
 
       case 'search_by_file': {
-        if (!ctx.repoId) { output = '⚠️ No vector index. Call request_clone first.'; break; }
+        if (!ctx.repoId) {
+          output = '⚠️ No vector index. Call request_clone first.';
+          break;
+        }
         const results = await searchByFilePath(
           toolInput['path'] as string,
           ctx.repoId,
           (toolInput['limit'] as number | undefined) ?? 8,
         );
-        output = results.length === 0
-          ? `No file matching "${toolInput['path']}" found.`
-          : results.map((r) => `📄 ${r.chunk.filePath} (lines ${r.chunk.startLine}-${r.chunk.endLine})`).join('\n');
+        output =
+          results.length === 0
+            ? `No file matching "${toolInput['path']}" found.`
+            : results
+                .map(
+                  (r) =>
+                    `📄 ${r.chunk.filePath} (lines ${r.chunk.startLine}-${r.chunk.endLine})`,
+                )
+                .join('\n');
         break;
       }
 
       case 'get_package_info': {
-        if (!ctx.repoPath) { output = '⚠️ No local clone. Call request_clone first.'; break; }
-        const candidates = ['package.json', 'pyproject.toml', 'go.mod', 'Cargo.toml', 'requirements.txt'];
+        if (!ctx.repoPath) {
+          output = '⚠️ No local clone. Call request_clone first.';
+          break;
+        }
+        const candidates = [
+          'package.json',
+          'pyproject.toml',
+          'go.mod',
+          'Cargo.toml',
+          'requirements.txt',
+        ];
         const found: string[] = [];
         for (const c of candidates) {
           const abs = path.join(ctx.repoPath, c);
-          if (fs.existsSync(abs)) found.push(`\n=== ${c} ===\n${fs.readFileSync(abs, 'utf8')}`);
+          if (fs.existsSync(abs))
+            found.push(`\n=== ${c} ===\n${fs.readFileSync(abs, 'utf8')}`);
         }
-        output = found.length > 0 ? found.join('\n') : 'No package manifest found.';
+        output =
+          found.length > 0 ? found.join('\n') : 'No package manifest found.';
         break;
       }
 
       case 'open_pr': {
         const { owner, repo, issueNumber, issueTitle, branchName } = ctx;
         if (!owner || !repo || !issueNumber || !branchName) {
-          output = '❌ Missing context (owner/repo/issueNumber/branchName) — cannot open PR.';
+          output =
+            '❌ Missing context (owner/repo/issueNumber/branchName) — cannot open PR.';
           break;
         }
         if (!ctx.repoPath) {
-          output = '⚠️ No local clone. Use gh_open_pr for API-only PR creation.';
+          output =
+            '⚠️ No local clone. Use gh_open_pr for API-only PR creation.';
           break;
         }
         const summary = toolInput['summary'] as string;
-        const baseBranch = (toolInput['base_branch'] as string | undefined) ?? 'main';
+        const baseBranch =
+          (toolInput['base_branch'] as string | undefined) ?? 'main';
         const pr = await createPullRequestForFix(
-          owner, repo, ctx.repoPath, branchName, baseBranch,
-          issueNumber, issueTitle ?? `Issue #${issueNumber}`, summary, ctx.installationId,
+          owner,
+          repo,
+          ctx.repoPath,
+          branchName,
+          baseBranch,
+          issueNumber,
+          issueTitle ?? `Issue #${issueNumber}`,
+          summary,
+          ctx.installationId,
         );
         ctx.createdPrUrl = pr.html_url;
         output = `✅ PR created: ${pr.html_url}`;
-        logger.info('Agent opened PR via git push', { owner, repo, issueNumber, pr: pr.html_url });
+        logger.info('Agent opened PR via git push', {
+          owner,
+          repo,
+          issueNumber,
+          pr: pr.html_url,
+        });
         break;
       }
 
       // ── Sandbox-required tools ───────────────────────────────────────────────
 
       case 'run_command': {
-        if (!ctx.containerId) { output = '⚠️ No Docker sandbox. Call request_sandbox first.'; break; }
+        if (!ctx.containerId) {
+          output = '⚠️ No Docker sandbox. Call request_sandbox first.';
+          break;
+        }
         const wd = (toolInput['workdir'] as string | undefined) ?? '/workspace';
         if (wd.includes('..')) {
           output = '❌ Invalid workdir — path traversal not allowed.';
@@ -946,11 +1298,17 @@ export async function executeTool(
       }
 
       case 'run_file': {
-        if (!ctx.containerId) { output = '⚠️ No Docker sandbox. Call request_sandbox first.'; break; }
+        if (!ctx.containerId) {
+          output = '⚠️ No Docker sandbox. Call request_sandbox first.';
+          break;
+        }
         const rel = toolInput['path'] as string;
         const args = (toolInput['args'] as string | undefined) ?? '';
         const runtime = detectRuntime(rel);
-        output = await runInContainer(ctx.containerId, `cd /workspace && ${runtime} "${rel}" ${args} 2>&1`);
+        output = await runInContainer(
+          ctx.containerId,
+          `cd /workspace && ${runtime} "${rel}" ${args} 2>&1`,
+        );
         break;
       }
 
@@ -964,8 +1322,15 @@ export async function executeTool(
           const filePath = path.join(tempDir, filename);
           fs.writeFileSync(filePath, content, 'utf8');
           const runtime = detectRuntime(filename);
-          output = await runInContainer(ctx.containerId, `cd /workspace && ${runtime} ".codekang-tmp/${filename}" 2>&1`);
-          try { fs.unlinkSync(filePath); } catch { /* ignore */ }
+          output = await runInContainer(
+            ctx.containerId,
+            `cd /workspace && ${runtime} ".codekang-tmp/${filename}" 2>&1`,
+          );
+          try {
+            fs.unlinkSync(filePath);
+          } catch {
+            /* ignore */
+          }
         } else {
           // No sandbox — run locally in a temp dir (dev/test only)
           const tmpDir = path.join('/tmp', `ck-run-${Date.now()}`);
@@ -974,22 +1339,38 @@ export async function executeTool(
           fs.writeFileSync(filePath, content, 'utf8');
           try {
             const runtime = detectRuntime(filename);
-            const { stdout, stderr } = await execAsync(`${runtime} "${filePath}"`, {
-              encoding: 'utf8', timeout: 30_000, maxBuffer: 1024 * 1024,
-            });
+            const { stdout, stderr } = await execAsync(
+              `${runtime} "${filePath}"`,
+              {
+                encoding: 'utf8',
+                timeout: 30_000,
+                maxBuffer: 1024 * 1024,
+              },
+            );
             output = `${stdout ?? ''}${stderr ?? ''}`;
           } catch (e: unknown) {
-            const err = e as { stdout?: string; stderr?: string; message: string };
+            const err = e as {
+              stdout?: string;
+              stderr?: string;
+              message: string;
+            };
             output = (err.stdout ?? '') + (err.stderr ?? err.message);
           } finally {
-            try { fs.rmSync(tmpDir, { recursive: true }); } catch { /* ignore */ }
+            try {
+              fs.rmSync(tmpDir, { recursive: true });
+            } catch {
+              /* ignore */
+            }
           }
         }
         break;
       }
 
       case 'run_tests': {
-        if (!ctx.containerId) { output = '⚠️ No Docker sandbox. Call request_sandbox first.'; break; }
+        if (!ctx.containerId) {
+          output = '⚠️ No Docker sandbox. Call request_sandbox first.';
+          break;
+        }
         let testCmd = toolInput['command'] as string | undefined;
         if (!testCmd) {
           const pkgPath = path.join(ctx.repoPath ?? '', 'package.json');
@@ -997,13 +1378,22 @@ export async function executeTool(
           const goMod = path.join(ctx.repoPath ?? '', 'go.mod');
           const cargoToml = path.join(ctx.repoPath ?? '', 'Cargo.toml');
           if (fs.existsSync(pkgPath)) {
-            const pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf8')) as Record<string, any>;
+            const pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf8')) as Record<
+              string,
+              any
+            >;
             const scripts = pkg.scripts ?? {};
-            testCmd = scripts['test'] ? 'npm test'
-              : scripts['test:unit'] ? 'npm run test:unit'
-              : scripts['test:ci'] ? 'npm run test:ci'
-              : 'npm test';
-          } else if (fs.existsSync(pytestCfg) || fs.existsSync(path.join(ctx.repoPath ?? '', 'setup.py'))) {
+            testCmd = scripts['test']
+              ? 'npm test'
+              : scripts['test:unit']
+                ? 'npm run test:unit'
+                : scripts['test:ci']
+                  ? 'npm run test:ci'
+                  : 'npm test';
+          } else if (
+            fs.existsSync(pytestCfg) ||
+            fs.existsSync(path.join(ctx.repoPath ?? '', 'setup.py'))
+          ) {
             testCmd = 'python3 -m pytest -x --tb=short 2>&1';
           } else if (fs.existsSync(goMod)) {
             testCmd = 'go test ./... 2>&1';
@@ -1013,7 +1403,85 @@ export async function executeTool(
             testCmd = 'npm test';
           }
         }
-        output = await runInContainer(ctx.containerId, `cd /workspace && ${testCmd} 2>&1`);
+        output = await runInContainer(
+          ctx.containerId,
+          `cd /workspace && ${testCmd} 2>&1`,
+        );
+        ctx.lastTestOutput = output;
+        break;
+      }
+
+      case 'run_related_tests': {
+        if (!ctx.containerId) {
+          output = '⚠️ No Docker sandbox. Call request_sandbox first.';
+          break;
+        }
+        if (!ctx.repoPath) {
+          output = '⚠️ No local clone. Call request_clone first.';
+          break;
+        }
+
+        const inputFiles = toolInput['files'] as string[] | undefined;
+        const filesToCheck = inputFiles ?? ctx.changedFiles ?? [];
+
+        if (filesToCheck.length === 0) {
+          output =
+            '⚠️ No changed files known. Pass files[] or use run_tests for the full suite.';
+          break;
+        }
+
+        const testFiles = findRelatedTestFiles(filesToCheck, ctx.repoPath);
+
+        if (testFiles.length === 0) {
+          output = `ℹ️ No test files found for: ${filesToCheck.join(', ')}\nRun run_tests to execute the full suite.`;
+          break;
+        }
+
+        logger.info('Running related tests', { files: testFiles });
+
+        const pkgPath = path.join(ctx.repoPath, 'package.json');
+        const goMod = path.join(ctx.repoPath, 'go.mod');
+        const pytestCfg = path.join(ctx.repoPath, 'pytest.ini');
+        let testCmd: string;
+
+        if (fs.existsSync(pkgPath)) {
+          // Jest: double-quote the pattern to avoid single-quote injection
+          const pattern = testFiles
+            .map((f) =>
+              f.replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replace(/"/g, '\\"'),
+            )
+            .join('|');
+          testCmd = `npx jest --no-coverage --testPathPattern "${pattern}" 2>&1`;
+        } else if (fs.existsSync(goMod)) {
+          // Go: quote each package path
+          const pkgs = [
+            ...new Set(testFiles.map((f) => `./${path.dirname(f)}`)),
+          ]
+            .filter((p) => p !== './')
+            .map((p) => `"${p.replace(/"/g, '\\"')}"`)
+            .join(' ');
+          testCmd = `go test ${pkgs || './...'} -v 2>&1`;
+        } else if (
+          fs.existsSync(pytestCfg) ||
+          testFiles.some((f) => f.endsWith('.py'))
+        ) {
+          // pytest: quote each file path
+          const quotedFiles = testFiles
+            .map((f) => `"${f.replace(/"/g, '\\"')}"`)
+            .join(' ');
+          testCmd = `python3 -m pytest -x --tb=short ${quotedFiles} 2>&1`;
+        } else {
+          const quotedFiles = testFiles
+            .map((f) => `"${f.replace(/"/g, '\\"')}"`)
+            .join(' ');
+          testCmd = `npx jest --no-coverage ${quotedFiles} 2>&1`;
+        }
+
+        output = await runInContainer(
+          ctx.containerId,
+          `cd /workspace && ${testCmd}`,
+        );
+        output = `Ran ${testFiles.length} related test file(s): ${testFiles.join(', ')}\n\n${output}`;
         ctx.lastTestOutput = output;
         break;
       }
@@ -1022,8 +1490,17 @@ export async function executeTool(
 
       case 'post_comment': {
         const { owner, repo, issueNumber } = ctx;
-        if (!owner || !repo || !issueNumber) { output = '❌ Missing context — cannot post comment.'; break; }
-        await createIssueComment(owner, repo, issueNumber, toolInput['body'] as string, ctx.installationId);
+        if (!owner || !repo || !issueNumber) {
+          output = '❌ Missing context — cannot post comment.';
+          break;
+        }
+        await createIssueComment(
+          owner,
+          repo,
+          issueNumber,
+          toolInput['body'] as string,
+          ctx.installationId,
+        );
         output = '✅ Comment posted.';
         break;
       }
@@ -1050,14 +1527,27 @@ export async function executeTool(
         const captured = attachConsoleCapture(page);
         const url = toolInput['url'] as string;
         const waitMs = (toolInput['waitMs'] as number | undefined) ?? 500;
-        await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 30_000 });
+        await page.goto(url, {
+          waitUntil: 'domcontentloaded',
+          timeout: 30_000,
+        });
         if (toolInput['waitForSelector']) {
-          await page.waitForSelector(toolInput['waitForSelector'] as string, { timeout: 10_000 }).catch(() => {});
+          await page
+            .waitForSelector(toolInput['waitForSelector'] as string, {
+              timeout: 10_000,
+            })
+            .catch(() => {});
         }
         await page.waitForTimeout(waitMs);
         const title = await page.title();
-        const bodyText = await page.evaluate("document.body ? document.body.innerText.slice(0,3000) : ''");
-        const screenshotPath = path.join(process.cwd(), 'screenshots', `browser-${Date.now()}.png`);
+        const bodyText = await page.evaluate(
+          "document.body ? document.body.innerText.slice(0,3000) : ''",
+        );
+        const screenshotPath = path.join(
+          process.cwd(),
+          'screenshots',
+          `browser-${Date.now()}.png`,
+        );
         fs.mkdirSync(path.dirname(screenshotPath), { recursive: true });
         await page.screenshot({ path: screenshotPath, fullPage: false });
         output =
@@ -1068,46 +1558,79 @@ export async function executeTool(
       }
 
       case 'browser_navigate': {
-        if (!ctx.browser) { output = '⚠️ No browser session — call browser_open first.'; break; }
-        await ctx.browser.page.goto(toolInput['url'] as string, { waitUntil: 'domcontentloaded', timeout: 30_000 });
+        if (!ctx.browser) {
+          output = '⚠️ No browser session — call browser_open first.';
+          break;
+        }
+        await ctx.browser.page.goto(toolInput['url'] as string, {
+          waitUntil: 'domcontentloaded',
+          timeout: 30_000,
+        });
         output = `Navigated to ${ctx.browser.page.url()} — title: "${await ctx.browser.page.title()}"`;
         break;
       }
 
       case 'browser_click': {
-        if (!ctx.browser) { output = '⚠️ No browser session — call browser_open first.'; break; }
+        if (!ctx.browser) {
+          output = '⚠️ No browser session — call browser_open first.';
+          break;
+        }
         const { page } = ctx.browser;
         const sel = toolInput['selector'] as string;
         await page.click(sel, { timeout: 10_000 });
         if (toolInput['waitForSelector']) {
-          await page.waitForSelector(toolInput['waitForSelector'] as string, { timeout: 10_000 }).catch(() => {});
+          await page
+            .waitForSelector(toolInput['waitForSelector'] as string, {
+              timeout: 10_000,
+            })
+            .catch(() => {});
         }
-        const bodyText = await page.evaluate("document.body ? document.body.innerText.slice(0,2000) : ''");
+        const bodyText = await page.evaluate(
+          "document.body ? document.body.innerText.slice(0,2000) : ''",
+        );
         output = `Clicked "${sel}". Page text:\n${bodyText}`;
         break;
       }
 
       case 'browser_type': {
-        if (!ctx.browser) { output = '⚠️ No browser session — call browser_open first.'; break; }
+        if (!ctx.browser) {
+          output = '⚠️ No browser session — call browser_open first.';
+          break;
+        }
         const { page } = ctx.browser;
-        await page.fill(toolInput['selector'] as string, toolInput['text'] as string);
+        await page.fill(
+          toolInput['selector'] as string,
+          toolInput['text'] as string,
+        );
         if (toolInput['pressEnter']) await page.keyboard.press('Enter');
         output = `Typed into "${toolInput['selector']}".`;
         break;
       }
 
       case 'browser_get_content': {
-        if (!ctx.browser) { output = '⚠️ No browser session — call browser_open first.'; break; }
+        if (!ctx.browser) {
+          output = '⚠️ No browser session — call browser_open first.';
+          break;
+        }
         const { page } = ctx.browser;
-        const bodyText = await page.evaluate("document.body ? document.body.innerText.slice(0,4000) : ''");
+        const bodyText = await page.evaluate(
+          "document.body ? document.body.innerText.slice(0,4000) : ''",
+        );
         output = `URL: ${page.url()}\nTitle: ${await page.title()}\n\nContent:\n${bodyText}`;
         break;
       }
 
       case 'browser_screenshot': {
-        if (!ctx.browser) { output = '⚠️ No browser session — call browser_open first.'; break; }
+        if (!ctx.browser) {
+          output = '⚠️ No browser session — call browser_open first.';
+          break;
+        }
         const fullPage = (toolInput['fullPage'] as boolean | undefined) ?? true;
-        const screenshotPath = path.join(process.cwd(), 'screenshots', `shot-${Date.now()}.png`);
+        const screenshotPath = path.join(
+          process.cwd(),
+          'screenshots',
+          `shot-${Date.now()}.png`,
+        );
         fs.mkdirSync(path.dirname(screenshotPath), { recursive: true });
         await ctx.browser.page.screenshot({ path: screenshotPath, fullPage });
         output = `Screenshot saved: ${screenshotPath}`;
@@ -1151,12 +1674,21 @@ export async function executeTool(
 function walkForSearch(dir: string, glob: string): string[] {
   const files: string[] = [];
   const ext = glob
-    ? glob.replace(/\*\*/g, '').replace(/\*/g, '').replace(/^\./, '').split(',').filter(Boolean)
+    ? glob
+        .replace(/\*\*/g, '')
+        .replace(/\*/g, '')
+        .replace(/^\./, '')
+        .split(',')
+        .filter(Boolean)
     : [];
 
   function walk(d: string): void {
     let entries: fs.Dirent[];
-    try { entries = fs.readdirSync(d, { withFileTypes: true }); } catch { return; }
+    try {
+      entries = fs.readdirSync(d, { withFileTypes: true });
+    } catch {
+      return;
+    }
     for (const e of entries) {
       if (TREE_IGNORE.has(e.name)) continue;
       const full = path.join(d, e.name);
@@ -1181,7 +1713,11 @@ function walkForSearch(dir: string, glob: string): string[] {
 
 export async function closeBrowserSession(ctx: ToolContext): Promise<void> {
   if (ctx.browser) {
-    try { await ctx.browser.context.close(); } catch { /* ignore */ }
+    try {
+      await ctx.browser.context.close();
+    } catch {
+      /* ignore */
+    }
     ctx.browser = undefined;
   }
 }

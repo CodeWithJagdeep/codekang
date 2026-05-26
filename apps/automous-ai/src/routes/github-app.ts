@@ -99,7 +99,9 @@ router.get('/callback', async (req: Request, res: Response): Promise<void> => {
       app_id: appId,
       webhook_secret: webhookSecret,
     });
-    res.redirect(`${frontendUrl}/auth/callback/github-app-created?${params.toString()}`);
+    res.redirect(
+      `${frontendUrl}/auth/callback/github-app-created?${params.toString()}`,
+    );
   } catch (err: unknown) {
     const e = err as { message: string };
     logger.error('GitHub App manifest conversion failed', { error: e.message });

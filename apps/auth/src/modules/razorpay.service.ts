@@ -49,10 +49,14 @@ export class RazorpayService {
   ): Promise<RazorpaySubscriptionResult> {
     const planId = this.planIds[planTier]?.[billingPeriod];
     if (!planId) {
-      throw new Error(`RAZORPAY_PLAN_${planTier.toUpperCase()}_${billingPeriod.toUpperCase()}_ID is not configured`);
+      throw new Error(
+        `RAZORPAY_PLAN_${planTier.toUpperCase()}_${billingPeriod.toUpperCase()}_ID is not configured`,
+      );
     }
 
-    this.logger.log(`Creating Razorpay subscription userId=${userId} planTier=${planTier} billingPeriod=${billingPeriod}`);
+    this.logger.log(
+      `Creating Razorpay subscription userId=${userId} planTier=${planTier} billingPeriod=${billingPeriod}`,
+    );
 
     const sub = await (this.client.subscriptions.create as any)({
       plan_id: planId,

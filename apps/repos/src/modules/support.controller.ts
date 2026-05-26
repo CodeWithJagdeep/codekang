@@ -8,7 +8,16 @@ export class SupportController {
   constructor(private readonly supportService: SupportService) {}
 
   @MessagePattern(MESSAGE_PATTERNS.SUPPORT_CREATE)
-  create(@Payload() data: { userId: string; subject: string; category: string; priority: string; message: string }) {
+  create(
+    @Payload()
+    data: {
+      userId: string;
+      subject: string;
+      category: string;
+      priority: string;
+      message: string;
+    },
+  ) {
     return this.supportService.createTicket(data.userId, data);
   }
 
@@ -18,8 +27,14 @@ export class SupportController {
   }
 
   @MessagePattern(MESSAGE_PATTERNS.SUPPORT_REPLY)
-  reply(@Payload() data: { userId: string; ticketId: string; content: string }) {
-    return this.supportService.replyToTicket(data.userId, data.ticketId, data.content);
+  reply(
+    @Payload() data: { userId: string; ticketId: string; content: string },
+  ) {
+    return this.supportService.replyToTicket(
+      data.userId,
+      data.ticketId,
+      data.content,
+    );
   }
 
   @MessagePattern(MESSAGE_PATTERNS.SUPPORT_RESOLVE)

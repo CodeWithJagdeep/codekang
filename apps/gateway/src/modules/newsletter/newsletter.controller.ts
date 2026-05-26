@@ -7,11 +7,15 @@ import { SERVICES, MESSAGE_PATTERNS } from '../../common';
 @ApiTags('newsletter')
 @Controller('newsletter')
 export class NewsletterProxyController {
-  constructor(@Inject(SERVICES.REPOS) private readonly reposClient: ClientProxy) {}
+  constructor(
+    @Inject(SERVICES.REPOS) private readonly reposClient: ClientProxy,
+  ) {}
 
   @Post('subscribe')
   @ApiOperation({ summary: 'Subscribe to newsletter' })
   subscribe(@Body() dto: { email: string; source?: string }) {
-    return firstValueFrom(this.reposClient.send(MESSAGE_PATTERNS.NEWSLETTER_SUBSCRIBE, dto));
+    return firstValueFrom(
+      this.reposClient.send(MESSAGE_PATTERNS.NEWSLETTER_SUBSCRIBE, dto),
+    );
   }
 }

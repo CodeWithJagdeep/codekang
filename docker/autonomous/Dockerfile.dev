@@ -3,5 +3,9 @@ WORKDIR /app
 COPY package*.json ./
 RUN npm install
 COPY . .
+
+# LanceDB writes embedded database files here — must exist before volume mount
+RUN mkdir -p /data/lancedb
+
 EXPOSE 4000
 CMD ["npm", "run", "dev"]

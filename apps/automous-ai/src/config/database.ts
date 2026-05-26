@@ -8,23 +8,6 @@ export const db = new Pool({
   max: env.DB_POOL_MAX,
 });
 
-// ─── Vector Helpers ───────────────────────────────────────────────────────
-
-// Convert JS array → pgvector string
-export function toVector(vector: number[]): string {
-  return `[${vector.join(',')}]`;
-}
-
-// Parse pgvector → JS array
-export function fromVector(vector: string): number[] {
-  return vector
-    .replace(/^\[|\]$/g, '')
-    .split(',')
-    .map(Number);
-}
-
-// ─── Health Check ─────────────────────────────────────────────────────────
-
 export async function checkDB(): Promise<boolean> {
   try {
     await db.query('SELECT 1');

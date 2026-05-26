@@ -1,8 +1,22 @@
-import { Controller, Get, Post, Patch, Param, Body, UseGuards, Inject } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Patch,
+  Param,
+  Body,
+  UseGuards,
+  Inject,
+} from '@nestjs/common';
 import { ClientProxy } from '@nestjs/microservices';
 import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
 import { firstValueFrom } from 'rxjs';
-import { SERVICES, MESSAGE_PATTERNS, CurrentUser, JwtAuthGuard } from '../../common';
+import {
+  SERVICES,
+  MESSAGE_PATTERNS,
+  CurrentUser,
+  JwtAuthGuard,
+} from '../../common';
 import type { IUser } from '../../common';
 
 @ApiTags('support')
@@ -10,7 +24,9 @@ import type { IUser } from '../../common';
 @UseGuards(JwtAuthGuard)
 @ApiBearerAuth()
 export class SupportProxyController {
-  constructor(@Inject(SERVICES.REPOS) private readonly reposClient: ClientProxy) {}
+  constructor(
+    @Inject(SERVICES.REPOS) private readonly reposClient: ClientProxy,
+  ) {}
 
   @Get()
   @ApiOperation({ summary: 'List user support tickets' })
@@ -24,10 +40,19 @@ export class SupportProxyController {
   @ApiOperation({ summary: 'Create support ticket' })
   create(
     @CurrentUser() user: IUser,
-    @Body() dto: { subject: string; category: string; priority: string; message: string }
+    @Body()
+    dto: {
+      subject: string;
+      category: string;
+      priority: string;
+      message: string;
+    },
   ) {
     return firstValueFrom(
-      this.reposClient.send(MESSAGE_PATTERNS.SUPPORT_CREATE, { userId: user.id, ...dto }),
+      this.reposClient.send(MESSAGE_PATTERNS.SUPPORT_CREATE, {
+        userId: user.id,
+        ...dto,
+      }),
     );
   }
 

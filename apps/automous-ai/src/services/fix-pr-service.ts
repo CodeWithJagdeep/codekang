@@ -12,12 +12,13 @@ import {
 import { analyzeRepository } from '../parser/analyzer';
 import { indexRepository } from '../vector/indexer';
 import { runAgent } from '../agent/index';
-import { getInstallationToken, createIssueComment } from '../github/api';
-import { checkAutonomousFix, consumeFixCredits } from '../guards/plan-check';
 import {
-  loadPRReview,
-  updatePRReviewFixStatus,
-} from './review-service';
+  getInstallationToken,
+  createIssueComment,
+  getPRFiles,
+} from '../github/api';
+import { checkAutonomousFix, consumeFixCredits } from '../guards/plan-check';
+import { loadPRReview, updatePRReviewFixStatus } from './review-service';
 import type { FixPRJobData, JobResult } from '../types/queue';
 import type { FixContext } from '../types/agent';
 import type { ToolContext } from '../agent/tools';
@@ -52,10 +53,18 @@ export async function fixPRIssues(data: FixPRJobData): Promise<JobResult> {
   }
 
   // ── 1. Plan / credit gate ─────────────────────────────────────────────────
-  const planCheck = await checkAutonomousFix(owner, repo, prNumber, installationId);
+  const planCheck = await checkAutonomousFix(
+    owner,
+    repo,
+    prNumber,
+    installationId,
+  );
   if (!planCheck.allowed) {
     logger.info('Fix-PR blocked by plan check', { reason: planCheck.reason });
-    return { success: false, message: `Plan check failed: ${planCheck.reason}` };
+    return {
+      success: false,
+      message: `Plan check failed: ${planCheck.reason}`,
+    };
   }
 
   await updatePRReviewFixStatus(owner, repo, prNumber, 'running');
@@ -111,6 +120,22 @@ export async function fixPRIssues(data: FixPRJobData): Promise<JobResult> {
 
     const issueBody = buildIssueBodyFromReview(review.summary, review.comments);
 
+    // Fetch changed files so the agent can run only related tests
+    let changedFiles: string[] = [];
+    try {
+      const prFiles = await getPRFiles(owner, repo, prNumber, installationId);
+      changedFiles = prFiles
+        .filter((f) => f.status !== 'removed')
+        .map((f) => f.filename);
+    } catch (err) {
+      logger.warn('Failed to fetch PR files — agent will run full test suite', {
+        owner,
+        repo,
+        prNumber,
+        error: (err as Error).message,
+      });
+    }
+
     const fixContext: FixContext = {
       issueNumber: prNumber,
       issueTitle,
@@ -123,12 +148,14 @@ export async function fixPRIssues(data: FixPRJobData): Promise<JobResult> {
         category: 'bug',
         strategy: 'code_change',
         confidence: 0.9,
-        reasoning: 'AI review identified specific issues with file/line context',
+        reasoning:
+          'AI review identified specific issues with file/line context',
         isActionable: true,
         estimatedComplexity: 'medium',
         needsEnvironment: !!containerId,
         responseType: 'fix',
       },
+      changedFiles,
     };
 
     const toolContext: ToolContext = {
@@ -145,6 +172,7 @@ export async function fixPRIssues(data: FixPRJobData): Promise<JobResult> {
       branchName,
       cloneReady: true,
       sandboxReady: !!containerId,
+      changedFiles,
     };
 
     // ── 5. Run autonomous agent (analyze → fix → open_pr) ──────────────────
@@ -164,9 +192,16 @@ export async function fixPRIssues(data: FixPRJobData): Promise<JobResult> {
         prNumber,
         buildFixComment(result.prUrl, result.summary, approvedBy),
         installationId,
-      ).catch(() => { });
+      ).catch(() => {});
 
-      await updatePRReviewFixStatus(owner, repo, prNumber, 'done', result.prUrl, branchName);
+      await updatePRReviewFixStatus(
+        owner,
+        repo,
+        prNumber,
+        'done',
+        result.prUrl,
+        branchName,
+      );
 
       if (planCheck.userId) await consumeFixCredits(planCheck.userId);
 
@@ -184,7 +219,7 @@ export async function fixPRIssues(data: FixPRJobData): Promise<JobResult> {
       prNumber,
       '❌ CodeKang could not automatically apply fixes. Please review the findings and fix manually.',
       installationId,
-    ).catch(() => { });
+    ).catch(() => {});
 
     return { success: false, message: 'Agent did not produce a PR' };
   } catch (err: unknown) {
@@ -199,7 +234,9 @@ export async function fixPRIssues(data: FixPRJobData): Promise<JobResult> {
         `❌ CodeKang encountered an error while applying fixes: ${e.message}`,
         installationId,
       );
-    } catch {/* best-effort */ }
+    } catch {
+      /* best-effort */
+    }
     return { success: false, message: e.message };
   } finally {
     if (containerId) await stopAndRemoveContainer(containerId);

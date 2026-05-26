@@ -213,7 +213,9 @@ export class PlansProxyController {
 
     const secret = this.config.get('RAZORPAY_WEBHOOK_SECRET', '');
     if (secret) {
-      const expected = createHmac('sha256', secret).update(rawBody).digest('hex');
+      const expected = createHmac('sha256', secret)
+        .update(rawBody)
+        .digest('hex');
       if (expected !== signature) {
         throw new UnauthorizedException('Invalid Razorpay webhook signature');
       }

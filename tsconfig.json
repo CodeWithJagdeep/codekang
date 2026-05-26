@@ -21,5 +21,6 @@
     "strictBindCallApply": false,
     "noFallthroughCasesInSwitch": false,
     "paths": {}
-  }
+  },
+  "exclude": ["node_modules", "codekang-web", "dist"]
 }

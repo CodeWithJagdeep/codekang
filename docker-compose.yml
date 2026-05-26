@@ -103,6 +103,7 @@ services:
       dockerfile: docker/auth/Dockerfile
     container_name: codekang-auth
     restart: unless-stopped
+    init: true
     environment:
       NODE_ENV: ${NODE_ENV:-production}
       DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-codekang_platform}
@@ -110,6 +111,7 @@ services:
       JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-15m}
       JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET}
       JWT_REFRESH_EXPIRES_IN: ${JWT_REFRESH_EXPIRES_IN:-7d}
+      ENCRYPTION_KEY: ${ENCRYPTION_KEY}
       GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
       GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET}
       GOOGLE_CALLBACK_URL: ${GOOGLE_CALLBACK_URL}
@@ -151,6 +153,7 @@ services:
       dockerfile: docker/ai-agent/Dockerfile
     container_name: codekang-ai-agent
     restart: unless-stopped
+    init: true
     environment:
       NODE_ENV: ${NODE_ENV:-production}
       DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-codekang_platform}
@@ -185,6 +188,7 @@ services:
       dockerfile: docker/repos/Dockerfile
     container_name: codekang-repos
     restart: unless-stopped
+    init: true
     environment:
       NODE_ENV: ${NODE_ENV:-production}
       DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-codekang_platform}
@@ -228,6 +232,7 @@ services:
       dockerfile: docker/gateway/Dockerfile
     container_name: codekang-gateway
     restart: unless-stopped
+    init: true
     environment:
       NODE_ENV: ${NODE_ENV:-production}
       GATEWAY_PORT: ${GATEWAY_PORT:-3000}
@@ -242,6 +247,7 @@ services:
       FRONTEND_URL: ${FRONTEND_URL}
       REDIS_URL: redis://redis:6379
       INTERNAL_SECRET: ${INTERNAL_SECRET}
+      ENCRYPTION_KEY: ${ENCRYPTION_KEY}
       SENTRY_DSN: ${SENTRY_DSN}
       DISCORD_CLIENT_ID: ${DISCORD_CLIENT_ID}
       DISCORD_CLIENT_SECRET: ${DISCORD_CLIENT_SECRET}
@@ -284,6 +290,7 @@ services:
       dockerfile: ../../docker/autonomous/Dockerfile
     container_name: codekang-autonomous
     restart: unless-stopped
+    init: true
     environment:
       NODE_ENV: ${NODE_ENV:-production}
       PORT: ${AUTONOMOUS_PORT:-4000}
@@ -301,7 +308,7 @@ services:
       # GitHub
       GITHUB_APP_ID: ${GITHUB_APP_ID}
       GITHUB_WEBHOOK_SECRET: ${GITHUB_WEBHOOK_SECRET}
-      GITHUB_APP_PRIVATE_KEY_PATH: /app/github-app-private-key.pem
+      GITHUB_APP_PRIVATE_KEY_PATH: /app/key.pem
       GITHUB_TOKEN: ${GITHUB_TOKEN}
       # Worker tuning
       INDEX_WORKER_CONCURRENCY: ${INDEX_WORKER_CONCURRENCY:-2}
@@ -311,14 +318,61 @@ services:
       INDEX_JOB_TIMEOUT: ${INDEX_JOB_TIMEOUT:-300000}
       FIX_JOB_TIMEOUT: ${FIX_JOB_TIMEOUT:-600000}
       # Vector / embeddings
-      EMBEDDING_PROVIDER: ${EMBEDDING_PROVIDER:-anthropic}
-      OLLAMA_URL: ${OLLAMA_URL:-http://localhost:11434}
+      EMBEDDING_PROVIDER: ${EMBEDDING_PROVIDER:-ollama}
+      OLLAMA_URL: ${OLLAMA_URL:-http://ollama:11434}
+      OLLAMA_EMBED_MODEL: ${OLLAMA_EMBED_MODEL:-nomic-embed-text}
+      LANCE_DB_PATH: /data/lancedb
       # Gateway
       GATEWAY_URL: http://gateway:3000
       GATEWAY_INTERNAL_URL: http://gateway:3000
       INTERNAL_SECRET: ${INTERNAL_SECRET}
       WEBHOOK_URL: ${WEBHOOK_URL:-http://autonomous:4000/webhook}
       SENTRY_DSN: ${SENTRY_DSN}
+      SENTRY_ENVIRONMENT: ${SENTRY_ENVIRONMENT:-production}
+      # Vector search
+      VECTOR_SEARCH_LIMIT: ${VECTOR_SEARCH_LIMIT:-20}
+      VECTOR_SIMILARITY_THRESHOLD: ${VECTOR_SIMILARITY_THRESHOLD:-0.3}
+      # Browser testing
+      HEADLESS_BROWSER: ${HEADLESS_BROWSER:-true}
+      BROWSER_TIMEOUT: ${BROWSER_TIMEOUT:-30000}
+      BROWSER_VIEWPORT_WIDTH: ${BROWSER_VIEWPORT_WIDTH:-1280}
+      BROWSER_VIEWPORT_HEIGHT: ${BROWSER_VIEWPORT_HEIGHT:-720}
+      ENABLE_BROWSER_TESTING: ${ENABLE_BROWSER_TESTING:-false}
+      BROWSER_TEST_FOR_UI_BUGS: ${BROWSER_TEST_FOR_UI_BUGS:-false}
+      # File system
+      TEMP_REPOS_DIR: ${TEMP_REPOS_DIR:-/tmp/repos}
+      SCREENSHOTS_DIR: ${SCREENSHOTS_DIR:-/tmp/screenshots}
+      CACHE_DIR: ${CACHE_DIR:-/tmp/cache}
+      CLEANUP_TEMP_FILES_AFTER_DAYS: ${CLEANUP_TEMP_FILES_AFTER_DAYS:-7}
+      # Logging
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+      LOG_FILE_PATH: ${LOG_FILE_PATH:-/var/log/autonomous/app.log}
+      LOG_MAX_FILES: ${LOG_MAX_FILES:-14}
+      LOG_MAX_SIZE: ${LOG_MAX_SIZE:-20971520}
+      # Rate limiting
+      RATE_LIMIT_WINDOW_MS: ${RATE_LIMIT_WINDOW_MS:-60000}
+      RATE_LIMIT_MAX_REQUESTS: ${RATE_LIMIT_MAX_REQUESTS:-100}
+      # Agent
+      AGENT_MAX_STEPS: ${AGENT_MAX_STEPS:-20}
+      AGENT_MAX_TOKENS: ${AGENT_MAX_TOKENS:-8192}
+      AGENT_TEMPERATURE: ${AGENT_TEMPERATURE:-0}
+      MAX_COST_PER_FIX: ${MAX_COST_PER_FIX:-5}
+      WARN_COST_THRESHOLD: ${WARN_COST_THRESHOLD:-3}
+      # Indexing
+      MAX_FILE_SIZE_BYTES: ${MAX_FILE_SIZE_BYTES:-1048576}
+      MAX_TOTAL_REPO_SIZE_MB: ${MAX_TOTAL_REPO_SIZE_MB:-500}
+      INDEX_FILE_EXTENSIONS: ${INDEX_FILE_EXTENSIONS:-.ts,.tsx,.js,.jsx,.py,.go,.rs,.java,.rb,.php,.cs,.cpp,.c,.h,.md,.json,.yaml,.yml}
+      IGNORE_DIRECTORIES: ${IGNORE_DIRECTORIES:-node_modules,.git,dist,build,.next,__pycache__,vendor}
+      # Feature flags
+      ENABLE_VECTOR_SEARCH: ${ENABLE_VECTOR_SEARCH:-true}
+      ENABLE_CODE_ANALYSIS: ${ENABLE_CODE_ANALYSIS:-true}
+      ENABLE_PR_AUTO_MERGE: ${ENABLE_PR_AUTO_MERGE:-false}
+      # Monitoring
+      ENABLE_METRICS: ${ENABLE_METRICS:-false}
+      METRICS_PORT: ${METRICS_PORT:-9090}
+      # Webhook
+      WEBHOOK_PATH: ${WEBHOOK_PATH:-/webhook}
+      WEBHOOK_TIMEOUT: ${WEBHOOK_TIMEOUT:-30000}
     ports:
       - '${AUTONOMOUS_PORT:-4000}:4000'
     depends_on:
@@ -329,7 +383,8 @@ services:
     networks:
       - codekang
     volumes:
-      - ./github-app-private-key.pem:/app/github-app-private-key.pem:ro
+      - ./github-app-private-key.pem:/app/key.pem:ro
+      - lancedb_data:/data/lancedb
     healthcheck:
       test: ['CMD', 'curl', '-f', 'http://localhost:4000/health']
       interval: 30s
@@ -463,6 +518,9 @@ volumes:
   grafana_data:
     driver: local
     name: codekang-grafana-data
+  lancedb_data:
+    driver: local
+    name: codekang-lancedb-data
 
 # ============================================================================
 # NETWORKS

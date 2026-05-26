@@ -58,7 +58,7 @@ export class ReposProxyController {
 
   private async getGithubToken(userId: string): Promise<string> {
     const token = await firstValueFrom<string | null>(
-      this.authClient.send('auth.get_github_token', { userId }),
+      this.authClient.send(MESSAGE_PATTERNS.AUTH_GET_GITHUB_TOKEN, { userId }),
     );
     if (!token) {
       throw new BadRequestException(

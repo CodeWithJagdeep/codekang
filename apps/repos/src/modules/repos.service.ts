@@ -61,13 +61,13 @@ export class ReposService {
       where: { userId, isInstalled: true },
       order: { updatedAt: 'DESC' },
     });
-    return repos as unknown as IRepository[];
+    return repos;
   }
 
   async getConnectedRepo(userId: string, repoId: string): Promise<IRepository> {
     const repo = await this.repoRepo.findOne({ where: { id: repoId, userId } });
     if (!repo) throw new NotFoundException('Repository not found');
-    return repo as unknown as IRepository;
+    return repo;
   }
 
   async connectRepo(
@@ -164,7 +164,7 @@ export class ReposService {
       }
     }
 
-    return repo as unknown as IRepository;
+    return repo;
   }
 
   async disconnectRepo(
@@ -285,10 +285,13 @@ export class ReposService {
     repo.defaultBranch = ghRepo.default_branch;
     repo.githubUpdatedAt = new Date(ghRepo.updated_at);
     await this.repoRepo.save(repo);
-    return repo as unknown as IRepository;
+    return repo;
   }
 
-  async getRepoSettings(userId: string, repoId: string): Promise<Record<string, unknown>> {
+  async getRepoSettings(
+    userId: string,
+    repoId: string,
+  ): Promise<Record<string, unknown>> {
     const repo = await this.repoRepo.findOne({ where: { id: repoId, userId } });
     if (!repo) throw new NotFoundException('Repository not found');
     return repo.settings ?? {};

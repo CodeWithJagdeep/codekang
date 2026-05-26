@@ -33,13 +33,15 @@ import { UserSession } from './entities/user-session.entity';
           UserIntegration,
           UserSession,
         ],
-        synchronize: config.get('NODE_ENV') !== 'production',
+        migrations: ['dist/migrations/*.js'],
+        migrationsRun: true,
+        synchronize: false,
         ssl:
           config.get('DB_SSL') === 'false'
             ? false
             : config.get('NODE_ENV') === 'production'
-            ? { rejectUnauthorized: false }
-            : false,
+              ? { rejectUnauthorized: false }
+              : false,
         extra: {
           max: 20,
           idleTimeoutMillis: 30000,

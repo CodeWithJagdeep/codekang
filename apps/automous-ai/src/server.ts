@@ -7,17 +7,19 @@ import { initSentry, Sentry } from './config/sentry';
 import { ensureSchema } from './vector/schema';
 import { cleanupAllContainers } from './repo/manager';
 import { shutdownEmbedder } from './vector/embeddings';
+import { closeLanceDB } from './vector/lance/client';
+import { validateGitHubAppKey } from './github/api';
 
 initSentry();
 
 const app = createApp();
 
 async function start() {
-  console.log('--- [Autonomous AI] Environment Variables ---');
-  console.log(process.env);
-  console.log('---------------------------------------------');
-  // Ensure pgvector schema before accepting any traffic
-  logger.info('Ensuring database schema');
+  // Fail fast if the PEM path points to a directory (Docker mount misconfiguration)
+  validateGitHubAppKey();
+
+  // Ensures Postgres relational schema + LanceDB vector tables
+  logger.info('Ensuring database schema (Postgres + LanceDB)');
   await ensureSchema();
 
   const server = app.listen(env.PORT, () => {
@@ -45,7 +47,11 @@ start()
 
 async function shutdown(signal: string) {
   logger.info(`${signal} received — cleaning up`);
-  await Promise.all([cleanupAllContainers(), shutdownEmbedder()]).catch(() => {});
+  await Promise.all([
+    cleanupAllContainers(),
+    shutdownEmbedder(),
+    closeLanceDB(),
+  ]).catch(() => {});
   if (server) {
     server.close(() => {
       logger.info('Server closed');
@@ -70,11 +76,17 @@ process.on('unhandledRejection', (reason) => {
   logger.error('Unhandled rejection', {
     reason: reason instanceof Error ? reason.message : String(reason),
   });
-  Sentry.captureException(reason instanceof Error ? reason : new Error(String(reason)));
+  Sentry.captureException(
+    reason instanceof Error ? reason : new Error(String(reason)),
+  );
 });
 
 process.on('uncaughtException', (err) => {
   logger.error('Uncaught exception', { error: err.message });
   Sentry.captureException(err);
-  Promise.all([cleanupAllContainers(), shutdownEmbedder()]).finally(() => process.exit(1));
+  void Promise.all([
+    cleanupAllContainers(),
+    shutdownEmbedder(),
+    closeLanceDB(),
+  ]).finally(() => process.exit(1));
 });

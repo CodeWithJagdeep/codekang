@@ -32,6 +32,7 @@ export default function CenterPanel({
   onSelectRepo,
   onRemoveRepo,
   onLinkAccount,
+  onSync,
 }: {
   activeNav: string;
   repos: Repo[];
@@ -41,11 +42,13 @@ export default function CenterPanel({
   onSelectRepo: (id: string) => void;
   onRemoveRepo?: (id: string) => Promise<void>;
   onLinkAccount?: () => void;
+  onSync?: () => void;
 }) {
   const [searchTerm, setSearchTerm] = useState('');
   const [confirmRepo, setConfirmRepo] = useState<Repo | null>(null);
   const [removing, setRemoving] = useState(false);
   const [removeError, setRemoveError] = useState<string | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
 
   async function handleConfirmRemove() {
     if (!confirmRepo || !onRemoveRepo) return;
@@ -61,11 +64,13 @@ export default function CenterPanel({
     }
   }
   const rowsPerPage = 10;
-  const currentPage = 1;
 
   const filteredRepos = repos.filter((r) =>
     r.name.toLowerCase().includes(searchTerm.toLowerCase()),
   );
+  const totalPages = Math.max(1, Math.ceil(filteredRepos.length / rowsPerPage));
+  const safePage = Math.min(currentPage, totalPages);
+  const pagedRepos = filteredRepos.slice((safePage - 1) * rowsPerPage, safePage * rowsPerPage);
 
   const hasVcsLinked =
     user?.githubUsername || user?.gitlabUsername || user?.bitbucketUsername;
@@ -136,7 +141,9 @@ export default function CenterPanel({
           </div>
           <div className="flex items-center gap-3">
             <button
-              className="flex-1 md:flex-none items-center justify-center flex gap-2 px-4 py-2 rounded-lg text-[13px] font-semibold border transition-colors hover:bg-white/5"
+              onClick={onSync}
+              disabled={!onSync}
+              className="flex-1 md:flex-none items-center justify-center flex gap-2 px-4 py-2 rounded-lg text-[13px] font-semibold border transition-colors hover:bg-white/5 disabled:opacity-40 disabled:cursor-not-allowed"
               style={{ borderColor: '#27272a', color: '#e8e8e8' }}
             >
               <RefreshCcw size={16} strokeWidth={2} />
@@ -278,8 +285,8 @@ export default function CenterPanel({
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-100/10">
-                    {filteredRepos.length > 0 ? (
-                      filteredRepos.map((repo) => (
+                    {pagedRepos.length > 0 ? (
+                      pagedRepos.map((repo) => (
                         <tr
                           key={repo.id}
                           className="group cursor-pointer hover:bg-white/2"
@@ -318,14 +325,21 @@ export default function CenterPanel({
                             )}
                           </td>
                           <td className="px-4 py-4 text-center hidden md:table-cell">
-                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-medium"
-                              style={{ background: 'rgba(249,115,22,0.08)', border: '1px solid rgba(249,115,22,0.2)', color: '#f8423b' }}>
-                              <span className="relative flex h-1.5 w-1.5">
-                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full opacity-75" style={{ background: '#f8423b' }} />
-                                <span className="relative inline-flex rounded-full h-1.5 w-1.5" style={{ background: '#f8423b' }} />
+                            {repo.isInstalled ? (
+                              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-medium"
+                                style={{ background: 'rgba(249,115,22,0.08)', border: '1px solid rgba(249,115,22,0.2)', color: '#f8423b' }}>
+                                <span className="relative flex h-1.5 w-1.5">
+                                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full opacity-75" style={{ background: '#f8423b' }} />
+                                  <span className="relative inline-flex rounded-full h-1.5 w-1.5" style={{ background: '#f8423b' }} />
+                                </span>
+                                Monitoring
                               </span>
-                              Monitoring
-                            </span>
+                            ) : (
+                              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-medium"
+                                style={{ background: 'rgba(113,113,122,0.08)', border: '1px solid rgba(113,113,122,0.2)', color: '#71717a' }}>
+                                Not active
+                              </span>
+                            )}
                           </td>
                           <td className="px-4 py-4 text-right">
                             <button
@@ -345,7 +359,7 @@ export default function CenterPanel({
                     ) : (
                       <tr>
                         <td
-                          colSpan={4}
+                          colSpan={5}
                           className="px-4 py-8 text-center"
                           style={{ color: '#71717a' }}
                         >
@@ -374,18 +388,34 @@ export default function CenterPanel({
                   <ChevronDown size={14} />
                 </div>
               </div>
-              <div>Page {currentPage} of 1</div>
+              <div>Page {safePage} of {totalPages}</div>
               <div className="flex items-center gap-1">
-                <button className="p-1 rounded opacity-40 hover:bg-white/5 disabled:cursor-not-allowed" disabled>
+                <button
+                  className="p-1 rounded hover:bg-white/5 disabled:opacity-30 disabled:cursor-not-allowed"
+                  disabled={safePage <= 1}
+                  onClick={() => setCurrentPage(1)}
+                >
                   <ChevronsLeft size={16} />
                 </button>
-                <button className="p-1 rounded opacity-40 hover:bg-white/5 disabled:cursor-not-allowed" disabled>
+                <button
+                  className="p-1 rounded hover:bg-white/5 disabled:opacity-30 disabled:cursor-not-allowed"
+                  disabled={safePage <= 1}
+                  onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                >
                   <ChevronLeft size={16} />
                 </button>
-                <button className="p-1 rounded opacity-40 hover:bg-white/5 disabled:cursor-not-allowed" disabled>
+                <button
+                  className="p-1 rounded hover:bg-white/5 disabled:opacity-30 disabled:cursor-not-allowed"
+                  disabled={safePage >= totalPages}
+                  onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                >
                   <ChevronRight size={16} />
                 </button>
-                <button className="p-1 rounded opacity-40 hover:bg-white/5 disabled:cursor-not-allowed" disabled>
+                <button
+                  className="p-1 rounded hover:bg-white/5 disabled:opacity-30 disabled:cursor-not-allowed"
+                  disabled={safePage >= totalPages}
+                  onClick={() => setCurrentPage(totalPages)}
+                >
                   <ChevronsRight size={16} />
                 </button>
               </div>

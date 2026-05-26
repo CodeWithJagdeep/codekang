@@ -46,6 +46,7 @@ export type AgentStepType =
   | 'write_and_run'
   // Autonomous actions
   | 'run_tests'
+  | 'run_related_tests'
   | 'open_pr'
   | 'post_comment'
   // Browser
@@ -127,4 +128,8 @@ export interface FixContext {
   learningContext?: string;
   /** Full history of prior autonomous attempts — for retry-with-different-strategy */
   priorAttempts?: Array<{ summary: string; testOutput: string }>;
+  /** Files changed in the PR being fixed — used by run_related_tests to avoid full suite */
+  changedFiles?: string[];
+  /** Pre-retrieved multi-source context (code + standards + issues) injected at agent start */
+  retrievedContext?: string;
 }

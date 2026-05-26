@@ -95,7 +95,9 @@ class GithubExchangeDto {
   @IsNotEmpty()
   code: string;
 
-  @ApiProperty({ description: 'The redirect URI used in the authorization request' })
+  @ApiProperty({
+    description: 'The redirect URI used in the authorization request',
+  })
   @IsString()
   @IsNotEmpty()
   redirectUri: string;
@@ -156,7 +158,10 @@ export class AuthProxyController {
       this.logger.log(`socialLogin success provider=${dto.provider}`);
       return result;
     } catch (err) {
-      this.logger.error(`socialLogin failed provider=${dto.provider}`, err instanceof Error ? err.stack : String(err));
+      this.logger.error(
+        `socialLogin failed provider=${dto.provider}`,
+        err instanceof Error ? err.stack : String(err),
+      );
       throw err;
     }
   }
@@ -174,7 +179,10 @@ export class AuthProxyController {
       this.logger.log(`sendOtp success email=${dto.email}`);
       return result;
     } catch (err) {
-      this.logger.error(`sendOtp failed email=${dto.email}`, err instanceof Error ? err.stack : String(err));
+      this.logger.error(
+        `sendOtp failed email=${dto.email}`,
+        err instanceof Error ? err.stack : String(err),
+      );
       throw err;
     }
   }
@@ -199,7 +207,10 @@ export class AuthProxyController {
       this.logger.log(`verifyOtp success email=${dto.email}`);
       return result;
     } catch (err) {
-      this.logger.error(`verifyOtp failed email=${dto.email}`, err instanceof Error ? err.stack : String(err));
+      this.logger.error(
+        `verifyOtp failed email=${dto.email}`,
+        err instanceof Error ? err.stack : String(err),
+      );
       throw err;
     }
   }
@@ -220,7 +231,10 @@ export class AuthProxyController {
       this.logger.log('exchangeGithubCode success');
       return result;
     } catch (err) {
-      this.logger.error('exchangeGithubCode failed', err instanceof Error ? err.stack : String(err));
+      this.logger.error(
+        'exchangeGithubCode failed',
+        err instanceof Error ? err.stack : String(err),
+      );
       throw err;
     }
   }
@@ -238,7 +252,10 @@ export class AuthProxyController {
       this.logger.log('refresh token success');
       return result;
     } catch (err) {
-      this.logger.error('refresh token failed', err instanceof Error ? err.stack : String(err));
+      this.logger.error(
+        'refresh token failed',
+        err instanceof Error ? err.stack : String(err),
+      );
       throw err;
     }
   }
@@ -256,7 +273,10 @@ export class AuthProxyController {
       );
       this.logger.log(`logout success userId=${user.id}`);
     } catch (err) {
-      this.logger.error(`logout failed userId=${user.id}`, err instanceof Error ? err.stack : String(err));
+      this.logger.error(
+        `logout failed userId=${user.id}`,
+        err instanceof Error ? err.stack : String(err),
+      );
       throw err;
     }
   }
@@ -276,7 +296,10 @@ export class AuthProxyController {
       this.logger.log(`completeOnboarding success userId=${user.id}`);
       return result;
     } catch (err) {
-      this.logger.error(`completeOnboarding failed userId=${user.id}`, err instanceof Error ? err.stack : String(err));
+      this.logger.error(
+        `completeOnboarding failed userId=${user.id}`,
+        err instanceof Error ? err.stack : String(err),
+      );
       throw err;
     }
   }
@@ -298,10 +321,15 @@ export class AuthProxyController {
           token: dto.token,
         }),
       );
-      this.logger.log(`linkVcs success userId=${user.id} provider=${dto.provider}`);
+      this.logger.log(
+        `linkVcs success userId=${user.id} provider=${dto.provider}`,
+      );
       return result;
     } catch (err) {
-      this.logger.error(`linkVcs failed userId=${user.id} provider=${dto.provider}`, err instanceof Error ? err.stack : String(err));
+      this.logger.error(
+        `linkVcs failed userId=${user.id} provider=${dto.provider}`,
+        err instanceof Error ? err.stack : String(err),
+      );
       throw err;
     }
   }
@@ -324,7 +352,10 @@ export class AuthProxyController {
       this.logger.log(`updatePlan success userId=${user.id} plan=${dto.plan}`);
       return result;
     } catch (err) {
-      this.logger.error(`updatePlan failed userId=${user.id} plan=${dto.plan}`, err instanceof Error ? err.stack : String(err));
+      this.logger.error(
+        `updatePlan failed userId=${user.id} plan=${dto.plan}`,
+        err instanceof Error ? err.stack : String(err),
+      );
       throw err;
     }
   }
@@ -343,7 +374,10 @@ export class AuthProxyController {
       );
       return result;
     } catch (err) {
-      this.logger.error(`getSessions failed userId=${user.id}`, err instanceof Error ? err.stack : String(err));
+      this.logger.error(
+        `getSessions failed userId=${user.id}`,
+        err instanceof Error ? err.stack : String(err),
+      );
       throw err;
     }
   }
@@ -352,7 +386,10 @@ export class AuthProxyController {
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Revoke a user session' })
-  async revokeSession(@CurrentUser() user: IUser, @Param('id') sessionId: string) {
+  async revokeSession(
+    @CurrentUser() user: IUser,
+    @Param('id') sessionId: string,
+  ) {
     this.logger.log(`revokeSession userId=${user.id} sessionId=${sessionId}`);
     try {
       const result = await firstValueFrom(
@@ -363,7 +400,10 @@ export class AuthProxyController {
       );
       return result;
     } catch (err) {
-      this.logger.error(`revokeSession failed userId=${user.id}`, err instanceof Error ? err.stack : String(err));
+      this.logger.error(
+        `revokeSession failed userId=${user.id}`,
+        err instanceof Error ? err.stack : String(err),
+      );
       throw err;
     }
   }
@@ -372,7 +412,10 @@ export class AuthProxyController {
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Update user profile' })
-  async updateProfile(@CurrentUser() user: IUser, @Body() dto: UpdateProfileDto) {
+  async updateProfile(
+    @CurrentUser() user: IUser,
+    @Body() dto: UpdateProfileDto,
+  ) {
     this.logger.log(`updateProfile userId=${user.id}`);
     try {
       const result = await firstValueFrom(
@@ -383,7 +426,10 @@ export class AuthProxyController {
       );
       return result;
     } catch (err) {
-      this.logger.error(`updateProfile failed userId=${user.id}`, err instanceof Error ? err.stack : String(err));
+      this.logger.error(
+        `updateProfile failed userId=${user.id}`,
+        err instanceof Error ? err.stack : String(err),
+      );
       throw err;
     }
   }
@@ -396,7 +442,9 @@ export class AuthProxyController {
   async archiveAccount(@CurrentUser() user: IUser) {
     this.logger.log(`archiveAccount userId=${user.id}`);
     await firstValueFrom(
-      this.authClient.send(MESSAGE_PATTERNS.AUTH_ARCHIVE_ACCOUNT, { userId: user.id }),
+      this.authClient.send(MESSAGE_PATTERNS.AUTH_ARCHIVE_ACCOUNT, {
+        userId: user.id,
+      }),
     );
   }
 
@@ -404,20 +452,28 @@ export class AuthProxyController {
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   @HttpCode(HttpStatus.NO_CONTENT)
-  @ApiOperation({ summary: 'Permanently delete the authenticated user account and all data' })
+  @ApiOperation({
+    summary: 'Permanently delete the authenticated user account and all data',
+  })
   async deleteAccount(@CurrentUser() user: IUser) {
     this.logger.log(`deleteAccount userId=${user.id}`);
     // Run repos + AI agent cleanup in parallel, then delete the auth record last
     await Promise.all([
       firstValueFrom(
-        this.reposClient.send(MESSAGE_PATTERNS.REPOS_DELETE_USER_DATA, { userId: user.id }),
+        this.reposClient.send(MESSAGE_PATTERNS.REPOS_DELETE_USER_DATA, {
+          userId: user.id,
+        }),
       ),
       firstValueFrom(
-        this.agentClient.send(MESSAGE_PATTERNS.AGENT_DELETE_USER_DATA, { userId: user.id }),
+        this.agentClient.send(MESSAGE_PATTERNS.AGENT_DELETE_USER_DATA, {
+          userId: user.id,
+        }),
       ),
     ]);
     await firstValueFrom(
-      this.authClient.send(MESSAGE_PATTERNS.AUTH_DELETE_ACCOUNT, { userId: user.id }),
+      this.authClient.send(MESSAGE_PATTERNS.AUTH_DELETE_ACCOUNT, {
+        userId: user.id,
+      }),
     );
   }
 }

@@ -2,12 +2,57 @@
 # CODEKANG PLATFORM — MAKEFILE
 # ============================================================================
 
-REGISTRY   ?= gcr.io/codekang
-TAG        ?= latest
-NAMESPACE  ?= codekang
-COMPOSE    := docker compose
+REGISTRY      ?= gcr.io/codekang
+TAG           ?= latest
+NAMESPACE     ?= codekang
+COMPOSE       := docker compose
+COMPOSE_DEV   := docker compose -f docker-compose.yml -f docker-compose.dev.yml --env-file .env.development
 
-# ── Docker Compose ────────────────────────────────────────────────────────────
+# ── Development ───────────────────────────────────────────────────────────────
+
+.PHONY: dev-up dev-down dev-build dev-logs dev-ps dev-restart dev-shell dev-tools
+
+## Build dev images (no cache)
+dev-build:
+	$(COMPOSE_DEV) build --no-cache
+
+## Build a single dev service: make dev-build-svc SVC=gateway
+dev-build-svc:
+	$(COMPOSE_DEV) build --no-cache $(SVC)
+
+## Start all services in dev mode
+dev-up:
+	$(COMPOSE_DEV) up -d
+
+## Start all services in dev mode with rebuild
+dev-up-build:
+	$(COMPOSE_DEV) up -d --build
+
+## Stop all dev services
+dev-down:
+	$(COMPOSE_DEV) down
+
+## View dev logs (all or: make dev-logs SVC=gateway)
+dev-logs:
+	$(COMPOSE_DEV) logs -f $(SVC)
+
+## Show running dev containers
+dev-ps:
+	$(COMPOSE_DEV) ps
+
+## Restart a dev service: make dev-restart SVC=gateway
+dev-restart:
+	$(COMPOSE_DEV) restart $(SVC)
+
+## Open a shell in a dev container: make dev-shell SVC=gateway
+dev-shell:
+	$(COMPOSE_DEV) exec $(SVC) sh
+
+## Start dev services + tools (pgadmin, redis-commander, bull-board)
+dev-tools:
+	$(COMPOSE_DEV) --profile tools up -d
+
+# ── Docker Compose (production) ───────────────────────────────────────────────
 
 .PHONY: up down build logs ps restart
 
@@ -150,5 +195,5 @@ help:
 	@echo ""
 	@echo "  CodeKang Platform — available targets:"
 	@echo ""
-	@grep -E '^##' Makefile | sed 's/## /    /'
+	@grep -E '^##' $(MAKEFILE_LIST) | sed 's/## /    /'
 	@echo ""

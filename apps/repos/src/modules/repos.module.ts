@@ -6,7 +6,9 @@ import { Repository } from '../entities/repository.entity';
 import { Organization, OrgRepository } from '../entities/organization.entity';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Repository, Organization, OrgRepository])],
+  imports: [
+    TypeOrmModule.forFeature([Repository, Organization, OrgRepository]),
+  ],
   controllers: [ReposController],
   providers: [ReposService],
 })

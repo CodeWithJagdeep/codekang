@@ -1,7 +1,10 @@
 import { Router, type Request, type Response } from 'express';
 import { logger } from '../utils/logger';
 import { db } from '../config/database';
-import { loadPRReview, updatePRReviewFixStatus } from '../services/review-service';
+import {
+  loadPRReview,
+  updatePRReviewFixStatus,
+} from '../services/review-service';
 import { fixPRQueue } from '../queue/index';
 
 const router = Router();
@@ -14,7 +17,10 @@ const router = Router();
 
 router.get('/stats', async (req: Request, res: Response): Promise<void> => {
   const reposParam = (req.query.repos as string | undefined) ?? '';
-  const daysParam  = parseInt((req.query.days as string | undefined) ?? '30', 10);
+  const daysParam = parseInt(
+    (req.query.days as string | undefined) ?? '30',
+    10,
+  );
 
   const repoKeys = reposParam
     .split(',')
@@ -27,12 +33,14 @@ router.get('/stats', async (req: Request, res: Response): Promise<void> => {
   }
 
   try {
-    const dateFilter = daysParam > 0
-      ? `AND created_at >= NOW() - INTERVAL '${daysParam} days'`
-      : '';
-    const prevDateFilter = daysParam > 0
-      ? `AND created_at >= NOW() - INTERVAL '${daysParam * 2} days' AND created_at < NOW() - INTERVAL '${daysParam} days'`
-      : "AND created_at < NOW() - INTERVAL '30 days'";
+    const dateFilter =
+      daysParam > 0
+        ? `AND created_at >= NOW() - INTERVAL '${daysParam} days'`
+        : '';
+    const prevDateFilter =
+      daysParam > 0
+        ? `AND created_at >= NOW() - INTERVAL '${daysParam * 2} days' AND created_at < NOW() - INTERVAL '${daysParam} days'`
+        : "AND created_at < NOW() - INTERVAL '30 days'";
 
     const repoArray = `ARRAY[${repoKeys.map((_, i) => `$${i + 1}`).join(',')}]::text[]`;
     const params = repoKeys;
@@ -141,45 +149,54 @@ router.get('/stats', async (req: Request, res: Response): Promise<void> => {
 
     res.json({
       totals: {
-        reviews:        parseInt(t.total_reviews ?? '0', 10),
-        bugs:           parseInt(t.total_bugs   ?? '0', 10),
-        fixed:          parseInt(t.fixed         ?? '0', 10),
-        approved:       parseInt(t.approved      ?? '0', 10),
+        reviews: parseInt(t.total_reviews ?? '0', 10),
+        bugs: parseInt(t.total_bugs ?? '0', 10),
+        fixed: parseInt(t.fixed ?? '0', 10),
+        approved: parseInt(t.approved ?? '0', 10),
         requestChanges: parseInt(t.request_changes ?? '0', 10),
-        commented:      parseInt(t.commented     ?? '0', 10),
+        commented: parseInt(t.commented ?? '0', 10),
       },
       prev: {
         reviews: parseInt(p.total_reviews ?? '0', 10),
-        bugs:    parseInt(p.total_bugs    ?? '0', 10),
-        fixed:   parseInt(p.fixed         ?? '0', 10),
+        bugs: parseInt(p.total_bugs ?? '0', 10),
+        fixed: parseInt(p.fixed ?? '0', 10),
       },
       daily: dailyRes.rows.map((r) => ({
-        date:    r.date,
+        date: r.date,
         reviews: parseInt(r.reviews, 10),
-        bugs:    parseInt(r.bugs ?? '0', 10),
+        bugs: parseInt(r.bugs ?? '0', 10),
       })),
       byRepo: repoRes.rows.map((r) => ({
-        owner:   r.owner,
-        repo:    r.repo,
+        owner: r.owner,
+        repo: r.repo,
         reviews: parseInt(r.reviews, 10),
-        bugs:    parseInt(r.bugs ?? '0', 10),
-        fixed:   parseInt(r.fixed ?? '0', 10),
+        bugs: parseInt(r.bugs ?? '0', 10),
+        fixed: parseInt(r.fixed ?? '0', 10),
       })),
       recent: recentRes.rows,
     });
   } catch (err) {
-    logger.error('Failed to fetch review stats', { error: (err as Error).message });
+    logger.error('Failed to fetch review stats', {
+      error: (err as Error).message,
+    });
     res.status(500).json({ error: 'Internal server error' });
   }
 });
 
 function emptyStats() {
   return {
-    totals:  { reviews: 0, bugs: 0, fixed: 0, approved: 0, requestChanges: 0, commented: 0 },
-    prev:    { reviews: 0, bugs: 0, fixed: 0 },
-    daily:   [],
-    byRepo:  [],
-    recent:  [],
+    totals: {
+      reviews: 0,
+      bugs: 0,
+      fixed: 0,
+      approved: 0,
+      requestChanges: 0,
+      commented: 0,
+    },
+    prev: { reviews: 0, bugs: 0, fixed: 0 },
+    daily: [],
+    byRepo: [],
+    recent: [],
   };
 }
 
@@ -204,7 +221,12 @@ router.get(
       }
       res.json(review);
     } catch (err) {
-      logger.error('Failed to load PR review', { owner, repo, prNum, error: (err as Error).message });
+      logger.error('Failed to load PR review', {
+        owner,
+        repo,
+        prNum,
+        error: (err as Error).message,
+      });
       res.status(500).json({ error: 'Internal server error' });
     }
   },
@@ -230,7 +252,10 @@ router.post(
         return;
       }
       if (review.fix_status === 'running' || review.fix_status === 'pending') {
-        res.json({ status: review.fix_status, message: 'Fix is already in progress' });
+        res.json({
+          status: review.fix_status,
+          message: 'Fix is already in progress',
+        });
         return;
       }
       if (review.fix_status === 'done') {
@@ -253,9 +278,17 @@ router.post(
       });
 
       logger.info('Fix-PR queued via API', { owner, repo, prNum });
-      res.json({ status: 'pending', message: 'Fix queued — agent will apply changes shortly' });
+      res.json({
+        status: 'pending',
+        message: 'Fix queued — agent will apply changes shortly',
+      });
     } catch (err) {
-      logger.error('Failed to queue fix-PR', { owner, repo, prNum, error: (err as Error).message });
+      logger.error('Failed to queue fix-PR', {
+        owner,
+        repo,
+        prNum,
+        error: (err as Error).message,
+      });
       res.status(500).json({ error: 'Internal server error' });
     }
   },

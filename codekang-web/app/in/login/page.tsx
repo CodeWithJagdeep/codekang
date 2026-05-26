@@ -315,7 +315,7 @@ export default function LoginPage() {
               <div className="text-center pt-6">
                 <p className="text-[13px] text-gray-500 font-medium">
                   Don&apos;t have an account?{' '}
-                  <Link 
+                  <Link
                     href="/in/signup"
                     className="text-black font-black uppercase tracking-tight hover:text-[#f97316] transition-colors underline cursor-pointer"
                   >

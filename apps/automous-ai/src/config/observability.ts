@@ -14,7 +14,7 @@ function getLangfuse(): Langfuse | null {
       publicKey: env.LANGFUSE_PUBLIC_KEY,
       secretKey: env.LANGFUSE_SECRET_KEY,
       baseUrl: env.LANGFUSE_BASE_URL ?? 'https://cloud.langfuse.com',
-      flushAt: 20,     // batch size before auto-flush
+      flushAt: 20, // batch size before auto-flush
       flushInterval: 10_000, // auto-flush every 10s
     });
     logger.info('🔭 Langfuse observability connected', {
@@ -109,11 +109,14 @@ export function createAgentTrace(params: {
         end: ({ output, inputTokens, outputTokens, totalCostUsd }) => {
           gen.end({
             output,
-            usage: inputTokens != null ? {
-              input: inputTokens,
-              output: outputTokens ?? 0,
-              totalCost: totalCostUsd,
-            } : undefined,
+            usage:
+              inputTokens != null
+                ? {
+                    input: inputTokens,
+                    output: outputTokens ?? 0,
+                    totalCost: totalCostUsd,
+                  }
+                : undefined,
           });
         },
       };

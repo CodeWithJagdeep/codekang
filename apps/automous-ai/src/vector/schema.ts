@@ -1,23 +1,15 @@
 import { db } from '../config/database';
 import { logger } from '../utils/logger';
-import { EMBEDDING_DIM } from './embeddings';
+import { ensureLanceTables } from './lance/tables';
 
-// ─── Schema setup & migration ─────────────────────────────────────────────────
-//
-// This module owns the pgvector table schema.
-// Call ensureSchema() on startup before indexing or searching.
-//
-// Design choices:
-//   - HNSW index  : fast approximate nearest-neighbour, better recall than IVFFlat
-//   - GIN index   : PostgreSQL full-text search (tsvector), used in hybrid search
-//   - fts column  : pre-computed tsvector (faster than computing at query time)
-//   - chunk_type  : lets us weight or filter by "symbol" | "window" | "file-header"
+// ─── Schema setup ─────────────────────────────────────────────────────────────
+// PostgreSQL: owns all relational tables (repos, fix_jobs, pr_reviews, etc.)
+// LanceDB: owns all vector tables (code_chunks, pr_history, issue_context, etc.)
 // ─────────────────────────────────────────────────────────────────────────────
 
 export async function ensureSchema(): Promise<void> {
   logger.info('Ensuring database schema');
 
-  await db.query('CREATE EXTENSION IF NOT EXISTS vector');
   await db.query('CREATE EXTENSION IF NOT EXISTS pg_trgm');
 
   // ── repos ──────────────────────────────────────────────────────────────────
@@ -32,58 +24,6 @@ export async function ensureSchema(): Promise<void> {
       indexed_at   TIMESTAMPTZ,
       created_at   TIMESTAMPTZ NOT NULL DEFAULT NOW()
     )
-  `);
-
-  // ── code_chunks ────────────────────────────────────────────────────────────
-  await db.query(`
-    CREATE TABLE IF NOT EXISTS code_chunks (
-      id          BIGSERIAL PRIMARY KEY,
-      repo_id     INTEGER NOT NULL REFERENCES repos(id) ON DELETE CASCADE,
-      file_path   TEXT NOT NULL,
-      start_line  INTEGER NOT NULL,
-      end_line    INTEGER NOT NULL,
-      content     TEXT NOT NULL,
-      language    TEXT NOT NULL DEFAULT '',
-      token_count INTEGER NOT NULL DEFAULT 0,
-      chunk_type  TEXT NOT NULL DEFAULT 'window',
-      symbol_name TEXT,
-      fts         TSVECTOR,
-      embedding   VECTOR(${EMBEDDING_DIM}),
-      created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
-    )
-  `);
-
-  // ── Handle dimension migration ─────────────────────────────────────────────
-  // If embedding column exists with a different dimension, drop and recreate it.
-  await migrateDimension();
-
-  // ── Indexes ────────────────────────────────────────────────────────────────
-
-  // HNSW index for fast ANN similarity search
-  // m=16  : max connections per layer (higher = better recall, more memory)
-  // ef_construction=128 : build-time search depth (higher = better, slower build)
-  await db.query(`
-    CREATE INDEX IF NOT EXISTS code_chunks_embedding_hnsw
-    ON code_chunks USING hnsw (embedding vector_cosine_ops)
-    WITH (m = 16, ef_construction = 128)
-  `);
-
-  // GIN index for full-text search
-  await db.query(`
-    CREATE INDEX IF NOT EXISTS code_chunks_fts_gin
-    ON code_chunks USING gin(fts)
-  `);
-
-  // Trigram index on file_path for fast file-path substring searches
-  await db.query(`
-    CREATE INDEX IF NOT EXISTS code_chunks_filepath_trgm
-    ON code_chunks USING gin(file_path gin_trgm_ops)
-  `);
-
-  // B-tree index for repo-scoped queries
-  await db.query(`
-    CREATE INDEX IF NOT EXISTS code_chunks_repo_id_idx
-    ON code_chunks (repo_id)
   `);
 
   // ── fix_jobs ───────────────────────────────────────────────────────────────
@@ -107,7 +47,6 @@ export async function ensureSchema(): Promise<void> {
   `);
 
   // ── fix_proposals ──────────────────────────────────────────────────────────
-  // Stores pre-fix proposals posted to GitHub, awaiting contributor approval.
   await db.query(`
     CREATE TABLE IF NOT EXISTS fix_proposals (
       id                 BIGSERIAL PRIMARY KEY,
@@ -133,7 +72,6 @@ export async function ensureSchema(): Promise<void> {
     )
   `);
 
-  // Migrate: add needs_environment to existing tables that predate this column
   await db.query(`
     ALTER TABLE fix_proposals
       ADD COLUMN IF NOT EXISTS needs_environment BOOLEAN NOT NULL DEFAULT TRUE
@@ -151,7 +89,6 @@ export async function ensureSchema(): Promise<void> {
   `);
 
   // ── fix_history ────────────────────────────────────────────────────────────
-  // Stores successful fix patterns for cross-issue learning.
   await db.query(`
     CREATE TABLE IF NOT EXISTS fix_history (
       id             BIGSERIAL PRIMARY KEY,
@@ -174,8 +111,6 @@ export async function ensureSchema(): Promise<void> {
   `);
 
   // ── pr_reviews ─────────────────────────────────────────────────────────────
-  // Stores the AI review result for each PR so the UI can display findings and
-  // so the fix-pr service can load them when the user approves a fix.
   await db.query(`
     CREATE TABLE IF NOT EXISTS pr_reviews (
       id              BIGSERIAL PRIMARY KEY,
@@ -204,46 +139,8 @@ export async function ensureSchema(): Promise<void> {
     ON pr_reviews (owner, repo)
   `);
 
-  logger.info('Schema ready', { embeddingDim: EMBEDDING_DIM });
-}
+  // ── LanceDB vector tables ──────────────────────────────────────────────────
+  await ensureLanceTables();
 
-// ─── Dimension migration ──────────────────────────────────────────────────────
-
-async function migrateDimension(): Promise<void> {
-  type DimRow = { atttypmod: number };
-
-  const result = await db.query<DimRow>(`
-    SELECT atttypmod
-    FROM   pg_attribute
-    WHERE  attrelid = 'code_chunks'::regclass
-      AND  attname  = 'embedding'
-      AND  attnum   > 0
-      AND  NOT attisdropped
-  `);
-
-  if (result.rows.length === 0) return; // column doesn't exist yet
-
-  // pgvector encodes dimension as atttypmod - 1 (implementation detail)
-  const currentDim = result.rows[0].atttypmod - 1;
-
-  if (currentDim !== EMBEDDING_DIM) {
-    logger.warn('Embedding dimension mismatch — migrating', {
-      current: currentDim,
-      target: EMBEDDING_DIM,
-    });
-    // Must drop index first, then alter column
-    await db.query('DROP INDEX IF EXISTS code_chunks_embedding_hnsw');
-    await db.query(
-      `ALTER TABLE code_chunks ALTER COLUMN embedding TYPE VECTOR(${EMBEDDING_DIM})`,
-    );
-    logger.info('Embedding column migrated', { newDim: EMBEDDING_DIM });
-  }
-}
-
-// ─── HNSW search-time tuning ──────────────────────────────────────────────────
-// Higher ef_search = better recall, slower query.
-// 100 is a good default for code search.
-
-export async function setSearchEffort(efSearch: number = 100): Promise<void> {
-  await db.query(`SET hnsw.ef_search = ${efSearch}`);
+  logger.info('Schema ready (Postgres relational + LanceDB vector)');
 }

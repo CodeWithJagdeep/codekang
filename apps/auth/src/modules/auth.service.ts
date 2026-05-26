@@ -20,7 +20,10 @@ import type {
   ISocialLoginResponse,
 } from '../common';
 import { MailService } from './mail/mail.service';
-import { RazorpayService, type RazorpaySubscriptionResult } from './razorpay.service';
+import {
+  RazorpayService,
+  type RazorpaySubscriptionResult,
+} from './razorpay.service';
 import { UAParser } from 'ua-parser-js';
 
 interface OAuthProfile {
@@ -55,8 +58,10 @@ export class AuthService {
     @InjectRepository(RefreshTokenBlacklist)
     private readonly blacklistRepo: Repository<RefreshTokenBlacklist>,
     @InjectRepository(Otp) private readonly otpRepo: Repository<Otp>,
-    @InjectRepository(UserSession) private readonly sessionRepo: Repository<UserSession>,
-    @InjectRepository(UserIntegration) private readonly integrationRepo: Repository<UserIntegration>,
+    @InjectRepository(UserSession)
+    private readonly sessionRepo: Repository<UserSession>,
+    @InjectRepository(UserIntegration)
+    private readonly integrationRepo: Repository<UserIntegration>,
     private readonly jwtService: JwtService,
     private readonly config: ConfigService,
     private readonly mailService: MailService,
@@ -79,14 +84,18 @@ export class AuthService {
         ? await this.verifyGoogleToken(token)
         : await this.verifyGithubToken(token);
 
-    this.logger.log(`socialLogin profile resolved email=${profile.email} provider=${provider}`);
+    this.logger.log(
+      `socialLogin profile resolved email=${profile.email} provider=${provider}`,
+    );
     return this.loginWithProfile(profile, ip, userAgent);
   }
 
   private async verifyGoogleToken(idToken: string): Promise<OAuthProfile> {
     const clientId = this.config.get('GOOGLE_CLIENT_ID');
     if (!clientId) {
-      this.logger.error('verifyGoogleToken: GOOGLE_CLIENT_ID is not configured');
+      this.logger.error(
+        'verifyGoogleToken: GOOGLE_CLIENT_ID is not configured',
+      );
       throw new UnauthorizedException(
         'Google OAuth is not configured on this server',
       );
@@ -109,7 +118,10 @@ export class AuthService {
         avatar: p.picture,
       };
     } catch (err) {
-      this.logger.error('verifyGoogleToken failed', err instanceof Error ? err.stack : String(err));
+      this.logger.error(
+        'verifyGoogleToken failed',
+        err instanceof Error ? err.stack : String(err),
+      );
       throw new UnauthorizedException('Invalid Google ID token');
     }
   }
@@ -169,13 +181,20 @@ export class AuthService {
     };
   }
 
-  async exchangeGithubCode(code: string, redirectUri?: string): Promise<string> {
-    this.logger.log(`exchangeGithubCode calling GitHub OAuth endpoint redirectUri=${redirectUri}`);
+  async exchangeGithubCode(
+    code: string,
+    redirectUri?: string,
+  ): Promise<string> {
+    this.logger.log(
+      `exchangeGithubCode calling GitHub OAuth endpoint redirectUri=${redirectUri}`,
+    );
     const clientId = this.config.get('GITHUB_CLIENT_ID');
     const clientSecret = this.config.get('GITHUB_CLIENT_SECRET');
 
     if (!clientId || !clientSecret) {
-      this.logger.error('exchangeGithubCode: GITHUB_CLIENT_ID or GITHUB_CLIENT_SECRET is not configured');
+      this.logger.error(
+        'exchangeGithubCode: GITHUB_CLIENT_ID or GITHUB_CLIENT_SECRET is not configured',
+      );
       throw new Error('GitHub OAuth is not configured on this server');
     }
 
@@ -197,7 +216,9 @@ export class AuthService {
 
     if (!resp.ok) {
       const rawBody = await resp.text().catch(() => '');
-      this.logger.error(`exchangeGithubCode failed status=${resp.status} body=${rawBody}`);
+      this.logger.error(
+        `exchangeGithubCode failed status=${resp.status} body=${rawBody}`,
+      );
       throw new UnauthorizedException('Failed to exchange GitHub code');
     }
 
@@ -208,7 +229,9 @@ export class AuthService {
     };
 
     if (data.error) {
-      this.logger.error(`exchangeGithubCode error=${data.error} desc=${data.error_description}`);
+      this.logger.error(
+        `exchangeGithubCode error=${data.error} desc=${data.error_description}`,
+      );
       throw new UnauthorizedException(data.error_description || data.error);
     }
 
@@ -236,7 +259,9 @@ export class AuthService {
     const isNewUser = !user;
 
     if (!user) {
-      this.logger.log(`loginWithProfile new user email=${profile.email} provider=${profile.provider}`);
+      this.logger.log(
+        `loginWithProfile new user email=${profile.email} provider=${profile.provider}`,
+      );
       const nextMonth = new Date();
       nextMonth.setMonth(nextMonth.getMonth() + 1, 1);
       user = this.userRepo.create({
@@ -254,7 +279,9 @@ export class AuthService {
         name: user.name,
       });
     } else {
-      this.logger.log(`loginWithProfile returning user id=${user.id} provider=${profile.provider}`);
+      this.logger.log(
+        `loginWithProfile returning user id=${user.id} provider=${profile.provider}`,
+      );
       user.provider = profile.provider;
       user.providerId = profile.providerId;
       user.name = profile.name;
@@ -307,7 +334,12 @@ export class AuthService {
     this.logger.log(`sendOtp email sent email=${email}`);
   }
 
-  async verifyOtp(email: string, code: string, ip?: string, userAgent?: string): Promise<ISocialLoginResponse> {
+  async verifyOtp(
+    email: string,
+    code: string,
+    ip?: string,
+    userAgent?: string,
+  ): Promise<ISocialLoginResponse> {
     this.logger.log(`verifyOtp email=${email}`);
     const otp = await this.otpRepo.findOne({ where: { email } });
     if (!otp) {
@@ -394,14 +426,18 @@ export class AuthService {
         throw new UnauthorizedException('User not found');
       }
       if (!user.isActive) {
-        this.logger.warn(`validateToken deactivated user userId=${payload.sub}`);
+        this.logger.warn(
+          `validateToken deactivated user userId=${payload.sub}`,
+        );
         throw new UnauthorizedException('User account is deactivated');
       }
       this.logger.log(`validateToken success userId=${user.id}`);
       return this.toPublicUser(user);
     } catch (err) {
       if (err instanceof UnauthorizedException) throw err;
-      this.logger.warn(`validateToken invalid token: ${err instanceof Error ? err.message : String(err)}`);
+      this.logger.warn(
+        `validateToken invalid token: ${err instanceof Error ? err.message : String(err)}`,
+      );
       throw new UnauthorizedException('Invalid or expired token');
     }
   }
@@ -414,7 +450,9 @@ export class AuthService {
         secret: this.config.getOrThrow('JWT_REFRESH_SECRET'),
       });
     } catch (err) {
-      this.logger.warn(`refreshTokens invalid token: ${err instanceof Error ? err.message : String(err)}`);
+      this.logger.warn(
+        `refreshTokens invalid token: ${err instanceof Error ? err.message : String(err)}`,
+      );
       throw new UnauthorizedException('Invalid refresh token');
     }
 
@@ -602,33 +640,43 @@ export class AuthService {
       const profile = await this.verifyGithubToken(token);
       user.githubUsername = profile.githubUsername ?? profile.name;
       user.githubAccessToken = profile.githubAccessToken ?? token;
-      this.logger.log(`linkVcs GitHub linked userId=${userId} username=${user.githubUsername}`);
+      this.logger.log(
+        `linkVcs GitHub linked userId=${userId} username=${user.githubUsername}`,
+      );
     } else if (provider === 'gitlab') {
       this.logger.log(`linkVcs verifying GitLab token userId=${userId}`);
       const resp = await fetch('https://gitlab.com/api/v4/user', {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (!resp.ok) {
-        this.logger.error(`linkVcs invalid GitLab token userId=${userId} status=${resp.status}`);
+        this.logger.error(
+          `linkVcs invalid GitLab token userId=${userId} status=${resp.status}`,
+        );
         throw new UnauthorizedException('Invalid GitLab token');
       }
       const gl = (await resp.json()) as { username: string };
       user.gitlabUsername = gl.username;
       user.gitlabAccessToken = token;
-      this.logger.log(`linkVcs GitLab linked userId=${userId} username=${gl.username}`);
+      this.logger.log(
+        `linkVcs GitLab linked userId=${userId} username=${gl.username}`,
+      );
     } else if (provider === 'bitbucket') {
       this.logger.log(`linkVcs verifying Bitbucket token userId=${userId}`);
       const resp = await fetch('https://api.bitbucket.org/2.0/user', {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (!resp.ok) {
-        this.logger.error(`linkVcs invalid Bitbucket token userId=${userId} status=${resp.status}`);
+        this.logger.error(
+          `linkVcs invalid Bitbucket token userId=${userId} status=${resp.status}`,
+        );
         throw new UnauthorizedException('Invalid Bitbucket token');
       }
       const bb = (await resp.json()) as { nickname: string };
       user.bitbucketUsername = bb.nickname;
       user.bitbucketAccessToken = token;
-      this.logger.log(`linkVcs Bitbucket linked userId=${userId} username=${bb.nickname}`);
+      this.logger.log(
+        `linkVcs Bitbucket linked userId=${userId} username=${bb.nickname}`,
+      );
     }
 
     await this.userRepo.save(user);
@@ -644,7 +692,9 @@ export class AuthService {
     }
 
     const previousPlan = user.plan;
-    this.logger.log(`updatePlan userId=${userId} previousPlan=${previousPlan} newPlan=${plan}`);
+    this.logger.log(
+      `updatePlan userId=${userId} previousPlan=${previousPlan} newPlan=${plan}`,
+    );
     user.plan = plan;
     // Reset credits on plan change
     const nextMonth = new Date();
@@ -655,7 +705,9 @@ export class AuthService {
 
     // Only send purchase/payment emails when upgrading (not on free plan)
     if (plan !== 'free' && plan !== previousPlan) {
-      this.logger.log(`updatePlan sending billing emails userId=${userId} plan=${plan}`);
+      this.logger.log(
+        `updatePlan sending billing emails userId=${userId} plan=${plan}`,
+      );
       const price = PLAN_PRICES[plan] ?? 'Custom';
       const invoiceId = `INV-${Date.now()}`;
       const date = new Date().toDateString();
@@ -683,7 +735,9 @@ export class AuthService {
     planTier: 'starter' | 'team',
     billingPeriod: 'monthly' | 'annual' = 'monthly',
   ): Promise<RazorpaySubscriptionResult> {
-    this.logger.log(`createRazorpaySubscription userId=${userId} planTier=${planTier} billingPeriod=${billingPeriod}`);
+    this.logger.log(
+      `createRazorpaySubscription userId=${userId} planTier=${planTier} billingPeriod=${billingPeriod}`,
+    );
     const user = await this.userRepo.findOne({ where: { id: userId } });
     if (!user) throw new UnauthorizedException('User not found');
 
@@ -691,14 +745,26 @@ export class AuthService {
     if (user.razorpaySubscriptionId) {
       await this.razorpayService
         .cancelSubscription(user.razorpaySubscriptionId)
-        .catch((err) => this.logger.warn(`Failed to cancel old subscription: ${(err as Error).message}`));
+        .catch((err) =>
+          this.logger.warn(
+            `Failed to cancel old subscription: ${(err as Error).message}`,
+          ),
+        );
     }
 
-    const result = await this.razorpayService.createSubscription(userId, planTier, billingPeriod);
+    const result = await this.razorpayService.createSubscription(
+      userId,
+      planTier,
+      billingPeriod,
+    );
 
     // Persist the new subscription ID
-    await this.userRepo.update(userId, { razorpaySubscriptionId: result.subscriptionId });
-    this.logger.log(`createRazorpaySubscription saved subscriptionId=${result.subscriptionId}`);
+    await this.userRepo.update(userId, {
+      razorpaySubscriptionId: result.subscriptionId,
+    });
+    this.logger.log(
+      `createRazorpaySubscription saved subscriptionId=${result.subscriptionId}`,
+    );
 
     return result;
   }
@@ -711,7 +777,9 @@ export class AuthService {
     if (user.razorpaySubscriptionId) {
       await this.razorpayService
         .cancelSubscription(user.razorpaySubscriptionId)
-        .catch((err) => this.logger.warn(`Razorpay cancel error: ${(err as Error).message}`));
+        .catch((err) =>
+          this.logger.warn(`Razorpay cancel error: ${(err as Error).message}`),
+        );
     }
 
     user.plan = 'free';
@@ -722,7 +790,9 @@ export class AuthService {
     user.creditsReset = nextMonth;
     await this.userRepo.save(user);
 
-    this.logger.log(`cancelRazorpaySubscription plan reset to free userId=${userId}`);
+    this.logger.log(
+      `cancelRazorpaySubscription plan reset to free userId=${userId}`,
+    );
     return this.toPublicUser(user);
   }
 
@@ -768,12 +838,14 @@ export class AuthService {
     const browser = parser.getBrowser();
     const os = parser.getOS();
 
-    const deviceStr = browser.name ? `${browser.name} on ${os.name || 'Unknown'}` : 'Unknown Device';
+    const deviceStr = browser.name
+      ? `${browser.name} on ${os.name || 'Unknown'}`
+      : 'Unknown Device';
     const osStr = os.name || 'Unknown';
 
     // Basic heuristic: check if session already exists for this IP and UA to avoid spamming
     const existing = await this.sessionRepo.findOne({
-      where: { userId, ip, device: deviceStr, isValid: true }
+      where: { userId, ip, device: deviceStr, isValid: true },
     });
 
     if (existing) {
@@ -800,7 +872,10 @@ export class AuthService {
   }
 
   async revokeSession(userId: string, sessionId: string) {
-    await this.sessionRepo.update({ id: sessionId, userId }, { isValid: false });
+    await this.sessionRepo.update(
+      { id: sessionId, userId },
+      { isValid: false },
+    );
   }
 
   async archiveAccount(userId: string): Promise<void> {

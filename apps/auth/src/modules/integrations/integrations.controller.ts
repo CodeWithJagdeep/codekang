@@ -12,7 +12,14 @@ export class IntegrationsController {
   }
 
   @MessagePattern('integration.connect')
-  connect(@Payload() data: { userId: string; provider: string; config?: Record<string, unknown> }) {
+  connect(
+    @Payload()
+    data: {
+      userId: string;
+      provider: string;
+      config?: Record<string, unknown>;
+    },
+  ) {
     return this.service.connect(data.userId, data.provider, data.config ?? {});
   }
 
@@ -22,12 +29,21 @@ export class IntegrationsController {
   }
 
   @MessagePattern('integration.update_status')
-  updateStatus(@Payload() data: { userId: string; provider: string; status: string }) {
+  updateStatus(
+    @Payload() data: { userId: string; provider: string; status: string },
+  ) {
     return this.service.updateStatus(data.userId, data.provider, data.status);
   }
 
   @MessagePattern('integration.update_config')
-  updateConfig(@Payload() data: { userId: string; provider: string; config: Record<string, unknown> }) {
+  updateConfig(
+    @Payload()
+    data: {
+      userId: string;
+      provider: string;
+      config: Record<string, unknown>;
+    },
+  ) {
     return this.service.updateConfig(data.userId, data.provider, data.config);
   }
 }

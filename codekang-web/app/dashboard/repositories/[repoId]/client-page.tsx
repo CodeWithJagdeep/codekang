@@ -27,12 +27,14 @@ import {
   fetchConnectedRepo,
   fetchRepoPullRequests,
   fetchRepoIssues,
+  fetchPRReview,
   syncRepo,
   fetchRepoSettings,
   updateRepoSettings,
   type IRepository,
   type IGitHubPR,
   type IGitHubIssue,
+  type IPRReview,
   type IRepoSettings,
   DEFAULT_REPO_SETTINGS,
 } from '@/lib/auth';
@@ -79,8 +81,25 @@ const PR_STATUS = {
 
 // ── KangBot badge ──────────────────────────────────────────────────────────────
 
-function KangBotBadge({ status, type = 'pr' }: { status: PRStatus | 'open' | 'closed'; type?: 'pr' | 'issue' }) {
-  if (status === 'open' || status === 'draft') {
+function KangBotBadge({ review, isOpen }: { review: IPRReview | null | undefined; isOpen: boolean }) {
+  if (review === undefined) {
+    return (
+      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 text-[11px] font-bold rounded-full border"
+        style={{ background: 'rgba(113,113,122,0.08)', borderColor: 'rgba(113,113,122,0.2)', color: '#71717a' }}>
+        <Loader2 size={10} className="animate-spin" /> Loading
+      </span>
+    );
+  }
+  if (!review) {
+    if (!isOpen) return null;
+    return (
+      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 text-[11px] font-bold rounded-full border"
+        style={{ background: 'rgba(113,113,122,0.08)', borderColor: 'rgba(113,113,122,0.2)', color: '#71717a' }}>
+        Review pending
+      </span>
+    );
+  }
+  if (review.fix_status === 'running' || review.fix_status === 'pending') {
     return (
       <span className="inline-flex items-center gap-1.5 px-2.5 py-1 text-[11px] font-bold rounded-full border"
         style={{ background: 'rgba(249,115,22,0.12)', borderColor: 'rgba(249,115,22,0.25)', color: '#f8423b' }}>
@@ -88,21 +107,29 @@ function KangBotBadge({ status, type = 'pr' }: { status: PRStatus | 'open' | 'cl
           <span className="animate-ping absolute inline-flex h-full w-full rounded-full opacity-75" style={{ background: '#f8423b' }} />
           <span className="relative inline-flex rounded-full h-1.5 w-1.5" style={{ background: '#f8423b' }} />
         </span>
-        {status === 'draft' ? 'Kang AI Waiting' : type === 'issue' ? 'Kang AI Analyzing' : 'Kang AI Reviewing'}
+        AI Fixing
       </span>
     );
   }
-  if (status === 'merged') {
+  if (review.verdict === 'APPROVE') {
     return (
       <span className="inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-bold rounded-full border"
-        style={{ background: 'rgba(168,85,247,0.1)', borderColor: 'rgba(168,85,247,0.2)', color: '#a855f7' }}>
-        <CheckCircle2 size={10} /> AI Reviewed
+        style={{ background: 'rgba(34,197,94,0.1)', borderColor: 'rgba(34,197,94,0.2)', color: '#4ade80' }}>
+        <CheckCircle2 size={10} /> Approved
+      </span>
+    );
+  }
+  if (review.verdict === 'REQUEST_CHANGES') {
+    return (
+      <span className="inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-bold rounded-full border"
+        style={{ background: 'rgba(239,68,68,0.1)', borderColor: 'rgba(239,68,68,0.2)', color: '#f87171' }}>
+        <CheckCircle2 size={10} /> Changes Requested
       </span>
     );
   }
   return (
     <span className="inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-bold rounded-full border"
-      style={{ background: 'rgba(113,113,122,0.1)', borderColor: 'rgba(113,113,122,0.2)', color: '#71717a' }}>
+      style={{ background: 'rgba(168,85,247,0.1)', borderColor: 'rgba(168,85,247,0.2)', color: '#a855f7' }}>
       <CheckCircle2 size={10} /> AI Reviewed
     </span>
   );
@@ -114,6 +141,7 @@ export default function RepositoryDetailsPage({ params }: { params: { repoId: st
   const [repo, setRepo] = useState<IRepository | null>(null);
   const [prs, setPrs] = useState<IGitHubPR[]>([]);
   const [issues, setIssues] = useState<IGitHubIssue[]>([]);
+  const [reviews, setReviews] = useState<Map<number, IPRReview | null>>(new Map());
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [syncing, setSyncing] = useState(false);
@@ -143,6 +171,17 @@ export default function RepositoryDetailsPage({ params }: { params: { repoId: st
         setPrs(repoPRs);
         setIssues(repoIssues);
         setSettings(repoSettings);
+        const allNumbers = [
+          ...repoPRs.map((p) => p.number),
+          ...repoIssues.map((i) => i.number),
+        ];
+        const reviewEntries = await Promise.all(
+          allNumbers.map(async (n) => {
+            const r = await fetchPRReview(found.owner, found.name, n);
+            return [n, r] as [number, IPRReview | null];
+          }),
+        );
+        setReviews(new Map(reviewEntries));
       } catch (err: unknown) {
         setError(err instanceof Error ? err.message : 'Failed to load repository');
       } finally {
@@ -180,6 +219,17 @@ export default function RepositoryDetailsPage({ params }: { params: { repoId: st
       setRepo(updatedRepo);
       setPrs(repoPRs);
       setIssues(repoIssues);
+      const allNumbers = [
+        ...repoPRs.map((p) => p.number),
+        ...repoIssues.map((i) => i.number),
+      ];
+      const reviewEntries = await Promise.all(
+        allNumbers.map(async (n) => {
+          const r = await fetchPRReview(updatedRepo.owner, updatedRepo.name, n);
+          return [n, r] as [number, IPRReview | null];
+        }),
+      );
+      setReviews(new Map(reviewEntries));
     } catch (err) {
       console.error('Sync failed:', err);
     } finally {
@@ -229,14 +279,21 @@ export default function RepositoryDetailsPage({ params }: { params: { repoId: st
                 <span className="text-[#e8e8e8]">{repo.name}</span>
               </h1>
               <div className="flex items-center gap-2">
-                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full border text-[11px] font-medium"
-                  style={{ background: 'rgba(249,115,22,0.08)', borderColor: 'rgba(249,115,22,0.2)', color: '#f8423b' }}>
-                  <span className="relative flex h-1.5 w-1.5 mr-0.5">
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full opacity-75" style={{ background: '#f8423b' }} />
-                    <span className="relative inline-flex rounded-full h-1.5 w-1.5" style={{ background: '#f8423b' }} />
+                {repo.isInstalled ? (
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full border text-[11px] font-medium"
+                    style={{ background: 'rgba(249,115,22,0.08)', borderColor: 'rgba(249,115,22,0.2)', color: '#f8423b' }}>
+                    <span className="relative flex h-1.5 w-1.5 mr-0.5">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full opacity-75" style={{ background: '#f8423b' }} />
+                      <span className="relative inline-flex rounded-full h-1.5 w-1.5" style={{ background: '#f8423b' }} />
+                    </span>
+                    Kang AI Active
                   </span>
-                  Kang AI Active
-                </span>
+                ) : (
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full border text-[11px] font-medium"
+                    style={{ background: 'rgba(113,113,122,0.08)', borderColor: 'rgba(113,113,122,0.2)', color: '#71717a' }}>
+                    App not installed
+                  </span>
+                )}
                 {repo.private ? (
                   <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full border text-[11px] text-[#71717a] border-[#3f3f46] bg-[#27272a]">
                     <Lock size={10} /> Private
@@ -379,7 +436,7 @@ export default function RepositoryDetailsPage({ params }: { params: { repoId: st
                         <span className={`text-[10px] font-black ${status === 'draft' ? 'text-[#6d6d6d]' : 'text-white'}`}>K</span>
                       </div>
                       <span className={`text-[13px] font-bold ${status === 'draft' ? 'text-[#6d6d6d]' : 'text-[#e8e8e8]'}`}>KangBot</span>
-                      <KangBotBadge status={status} />
+                      <KangBotBadge review={reviews.get(pr.number)} isOpen={status === 'open' || status === 'draft'} />
                     </div>
                     <div className="flex items-center gap-1.5 text-[12px] text-[#52525b] group-hover:text-[#f8423b] transition-colors">
                       View AI Analysis <ChevronRight size={13} />
@@ -471,7 +528,7 @@ export default function RepositoryDetailsPage({ params }: { params: { repoId: st
                         <span className={`text-[10px] font-black ${isOpen ? 'text-white' : 'text-[#6d6d6d]'}`}>K</span>
                       </div>
                       <span className={`text-[13px] font-bold ${isOpen ? 'text-[#e8e8e8]' : 'text-[#6d6d6d]'}`}>KangBot</span>
-                      <KangBotBadge status={isOpen ? 'open' : 'closed'} type="issue" />
+                      <KangBotBadge review={reviews.get(issue.number)} isOpen={isOpen} />
                     </div>
                     <div className="flex items-center gap-1.5 text-[12px] text-[#52525b] group-hover:text-[#f8423b] transition-colors">
                       View AI Analysis <ChevronRight size={13} />

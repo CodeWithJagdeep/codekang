@@ -48,6 +48,8 @@ const envSchema = z.object({
   // VECTOR
   EMBEDDING_PROVIDER: z.string(),
   OLLAMA_URL: z.string().url().default('http://localhost:11434'),
+  // nomic-embed-text is tuned for code; nomic-embed-text-v1.5 is the latest (768d, matryoshka)
+  OLLAMA_EMBED_MODEL: z.string().default('nomic-embed-text'),
   VECTOR_SEARCH_LIMIT: z.coerce.number(),
   VECTOR_SIMILARITY_THRESHOLD: z.coerce.number(),
 
@@ -63,6 +65,7 @@ const envSchema = z.object({
   TEMP_REPOS_DIR: z.string(),
   SCREENSHOTS_DIR: z.string(),
   CACHE_DIR: z.string(),
+  LANCE_DB_PATH: z.string().default('/data/lancedb'),
   CLEANUP_TEMP_FILES_AFTER_DAYS: z.coerce.number(),
 
   // LOGGING

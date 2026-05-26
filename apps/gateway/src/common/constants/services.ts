@@ -27,6 +27,7 @@ export const MESSAGE_PATTERNS = {
   AUTH_UPDATE_PROFILE: 'auth.update_profile',
   AUTH_ARCHIVE_ACCOUNT: 'auth.archive_account',
   AUTH_DELETE_ACCOUNT: 'auth.delete_account',
+  AUTH_GET_GITHUB_TOKEN: 'auth.get_github_token',
 
   // AI Agent
   AGENT_CREATE_CONVERSATION: 'agent.create_conversation',

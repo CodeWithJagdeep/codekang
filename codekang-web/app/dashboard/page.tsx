@@ -29,6 +29,7 @@ function toDisplayRepo(r: IRepository, counts: { prs: number; issues: number }):
     issues: counts.issues,
     status: 'idle',
     branch: r.defaultBranch,
+    isInstalled: r.isInstalled,
   };
 }
 
@@ -179,6 +180,7 @@ export default function DashboardPage() {
         onSelectRepo={handleSelectRepo}
         onRemoveRepo={handleRemoveRepo}
         onLinkAccount={() => router.push('/onboarding')}
+        onSync={() => window.location.reload()}
       />
 
       {needsInstallation && (

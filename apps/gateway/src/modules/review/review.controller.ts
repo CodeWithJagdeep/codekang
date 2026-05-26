@@ -13,9 +13,19 @@ import {
 } from '@nestjs/common';
 import { ClientProxy } from '@nestjs/microservices';
 import { ConfigService } from '@nestjs/config';
-import { ApiTags, ApiBearerAuth, ApiOperation, ApiQuery } from '@nestjs/swagger';
+import {
+  ApiTags,
+  ApiBearerAuth,
+  ApiOperation,
+  ApiQuery,
+} from '@nestjs/swagger';
 import { firstValueFrom } from 'rxjs';
-import { JwtAuthGuard, CurrentUser, SERVICES, MESSAGE_PATTERNS } from '../../common';
+import {
+  JwtAuthGuard,
+  CurrentUser,
+  SERVICES,
+  MESSAGE_PATTERNS,
+} from '../../common';
 import type { IUser } from '../../common';
 
 @ApiTags('review')
@@ -33,29 +43,37 @@ export class ReviewProxyController {
   }
 
   @Get('stats')
-  @ApiOperation({ summary: 'Get aggregated review analytics for the user\'s connected repos' })
+  @ApiOperation({
+    summary: "Get aggregated review analytics for the user's connected repos",
+  })
   @ApiQuery({ name: 'days', enum: ['7', '30', '90', '0'], required: false })
-  async getStats(
-    @CurrentUser() user: IUser,
-    @Query('days') days?: string,
-  ) {
+  async getStats(@CurrentUser() user: IUser, @Query('days') days?: string) {
     // Fetch user's connected repos so we only show their own data
     const repos = await firstValueFrom<Array<{ owner: string; name: string }>>(
-      this.reposClient.send(MESSAGE_PATTERNS.REPOS_LIST_CONNECTED, { userId: user.id }),
+      this.reposClient.send(MESSAGE_PATTERNS.REPOS_LIST_CONNECTED, {
+        userId: user.id,
+      }),
     ).catch(() => [] as Array<{ owner: string; name: string }>);
 
     if (!repos || repos.length === 0) {
       return {
-        totals:  { reviews: 0, bugs: 0, fixed: 0, approved: 0, requestChanges: 0, commented: 0 },
-        prev:    { reviews: 0, bugs: 0, fixed: 0 },
-        daily:   [],
-        byRepo:  [],
-        recent:  [],
+        totals: {
+          reviews: 0,
+          bugs: 0,
+          fixed: 0,
+          approved: 0,
+          requestChanges: 0,
+          commented: 0,
+        },
+        prev: { reviews: 0, bugs: 0, fixed: 0 },
+        daily: [],
+        byRepo: [],
+        recent: [],
       };
     }
 
     const reposParam = repos.map((r) => `${r.owner}/${r.name}`).join(',');
-    const daysParam  = days ?? '30';
+    const daysParam = days ?? '30';
 
     const res = await fetch(
       `${this.aiUrl}/review/stats?repos=${encodeURIComponent(reposParam)}&days=${daysParam}`,
@@ -63,11 +81,18 @@ export class ReviewProxyController {
 
     if (!res || !res.ok) {
       return {
-        totals:  { reviews: 0, bugs: 0, fixed: 0, approved: 0, requestChanges: 0, commented: 0 },
-        prev:    { reviews: 0, bugs: 0, fixed: 0 },
-        daily:   [],
-        byRepo:  [],
-        recent:  [],
+        totals: {
+          reviews: 0,
+          bugs: 0,
+          fixed: 0,
+          approved: 0,
+          requestChanges: 0,
+          commented: 0,
+        },
+        prev: { reviews: 0, bugs: 0, fixed: 0 },
+        daily: [],
+        byRepo: [],
+        recent: [],
       };
     }
     return res.json();
@@ -86,13 +111,16 @@ export class ReviewProxyController {
     ).catch(() => null);
 
     if (!res) throw new InternalServerErrorException('AI service unreachable');
-    if (res.status === 404) throw new NotFoundException('No review found for this PR');
+    if (res.status === 404)
+      throw new NotFoundException('No review found for this PR');
     if (!res.ok) throw new InternalServerErrorException('AI service error');
     return res.json();
   }
 
   @Post(':owner/:repo/:prNumber/fix')
-  @ApiOperation({ summary: 'Trigger agent to fix issues found in the AI review' })
+  @ApiOperation({
+    summary: 'Trigger agent to fix issues found in the AI review',
+  })
   async triggerFix(
     @CurrentUser() user: IUser,
     @Param('owner') owner: string,
@@ -110,7 +138,8 @@ export class ReviewProxyController {
     ).catch(() => null);
 
     if (!res) throw new InternalServerErrorException('AI service unreachable');
-    if (res.status === 404) throw new NotFoundException('No review found for this PR');
+    if (res.status === 404)
+      throw new NotFoundException('No review found for this PR');
     if (res.status === 400) {
       const err = (await res.json()) as { error: string };
       throw new BadRequestException(err.error);

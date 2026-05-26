@@ -59,7 +59,7 @@ export class AgentService {
       issueTitle: opts.issueTitle,
       context: opts.context,
     });
-    return this.convRepo.save(conv) as unknown as IConversation;
+    return this.convRepo.save(conv);
   }
 
   async getConversations(userId: string): Promise<IConversation[]> {
@@ -78,13 +78,13 @@ export class AgentService {
         'createdAt',
         'updatedAt',
       ],
-    }) as unknown as IConversation[];
+    });
   }
 
   async getConversation(id: string, userId: string): Promise<IConversation> {
     const conv = await this.convRepo.findOne({ where: { id, userId } });
     if (!conv) throw new NotFoundException('Conversation not found');
-    return conv as unknown as IConversation;
+    return conv;
   }
 
   async deleteConversation(id: string, userId: string): Promise<void> {
@@ -167,7 +167,7 @@ export class AgentService {
       }),
     );
 
-    return conv as unknown as IConversation;
+    return conv;
   }
 
   async fixIssue(opts: FixIssueOpts): Promise<IConversation> {
@@ -238,7 +238,7 @@ export class AgentService {
       }),
     );
 
-    return conv as unknown as IConversation;
+    return conv;
   }
 
   async getUsage(userId: string): Promise<{

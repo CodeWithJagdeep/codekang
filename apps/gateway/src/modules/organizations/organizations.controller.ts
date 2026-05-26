@@ -14,9 +14,22 @@ import {
 } from '@nestjs/common';
 import { ClientProxy } from '@nestjs/microservices';
 import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
-import { IsString, IsNotEmpty, IsOptional, IsBoolean, Matches, MaxLength } from 'class-validator';
+import {
+  IsString,
+  IsNotEmpty,
+  IsOptional,
+  IsBoolean,
+  Matches,
+  MaxLength,
+} from 'class-validator';
 import { firstValueFrom } from 'rxjs';
-import { SERVICES, MESSAGE_PATTERNS, CurrentUser, JwtAuthGuard, PLANS } from '../../common';
+import {
+  SERVICES,
+  MESSAGE_PATTERNS,
+  CurrentUser,
+  JwtAuthGuard,
+  PLANS,
+} from '../../common';
 import type { IUser } from '../../common';
 
 class CreateOrgDto {
@@ -27,7 +40,9 @@ class CreateOrgDto {
 
   @IsString()
   @IsNotEmpty()
-  @Matches(/^[a-z0-9-]+$/, { message: 'Slug must be lowercase letters, numbers, and hyphens only' })
+  @Matches(/^[a-z0-9-]+$/, {
+    message: 'Slug must be lowercase letters, numbers, and hyphens only',
+  })
   @MaxLength(50)
   slug: string;
 
@@ -96,7 +111,9 @@ export class OrganizationsProxyController {
   ) {}
 
   @Post('ensure-default')
-  @ApiOperation({ summary: 'Ensure personal org exists; creates it from first name if not' })
+  @ApiOperation({
+    summary: 'Ensure personal org exists; creates it from first name if not',
+  })
   ensureDefault(@CurrentUser() user: IUser) {
     const firstName = user.name.split(' ')[0];
     return firstValueFrom(
@@ -132,7 +149,10 @@ export class OrganizationsProxyController {
   @ApiOperation({ summary: 'Get organization details' })
   getOne(@CurrentUser() user: IUser, @Param('orgId') orgId: string) {
     return firstValueFrom(
-      this.reposClient.send(MESSAGE_PATTERNS.ORG_GET_ONE, { orgId, userId: user.id }),
+      this.reposClient.send(MESSAGE_PATTERNS.ORG_GET_ONE, {
+        orgId,
+        userId: user.id,
+      }),
     );
   }
 
@@ -157,15 +177,23 @@ export class OrganizationsProxyController {
   @ApiOperation({ summary: 'Delete organization (owner only)' })
   delete(@CurrentUser() user: IUser, @Param('orgId') orgId: string) {
     return firstValueFrom(
-      this.reposClient.send(MESSAGE_PATTERNS.ORG_DELETE, { orgId, userId: user.id }),
+      this.reposClient.send(MESSAGE_PATTERNS.ORG_DELETE, {
+        orgId,
+        userId: user.id,
+      }),
     );
   }
 
   @Patch(':orgId/archive')
-  @ApiOperation({ summary: 'Toggle archive state of organization (owner only)' })
+  @ApiOperation({
+    summary: 'Toggle archive state of organization (owner only)',
+  })
   archive(@CurrentUser() user: IUser, @Param('orgId') orgId: string) {
     return firstValueFrom(
-      this.reposClient.send(MESSAGE_PATTERNS.ORG_ARCHIVE, { orgId, userId: user.id }),
+      this.reposClient.send(MESSAGE_PATTERNS.ORG_ARCHIVE, {
+        orgId,
+        userId: user.id,
+      }),
     );
   }
 
@@ -175,7 +203,10 @@ export class OrganizationsProxyController {
   @ApiOperation({ summary: 'List repositories in organization' })
   listRepos(@CurrentUser() user: IUser, @Param('orgId') orgId: string) {
     return firstValueFrom(
-      this.reposClient.send(MESSAGE_PATTERNS.ORG_LIST_REPOS, { orgId, userId: user.id }),
+      this.reposClient.send(MESSAGE_PATTERNS.ORG_LIST_REPOS, {
+        orgId,
+        userId: user.id,
+      }),
     );
   }
 
@@ -183,7 +214,10 @@ export class OrganizationsProxyController {
   @ApiOperation({ summary: 'List members in organization' })
   listMembers(@CurrentUser() user: IUser, @Param('orgId') orgId: string) {
     return firstValueFrom(
-      this.reposClient.send(MESSAGE_PATTERNS.ORG_LIST_MEMBERS, { orgId, userId: user.id }),
+      this.reposClient.send(MESSAGE_PATTERNS.ORG_LIST_MEMBERS, {
+        orgId,
+        userId: user.id,
+      }),
     );
   }
 
@@ -251,8 +285,11 @@ export class OrganizationsProxyController {
     const maxRepos = PLANS[user.plan]?.features.maxPrivateRepos ?? 5;
     if (maxRepos !== -1) {
       const currentRepos = await firstValueFrom(
-        this.reposClient.send(MESSAGE_PATTERNS.ORG_LIST_REPOS, { orgId, userId: user.id }),
-      ) as unknown[];
+        this.reposClient.send(MESSAGE_PATTERNS.ORG_LIST_REPOS, {
+          orgId,
+          userId: user.id,
+        }),
+      );
       if (currentRepos.length >= maxRepos) {
         const planName = PLANS[user.plan]?.name ?? 'current';
         throw new ForbiddenException(

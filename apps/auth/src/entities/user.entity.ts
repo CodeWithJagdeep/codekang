@@ -37,29 +37,53 @@ export class User {
   @Column({ name: 'github_username', nullable: true })
   githubUsername: string;
 
-  @Column({ name: 'github_access_token', nullable: true, type: 'text', select: false })
+  @Column({
+    name: 'github_access_token',
+    nullable: true,
+    type: 'text',
+    select: false,
+  })
   githubAccessToken: string;
 
   // ─── GitLab ───────────────────────────────────────────────────────────────
   @Column({ name: 'gitlab_username', nullable: true })
   gitlabUsername: string;
 
-  @Column({ name: 'gitlab_access_token', nullable: true, type: 'text', select: false })
+  @Column({
+    name: 'gitlab_access_token',
+    nullable: true,
+    type: 'text',
+    select: false,
+  })
   gitlabAccessToken: string;
 
   // ─── Bitbucket ────────────────────────────────────────────────────────────
   @Column({ name: 'bitbucket_username', nullable: true })
   bitbucketUsername: string;
 
-  @Column({ name: 'bitbucket_access_token', nullable: true, type: 'text', select: false })
+  @Column({
+    name: 'bitbucket_access_token',
+    nullable: true,
+    type: 'text',
+    select: false,
+  })
   bitbucketAccessToken: string;
 
   // ─── Auth ─────────────────────────────────────────────────────────────────
-  @Column({ name: 'refresh_token', nullable: true, type: 'text', select: false })
+  @Column({
+    name: 'refresh_token',
+    nullable: true,
+    type: 'text',
+    select: false,
+  })
   refreshToken: string;
 
   // ─── Plan & credits ───────────────────────────────────────────────────────
-  @Column({ type: 'varchar', default: 'free', enum: ['free', 'starter', 'pro', 'team', 'enterprise'] })
+  @Column({
+    type: 'varchar',
+    default: 'free',
+    enum: ['free', 'starter', 'pro', 'team', 'enterprise'],
+  })
   plan: PlanTier;
 
   @Column({ name: 'razorpay_subscription_id', nullable: true, type: 'varchar' })

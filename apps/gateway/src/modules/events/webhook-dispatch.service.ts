@@ -42,11 +42,16 @@ export class WebhookDispatchService {
     );
   }
 
-  async test(userId: string, provider: string): Promise<{ ok: boolean; error?: string }> {
+  async test(
+    userId: string,
+    provider: string,
+  ): Promise<{ ok: boolean; error?: string }> {
     const integrations = await this.getUserIntegrations(userId);
     const integration = integrations.find((i) => i.provider === provider);
-    if (!integration) return { ok: false, error: 'Integration not found or not connected' };
-    if (integration.status !== 'connected') return { ok: false, error: 'Integration is disabled' };
+    if (!integration)
+      return { ok: false, error: 'Integration not found or not connected' };
+    if (integration.status !== 'connected')
+      return { ok: false, error: 'Integration is disabled' };
 
     const testJob: AgentJobEvent = {
       jobId: 'test-job',
@@ -64,13 +69,19 @@ export class WebhookDispatchService {
     }
   }
 
-  private async getUserIntegrations(userId: string): Promise<StoredIntegration[]> {
+  private async getUserIntegrations(
+    userId: string,
+  ): Promise<StoredIntegration[]> {
     return firstValueFrom<StoredIntegration[]>(
       this.authClient.send('integration.list', { userId }),
     ).catch((): StoredIntegration[] => []);
   }
 
-  private dispatchOne(integration: StoredIntegration, job: AgentJobEvent, isTest = false): Promise<void> {
+  private dispatchOne(
+    integration: StoredIntegration,
+    job: AgentJobEvent,
+    isTest = false,
+  ): Promise<void> {
     switch (integration.provider) {
       case 'slack':
         if (integration.config.webhook_url) {
@@ -84,7 +95,10 @@ export class WebhookDispatchService {
         break;
       case 'linear':
         // supports both OAuth access_token and legacy api_key
-        if ((integration.config.access_token || integration.config.api_key) && integration.config.team_id) {
+        if (
+          (integration.config.access_token || integration.config.api_key) &&
+          integration.config.team_id
+        ) {
           const key = integration.config.access_token
             ? `Bearer ${integration.config.access_token}`
             : integration.config.api_key;
@@ -94,33 +108,63 @@ export class WebhookDispatchService {
       case 'jira':
         // supports both OAuth (access_token + cloud_id) and legacy (domain + email + api_token)
         if (integration.config.access_token && integration.config.cloud_id) {
-          return this.sendJiraOAuth(integration.config.access_token, integration.config.cloud_id, integration.config.project_key, job, isTest);
+          return this.sendJiraOAuth(
+            integration.config.access_token,
+            integration.config.cloud_id,
+            integration.config.project_key,
+            job,
+            isTest,
+          );
         }
-        if (integration.config.domain && integration.config.email && integration.config.api_token && integration.config.project_key) {
+        if (
+          integration.config.domain &&
+          integration.config.email &&
+          integration.config.api_token &&
+          integration.config.project_key
+        ) {
           return this.sendJira(integration.config, job, isTest);
         }
         break;
       case 'notion':
         // supports both OAuth access_token and legacy token
-        if ((integration.config.access_token || integration.config.token) && integration.config.database_id) {
-          const token = integration.config.access_token ?? integration.config.token;
-          return this.sendNotion(token, integration.config.database_id, job, isTest);
+        if (
+          (integration.config.access_token || integration.config.token) &&
+          integration.config.database_id
+        ) {
+          const token =
+            integration.config.access_token ?? integration.config.token;
+          return this.sendNotion(
+            token,
+            integration.config.database_id,
+            job,
+            isTest,
+          );
         }
         break;
       case 'vercel':
-        if (integration.config.deploy_hook_url && (job.status === 'completed' || isTest)) {
-          return this.triggerVercelDeploy(integration.config.deploy_hook_url, isTest);
+        if (
+          integration.config.deploy_hook_url &&
+          (job.status === 'completed' || isTest)
+        ) {
+          return this.triggerVercelDeploy(
+            integration.config.deploy_hook_url,
+            isTest,
+          );
         }
         break;
     }
     return Promise.resolve();
   }
 
-  private async sendSlack(url: string, job: AgentJobEvent, isTest = false): Promise<void> {
+  private async sendSlack(
+    url: string,
+    job: AgentJobEvent,
+    isTest = false,
+  ): Promise<void> {
     const ok = job.status === 'completed';
     const title = job.issueTitle ?? `Issue #${job.issueNumber ?? '?'}`;
     const text = isTest
-      ? '✅ *CodeKang* is connected to Slack! You\'ll receive notifications here when AI fixes complete.'
+      ? "✅ *CodeKang* is connected to Slack! You'll receive notifications here when AI fixes complete."
       : ok
         ? `✅ CodeKang fixed *${title}* in \`${job.repo ?? 'unknown'}\`${job.prUrl ? ` — <${job.prUrl}|View PR>` : ''}`
         : `❌ CodeKang failed to fix *${title}* in \`${job.repo ?? 'unknown'}\``;
@@ -133,16 +177,22 @@ export class WebhookDispatchService {
       });
       if (!res.ok) throw new Error(`Slack responded ${res.status}`);
     } catch (err) {
-      this.logger.warn('Slack dispatch failed', { error: (err as Error).message });
+      this.logger.warn('Slack dispatch failed', {
+        error: (err as Error).message,
+      });
       if (isTest) throw err;
     }
   }
 
-  private async sendDiscord(url: string, job: AgentJobEvent, isTest = false): Promise<void> {
+  private async sendDiscord(
+    url: string,
+    job: AgentJobEvent,
+    isTest = false,
+  ): Promise<void> {
     const ok = job.status === 'completed';
     const title = job.issueTitle ?? `Issue #${job.issueNumber ?? '?'}`;
     const content = isTest
-      ? '✅ **CodeKang** is connected to Discord! You\'ll receive notifications here when AI fixes complete.'
+      ? "✅ **CodeKang** is connected to Discord! You'll receive notifications here when AI fixes complete."
       : ok
         ? `✅ **CodeKang** fixed **${title}** in \`${job.repo ?? 'unknown'}\`${job.prUrl ? `\n🔗 ${job.prUrl}` : ''}`
         : `❌ **CodeKang** failed to fix **${title}** in \`${job.repo ?? 'unknown'}\``;
@@ -155,12 +205,19 @@ export class WebhookDispatchService {
       });
       if (!res.ok) throw new Error(`Discord responded ${res.status}`);
     } catch (err) {
-      this.logger.warn('Discord dispatch failed', { error: (err as Error).message });
+      this.logger.warn('Discord dispatch failed', {
+        error: (err as Error).message,
+      });
       if (isTest) throw err;
     }
   }
 
-  private async sendLinear(apiKey: string, teamId: string, job: AgentJobEvent, isTest = false): Promise<void> {
+  private async sendLinear(
+    apiKey: string,
+    teamId: string,
+    job: AgentJobEvent,
+    isTest = false,
+  ): Promise<void> {
     const title = isTest
       ? '[CodeKang] Connection test — integration is working'
       : `[CodeKang] Fixed: ${job.issueTitle ?? `Issue #${job.issueNumber}`}`;
@@ -184,18 +241,29 @@ export class WebhookDispatchService {
           'Content-Type': 'application/json',
           Authorization: apiKey,
         },
-        body: JSON.stringify({ query, variables: { teamId, title, description } }),
+        body: JSON.stringify({
+          query,
+          variables: { teamId, title, description },
+        }),
       });
       if (!res.ok) throw new Error(`Linear responded ${res.status}`);
       const json = (await res.json()) as { errors?: { message: string }[] };
       if (json.errors?.length) throw new Error(json.errors[0].message);
     } catch (err) {
-      this.logger.warn('Linear dispatch failed', { error: (err as Error).message });
+      this.logger.warn('Linear dispatch failed', {
+        error: (err as Error).message,
+      });
       if (isTest) throw err;
     }
   }
 
-  private async sendJiraOAuth(accessToken: string, cloudId: string, projectKey: string, job: AgentJobEvent, isTest = false): Promise<void> {
+  private async sendJiraOAuth(
+    accessToken: string,
+    cloudId: string,
+    projectKey: string,
+    job: AgentJobEvent,
+    isTest = false,
+  ): Promise<void> {
     const summary = isTest
       ? '[CodeKang] Connection test — integration is working'
       : `[CodeKang] Fixed: ${job.issueTitle ?? `Issue #${job.issueNumber}`}`;
@@ -204,32 +272,47 @@ export class WebhookDispatchService {
       : `CodeKang automatically fixed this issue in ${job.repo ?? 'unknown'}.${job.prUrl ? ` PR: ${job.prUrl}` : ''}`;
 
     try {
-      const res = await fetch(`https://api.atlassian.com/ex/jira/${cloudId}/rest/api/3/issue`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${accessToken}`,
-        },
-        body: JSON.stringify({
-          fields: {
-            project: { key: projectKey },
-            summary,
-            description: {
-              version: 1, type: 'doc',
-              content: [{ type: 'paragraph', content: [{ type: 'text', text: bodyText }] }],
-            },
-            issuetype: { name: 'Task' },
+      const res = await fetch(
+        `https://api.atlassian.com/ex/jira/${cloudId}/rest/api/3/issue`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${accessToken}`,
           },
-        }),
-      });
+          body: JSON.stringify({
+            fields: {
+              project: { key: projectKey },
+              summary,
+              description: {
+                version: 1,
+                type: 'doc',
+                content: [
+                  {
+                    type: 'paragraph',
+                    content: [{ type: 'text', text: bodyText }],
+                  },
+                ],
+              },
+              issuetype: { name: 'Task' },
+            },
+          }),
+        },
+      );
       if (!res.ok) throw new Error(`Jira responded ${res.status}`);
     } catch (err) {
-      this.logger.warn('Jira OAuth dispatch failed', { error: (err as Error).message });
+      this.logger.warn('Jira OAuth dispatch failed', {
+        error: (err as Error).message,
+      });
       if (isTest) throw err;
     }
   }
 
-  private async sendJira(config: Record<string, string>, job: AgentJobEvent, isTest = false): Promise<void> {
+  private async sendJira(
+    config: Record<string, string>,
+    job: AgentJobEvent,
+    isTest = false,
+  ): Promise<void> {
     const { domain, email, api_token, project_key } = config;
     const base64 = Buffer.from(`${email}:${api_token}`).toString('base64');
     const summary = isTest
@@ -253,7 +336,12 @@ export class WebhookDispatchService {
             description: {
               version: 1,
               type: 'doc',
-              content: [{ type: 'paragraph', content: [{ type: 'text', text: bodyText }] }],
+              content: [
+                {
+                  type: 'paragraph',
+                  content: [{ type: 'text', text: bodyText }],
+                },
+              ],
             },
             issuetype: { name: 'Task' },
           },
@@ -264,12 +352,19 @@ export class WebhookDispatchService {
         throw new Error(`Jira responded ${res.status}: ${errBody}`);
       }
     } catch (err) {
-      this.logger.warn('Jira dispatch failed', { error: (err as Error).message });
+      this.logger.warn('Jira dispatch failed', {
+        error: (err as Error).message,
+      });
       if (isTest) throw err;
     }
   }
 
-  private async sendNotion(token: string, databaseId: string, job: AgentJobEvent, isTest = false): Promise<void> {
+  private async sendNotion(
+    token: string,
+    databaseId: string,
+    job: AgentJobEvent,
+    isTest = false,
+  ): Promise<void> {
     const pageTitle = isTest
       ? 'CodeKang — Connection test'
       : `[CodeKang Fix] ${job.issueTitle ?? `Issue #${job.issueNumber}`}`;
@@ -304,17 +399,24 @@ export class WebhookDispatchService {
         throw new Error(`Notion responded ${res.status}: ${errBody}`);
       }
     } catch (err) {
-      this.logger.warn('Notion dispatch failed', { error: (err as Error).message });
+      this.logger.warn('Notion dispatch failed', {
+        error: (err as Error).message,
+      });
       if (isTest) throw err;
     }
   }
 
-  private async triggerVercelDeploy(deployHookUrl: string, isTest = false): Promise<void> {
+  private async triggerVercelDeploy(
+    deployHookUrl: string,
+    isTest = false,
+  ): Promise<void> {
     try {
       const res = await fetch(deployHookUrl, { method: 'POST' });
       if (!res.ok) throw new Error(`Vercel responded ${res.status}`);
     } catch (err) {
-      this.logger.warn('Vercel deploy trigger failed', { error: (err as Error).message });
+      this.logger.warn('Vercel deploy trigger failed', {
+        error: (err as Error).message,
+      });
       if (isTest) throw err;
     }
   }

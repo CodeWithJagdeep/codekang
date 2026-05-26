@@ -21,7 +21,12 @@ import {
   IsIn,
 } from 'class-validator';
 import { firstValueFrom } from 'rxjs';
-import { SERVICES, MESSAGE_PATTERNS, CurrentUser, JwtAuthGuard } from '../../common';
+import {
+  SERVICES,
+  MESSAGE_PATTERNS,
+  CurrentUser,
+  JwtAuthGuard,
+} from '../../common';
 import type { IUser } from '../../common';
 import { WebhookDispatchService } from '../events/webhook-dispatch.service';
 import { IntegrationValidationService } from './integration-validation.service';
@@ -59,7 +64,9 @@ export class IntegrationsProxyController {
   @ApiOperation({ summary: 'List all integrations for the authenticated user' })
   list(@CurrentUser() user: IUser) {
     return firstValueFrom(
-      this.authClient.send(MESSAGE_PATTERNS.INTEGRATION_LIST, { userId: user.id }),
+      this.authClient.send(MESSAGE_PATTERNS.INTEGRATION_LIST, {
+        userId: user.id,
+      }),
     );
   }
 
@@ -83,10 +90,7 @@ export class IntegrationsProxyController {
   @Delete(':provider')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Disconnect an integration' })
-  disconnect(
-    @CurrentUser() user: IUser,
-    @Param('provider') provider: string,
-  ) {
+  disconnect(@CurrentUser() user: IUser, @Param('provider') provider: string) {
     return firstValueFrom(
       this.authClient.send(MESSAGE_PATTERNS.INTEGRATION_DISCONNECT, {
         userId: user.id,
@@ -129,7 +133,9 @@ export class IntegrationsProxyController {
 
   @Post(':provider/test')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Send a test payload to verify the integration works' })
+  @ApiOperation({
+    summary: 'Send a test payload to verify the integration works',
+  })
   async testIntegration(
     @CurrentUser() user: IUser,
     @Param('provider') provider: string,
